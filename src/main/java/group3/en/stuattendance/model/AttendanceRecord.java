@@ -1,6 +1,6 @@
 package group3.en.stuattendance.model;
 
-import com.attendance.system.model.enums.AttendanceStatus;
+import group3.en.stuattendance.model.enums.AttendanceStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

@@ -17,5 +17,3 @@ public enum AttendanceStatus {
     }
 }
 
-package com.attendance.system.model.enums;
-
