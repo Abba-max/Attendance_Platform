@@ -12,40 +12,32 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
-@Inheritance(strategy = InheritanceType.JOINED)
+@Table(name = "institutions")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
-public abstract class User {
+public class Institution {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Integer userId;
+    @Column(name = "institution_id")
+    private Integer institutionId;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String username;
+    @Column(nullable = false, length = 200)
+    private String name;
 
-    @Column(unique = true, length = 100)
-    private String email;
+    @Column(length = 500)
+    private String location;
 
+    @OneToMany(mappedBy = "institution", cascade = CascadeType.ALL)
     @JsonIgnore
-    @Column(nullable = false)
-    private String password;
+    private Set<User> users = new HashSet<>();
 
-    @Column(name = "is_active")
-    private Boolean isActive = true;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "institution_id")
+    @OneToMany(mappedBy = "institution", cascade = CascadeType.ALL)
     @JsonIgnore
-    private Institution institution;
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private Set<Notification> notifications = new HashSet<>();
+    private Set<Classroom> classrooms = new HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
