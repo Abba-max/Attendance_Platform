@@ -20,9 +20,6 @@ import java.util.Set;
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Teacher extends User {
 
-    @Column(name = "teacher_id")
-    private Integer teacherId;
-
     @Column(name = "join_code", unique = true, length = 20)
     private String joinCode;
 

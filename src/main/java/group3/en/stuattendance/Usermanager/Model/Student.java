@@ -27,9 +27,6 @@ public class Student extends User {
     @Column(name = "external_email", length = 100)
     private String externalEmail;
 
-    @Column(name = "student_id")
-    private Integer studentId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "classroom_id")
     @JsonIgnore

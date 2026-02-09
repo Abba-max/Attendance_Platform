@@ -11,7 +11,4 @@ import lombok.*;
 @AllArgsConstructor
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Admin extends User {
-
-    @Column(name = "admin_id")
-    private Integer adminId;
 }

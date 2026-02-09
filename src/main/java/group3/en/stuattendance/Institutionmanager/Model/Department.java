@@ -1,6 +1,7 @@
 package group3.en.stuattendance.Institutionmanager.Model;
 
 import group3.en.stuattendance.Usermanager.Model.User;
+import group3.en.stuattendance.Usermanager.Model.Pedagog;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -32,11 +33,16 @@ public class Department {
     @Column(length = 500)
     private String chief;
 
-    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id")
     @JsonIgnore
-    private Set<User> users = new HashSet<>();
+    private Institution institution;
 
-    @OneToMany(mappedBy = "institution", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "department")
+    @JsonIgnore
+    private Pedagog pedagog;
+
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
     @JsonIgnore
     private Set<Classroom> classrooms = new HashSet<>();
 

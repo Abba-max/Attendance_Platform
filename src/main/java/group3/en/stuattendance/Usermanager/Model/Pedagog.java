@@ -13,9 +13,7 @@ import lombok.*;
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Pedagog extends User {
 
-    @Column(name = "pedagog_id")
-    private Integer pedagogId;
-
-    @OneToOne(mappedBy = "pedagog")
+    @OneToOne
+    @JoinColumn(name = "department_id")
     private Department department;
 }

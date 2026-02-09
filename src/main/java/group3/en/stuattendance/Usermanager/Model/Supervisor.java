@@ -12,11 +12,4 @@ import lombok.*;
 @AllArgsConstructor
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Supervisor extends User {
-
-    @Column(name = "supervisor_id")
-    private Integer supervisorId;
-
-    @Column(name = "institution_id")
-    private Integer institution_id;
-
 }
