@@ -11,7 +11,7 @@ public class PedagogMapper {
     public PedagogDto toDto(Pedagog pedagog) {
         if (pedagog == null) return null;
         return PedagogDto.builder()
-                .pedagogId(pedagog.getPedagogId())
+                .userId(pedagog.getUserId())
                 .username(pedagog.getUsername())
                 .email(pedagog.getEmail())
                 .isActive(pedagog.getIsActive())
@@ -22,7 +22,7 @@ public class PedagogMapper {
     public Pedagog toEntity(PedagogDto dto, Institution institution) {
         if (dto == null) return null;
         Pedagog pedagog = new Pedagog();
-        pedagog.setPedagogId(dto.getPedagogId());
+        pedagog.setUserId(dto.getUserId());
         pedagog.setUsername(dto.getUsername());
         pedagog.setEmail(dto.getEmail());
         pedagog.setIsActive(dto.getIsActive());

@@ -9,7 +9,6 @@ import lombok.*;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
-@AllArgsConstructor
 @PrimaryKeyJoinColumn(name = "user_id")
 public class Supervisor extends User {
 }

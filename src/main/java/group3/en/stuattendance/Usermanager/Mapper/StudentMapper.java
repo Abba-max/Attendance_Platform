@@ -12,7 +12,7 @@ public class StudentMapper {
     public StudentDto toDto(Student student) {
         if (student == null) return null;
         return StudentDto.builder()
-                .studentId(student.getStudentId())
+                .userId(student.getUserId())
                 .username(student.getUsername())
                 .email(student.getEmail())
                 .isActive(student.getIsActive())
@@ -26,7 +26,7 @@ public class StudentMapper {
     public Student toEntity(StudentDto dto, Institution institution, Classroom classroom) {
         if (dto == null) return null;
         Student student = new Student();
-        student.setStudentId(dto.getStudentId());
+        student.setUserId(dto.getUserId());
         student.setUsername(dto.getUsername());
         student.setEmail(dto.getEmail());
         student.setIsActive(dto.getIsActive());

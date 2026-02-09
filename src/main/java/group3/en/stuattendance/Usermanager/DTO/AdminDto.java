@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdminDto {
 
-    private Integer adminId;
+    private Integer userId;
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 100, message = "Username must be between 3 and 100 characters")

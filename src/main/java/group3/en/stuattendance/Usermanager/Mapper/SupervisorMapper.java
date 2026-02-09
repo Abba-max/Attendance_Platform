@@ -11,7 +11,7 @@ public class SupervisorMapper {
     public SupervisorDto toDto(Supervisor supervisor) {
         if (supervisor == null) return null;
         return SupervisorDto.builder()
-                .supervisorId(supervisor.getSupervisorId())
+                .userId(supervisor.getUserId())
                 .username(supervisor.getUsername())
                 .email(supervisor.getEmail())
                 .isActive(supervisor.getIsActive())
@@ -22,7 +22,7 @@ public class SupervisorMapper {
     public Supervisor toEntity(SupervisorDto dto, Institution institution) {
         if (dto == null) return null;
         Supervisor supervisor = new Supervisor();
-        supervisor.setSupervisorId(dto.getSupervisorId());
+        supervisor.setUserId(dto.getUserId());
         supervisor.setUsername(dto.getUsername());
         supervisor.setEmail(dto.getEmail());
         supervisor.setIsActive(dto.getIsActive());

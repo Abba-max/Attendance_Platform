@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class TeacherDto {
 
-    private Integer teacherId;
+    private Integer userId;
 
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 100, message = "Username must be between 3 and 100 characters")

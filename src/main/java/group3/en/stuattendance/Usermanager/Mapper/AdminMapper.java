@@ -11,7 +11,7 @@ public class AdminMapper {
     public AdminDto toDto(Admin admin) {
         if (admin == null) return null;
         return AdminDto.builder()
-                .adminId(admin.getAdminId())
+                .userId(admin.getUserId())
                 .username(admin.getUsername())
                 .email(admin.getEmail())
                 .isActive(admin.getIsActive())
@@ -22,7 +22,7 @@ public class AdminMapper {
     public Admin toEntity(AdminDto dto, Institution institution) {
         if (dto == null) return null;
         Admin admin = new Admin();
-        admin.setAdminId(dto.getAdminId());
+        admin.setUserId(dto.getUserId());
         admin.setUsername(dto.getUsername());
         admin.setEmail(dto.getEmail());
         admin.setIsActive(dto.getIsActive());
