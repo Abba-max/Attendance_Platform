@@ -1,4 +1,4 @@
-package group3.en.stuattendance.dto;
+package group3.en.stuattendance.Institutionmanager.DTO;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
