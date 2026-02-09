@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Notificationmanager.Model;
 
+import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

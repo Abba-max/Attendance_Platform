@@ -1,5 +1,8 @@
 package group3.en.stuattendance.Usermanager.Model;
 
+import group3.en.stuattendance.Institutionmanager.Model.Institution;
+import group3.en.stuattendance.Notificationmanager.Model.Notification;
+import group3.en.stuattendance.Usermanager.Enum.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

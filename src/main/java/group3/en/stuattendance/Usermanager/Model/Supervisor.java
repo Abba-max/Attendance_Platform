@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Usermanager.Model;
 
+import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,5 +15,8 @@ public class Supervisor extends User {
 
     @Column(name = "supervisor_id")
     private Integer supervisorId;
+
+    @Column(name = "institution_id")
+    private Integer institution_id;
 
 }

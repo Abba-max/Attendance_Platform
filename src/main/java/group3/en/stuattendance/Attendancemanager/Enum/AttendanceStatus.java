@@ -1,6 +1,6 @@
 package group3.en.stuattendance.Attendancemanager.Enum;
 
-public enum Attendance {
+public enum AttendanceStatus {
     PRESENT,
     ABSENT,
 }

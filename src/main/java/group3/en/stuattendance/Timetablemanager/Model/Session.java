@@ -1,5 +1,8 @@
 package group3.en.stuattendance.Timetablemanager.Model;
 
+import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
+import group3.en.stuattendance.Institutionmanager.Model.Classroom;
+import group3.en.stuattendance.Usermanager.Model.Teacher;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;

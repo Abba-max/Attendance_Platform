@@ -1,6 +1,8 @@
 package group3.en.stuattendance.Justificationmanager.Model;
 
-import group3.en.stuattendance.model.enums.JustificationStatus;
+import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
+import group3.en.stuattendance.Usermanager.Model.Student;
+import group3.en.stuattendance.Justificationmanager.Enum.JustificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;

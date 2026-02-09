@@ -1,6 +1,9 @@
 package group3.en.stuattendance.Attendancemanager.Model;
 
-import group3.en.stuattendance.model.enums.AttendanceStatus;
+import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
+import group3.en.stuattendance.Justificationmanager.Model.Justification;
+import group3.en.stuattendance.Timetablemanager.Model.Session;
+import group3.en.stuattendance.Usermanager.Model.Student;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
