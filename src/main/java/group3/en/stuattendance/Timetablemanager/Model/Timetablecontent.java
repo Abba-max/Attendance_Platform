@@ -26,10 +26,10 @@ public class Timetablecontent {
 //    private  List<Course> courses;
 
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
     @JsonIgnore
-    private Session sessions;
+    private List<Session> sessions;
 
     @Column(length = 20)
     private String day;
