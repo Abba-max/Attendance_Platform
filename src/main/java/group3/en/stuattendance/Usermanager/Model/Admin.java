@@ -10,8 +10,8 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @PrimaryKeyJoinColumn(name = "user_id")
+public class Admin extends User {
 
-public class Admin {
     @Column(name = "admin_id")
-    private Integer Id;
+    private Integer adminId;
 }

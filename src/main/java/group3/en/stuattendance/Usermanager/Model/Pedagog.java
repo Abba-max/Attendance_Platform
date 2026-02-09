@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Usermanager.Model;
 
+import group3.en.stuattendance.Institutionmanager.Model.Department;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,4 +15,7 @@ public class Pedagog extends User {
 
     @Column(name = "pedagog_id")
     private Integer pedagogId;
+
+    @OneToOne(mappedBy = "pedagog")
+    private Department department;
 }

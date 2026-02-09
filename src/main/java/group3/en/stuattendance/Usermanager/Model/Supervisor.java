@@ -14,4 +14,5 @@ public class Supervisor extends User {
 
     @Column(name = "supervisor_id")
     private Integer supervisorId;
+
 }

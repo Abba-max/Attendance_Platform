@@ -28,14 +28,16 @@ public class Department {
     @Column(nullable = false, length = 200)
     private String name;
 
-    @Column(length = 500)
-    private String chief;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "institution_id")
+    @JsonIgnore
+    private Institution institution;
+
+    @OneToOne
+    @JoinColumn(name = "pedagog_id")
+    private Pedagog pedagog;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
-    @JsonIgnore
-    private Set<User> users = new HashSet<>();
-
-    @OneToMany(mappedBy = "institution", cascade = CascadeType.ALL)
     @JsonIgnore
     private Set<Classroom> classrooms = new HashSet<>();
 

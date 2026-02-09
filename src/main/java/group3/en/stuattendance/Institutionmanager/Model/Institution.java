@@ -28,6 +28,9 @@ public class Institution {
     @Column(nullable = false, length = 200)
     private String name;
 
+    @Column(length = 500)
+    private String location;
+
     @OneToMany(mappedBy = "institution", cascade = CascadeType.ALL)
     @JsonIgnore
     private Set<User> users = new HashSet<>();
