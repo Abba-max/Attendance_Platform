@@ -18,7 +18,7 @@ public class SecurityConfig {
                         .requestMatchers("/**").permitAll() // This allows access to ALL pages
                         .anyRequest().authenticated()
                 )
-                .formLogin(form -> form.disable()) // This removes the login page you saw
+                .formLogin(form -> form.disable()) // This removes SpringSecurity standard login page
                 .httpBasic(basic -> basic.disable());
 
         return http.build();
