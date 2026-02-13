@@ -38,6 +38,10 @@ public class Department {
     @JsonIgnore
     private Institution institution;
 
+    @ManyToOne
+    @JoinColumn(name = "cycle_id")
+    private Cycle cycle;
+
     @OneToOne(mappedBy = "department")
     @JsonIgnore
     private Pedagog pedagog;

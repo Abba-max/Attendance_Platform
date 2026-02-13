@@ -26,7 +26,7 @@ public class Classroom {
     private String name;
 
     @Column(length = 50)
-    private String level;
+    private Integer level;
 
     private Integer capacity;
 

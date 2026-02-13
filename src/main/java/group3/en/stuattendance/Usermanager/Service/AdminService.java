@@ -14,16 +14,35 @@ import java.util.List;
 import java.util.Map;
 
 public interface AdminService {
-    Admin registerAdmin(AdminDto dto);
-    Admin getAdminById(Integer adminId);
-    Admin getAdminByUserId(Integer userId);
-    Teacher registerTeacher(TeacherDto dto);
-    Supervisor registerSupervisor(SupervisorDto dto);
-    Institution registerInstitution(InstitutionDto dto);
-    List<Admin> getAllAdmins();
-//    void updateAdmin(Integer adminId, AdminDto dto);
-    List<User> getAllUsers();
-    Map<String, Object> getSystemStatistics();
-    void deleteUser(Integer userId);
+//    Admin registerAdmin(AdminDto dto);
+//    Admin getAdminById(Integer adminId);
+//    Admin getAdminByUserId(Integer userId);
+//    Teacher registerTeacher(TeacherDto dto);
+//    Supervisor registerSupervisor(SupervisorDto dto);
+//    Institution registerInstitution(InstitutionDto dto);
+//    List<Admin> getAllAdmins();
+////    void updateAdmin(Integer adminId, AdminDto dto);
+//    void resetPassword(Integer userID);
+//    void blockUser(Integer userID);
+//    List<User> getAllUsers();
+//    Map<String, Object> getSystemStatistics();
+//    void deleteUser(Integer userId);
+    User createUser(Integer UserId);
+    void modifyUser();
+    void deactivateUser();
+    void listUser();
+    void consultUser();
+    void createDepartment();
+    void createLevel();
+    void createClassroom();
+    void assignStaff();
+    //Handle all CRUD operations for Staff and Departments
+    // List roles and permissions attached to all roles
+    // Role: Supervisor, Pedagog, Admin
+    // The roles and permissions should be able to load automatically
+    // when the application loads
+    // Manage the operations related to the management of the Staff and Departments
+
+
 
 }
