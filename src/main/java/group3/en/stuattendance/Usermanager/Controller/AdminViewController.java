@@ -4,6 +4,7 @@ import group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto;
 import group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto;
 import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

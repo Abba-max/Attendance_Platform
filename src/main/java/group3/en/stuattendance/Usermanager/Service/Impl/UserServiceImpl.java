@@ -35,7 +35,28 @@ public class UserServiceImpl implements UserService {
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
-    public User registerStaff(group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
+    public User registerUser(UserDto dto) {
+        Institution institution = dto.getInstitutionId() != null ? 
+            institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
+        
+        Classroom studentClassroom = dto.getClassroomId() != null ? 
+            classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
+
+        Set<Role> roles = dto.getRoleIds() != null ? 
+            new java.util.HashSet<>(roleRepository.findAllById(dto.getRoleIds())) : new java.util.HashSet<>();
+
+        Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ? 
+            new java.util.HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new java.util.HashSet<>();
+
+        User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms);
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User registerStaff(StaffCreateDto dto) {
         Institution institution = dto.getInstitutionId() != null ?
             institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
 
