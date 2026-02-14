@@ -24,6 +24,7 @@ public class DataInitializer implements CommandLineRunner {
     @Transactional
     public void run(String... args) throws Exception {
         seedRoles();
+        seedPermissions();
     }
 
     private void seedRoles() {
@@ -33,6 +34,22 @@ public class DataInitializer implements CommandLineRunner {
                 roleRepository.save(Role.builder()
                         .name(roleName)
                         .description("Default role for " + roleName.toLowerCase())
+                        .build());
+            }
+        }
+    }
+
+    private void seedPermissions() {
+        String[] permissions = {
+            "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_INSTITUTIONS",
+            "RECORD_ATTENDANCE", "VIEW_REPORTS", "MANAGE_COURSES",
+            "SCAN_QR", "GENERATE_QR"
+        };
+        for (String permName : permissions) {
+            if (permissionRepository.findByName(permName).isEmpty()) {
+                permissionRepository.save(Permission.builder()
+                        .name(permName)
+                        .description("System permission to " + permName.toLowerCase().replace("_", " "))
                         .build());
             }
         }
