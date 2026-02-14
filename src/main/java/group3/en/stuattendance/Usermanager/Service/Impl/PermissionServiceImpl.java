@@ -43,4 +43,15 @@ public class PermissionServiceImpl implements PermissionService {
             });
         });
     }
+
+    @Override
+    public void removePermissionFromRole(String roleName, String permissionName) {
+        roleRepository.findByName(roleName).ifPresent(role -> {
+            permissionRepository.findByName(permissionName).ifPresent(permission -> {
+                role.getPermissions().remove(permission);
+                roleRepository.save(role);
+            });
+        });
+    }
+    
 }
