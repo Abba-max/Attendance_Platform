@@ -26,4 +26,11 @@ public class PermissionServiceImpl implements PermissionService {
     public List<Permission> getAllPermissions() {
         return permissionRepository.findAll();
     }
+
+    @Override
+    public Set<Permission> getPermissionsByRole(String roleName) {
+        return roleRepository.findByName(roleName)
+                .map(Role::getPermissions)
+                .orElse(new java.util.HashSet<>());
+    }
 }
