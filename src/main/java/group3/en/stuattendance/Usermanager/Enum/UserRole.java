@@ -1,6 +1,6 @@
 package group3.en.stuattendance.Usermanager.Enum;
 
-public enum UserRole {
+public enum   UserRole {
     ADMIN,
     TEACHER,
     STUDENT,
