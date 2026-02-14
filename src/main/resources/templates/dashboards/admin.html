@@ -1,64 +1,423 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Attendee</title>
+    <title>Attendee - Administrator Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-
-<body class="bg-slate-50 antialiased min-h-screen">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <header class="flex justify-between items-center mb-10 pb-6 border-b border-slate-200">
-            <div class="flex items-center space-x-4">
-                <div
-                    class="bg-indigo-600 text-white w-10 h-10 flex items-center justify-center rounded-lg font-bold text-xl shadow-lg">
-                    A</div>
-                <h1 class="text-2xl font-bold tracking-tight text-slate-900">Admin Panel</h1>
+<body class="bg-[#E3F2FD] font-sans">
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="bg-white w-80 flex-shrink-0 shadow-lg transition-all duration-300">
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg" alt="Attendee Logo" class="w-12 h-12 object-contain rounded-lg">
+                <span class="text-xl font-semibold text-gray-800">Attendee</span>
             </div>
-            <div class="flex items-center gap-4"></div>
+        </div>
+
+        <nav class="p-4">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#" class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl text-white bg-[#00B0FF] transition-all duration-200" data-section="dashboard">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                        </svg>
+                        <span class="font-medium">Dashboard Overview</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" data-section="institutions">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        <span class="font-medium">Manage Institutions</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" data-section="access">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <span class="font-medium">Manage Access</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" data-section="security">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="font-medium">Security & Statistics</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" data-section="audit">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <span class="font-medium">Audit Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-gray-100 transition-all duration-200" data-section="settings">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="font-medium">System Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+            <button id="collapseBtn" class="w-full flex items-center justify-center gap-2 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-all duration-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                <span>Collapse</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+        <!-- Header -->
+        <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-800">Attendee • Administrator Dashboard</h1>
+                    <p class="text-gray-600 mt-1" th:text="${adminName != null ? adminName : 'Administrator'} + ' • ' + ${institution != null ? institution : 'Institution'}">Administrator • Institution</p>
+                </div>
+                <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-2">
+                        <svg th:class="${databaseStatus == 'healthy' ? 'w-5 h-5 text-green-500' : 'w-5 h-5 text-red-500'}" class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-700">Database</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg th:class="${apiStatus == 'healthy' ? 'w-5 h-5 text-green-500' : 'w-5 h-5 text-red-500'}" class="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-700">API</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <svg th:class="${storageStatus == 'warning' ? 'w-5 h-5 text-yellow-500' : (storageStatus == 'healthy' ? 'w-5 h-5 text-green-500' : 'w-5 h-5 text-red-500')}" class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-700">Storage</span>
+                    </div>
+                    <div class="relative">
+                        <button class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            <span th:if="${notifications != null and notifications > 0}" class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+                        </button>
+                    </div>
+                    <button class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Institution Management -->
-            <section class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex flex-col">
-                <div class="p-6 border-b border-slate-50">
-                    <h2 class="text-lg font-semibold text-slate-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-7h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
-                            </path>
-                        </svg>
-                        Institutions
-                    </h2>
+        <!-- Content Area -->
+        <div class="p-8">
+            <!-- Dashboard Overview Section -->
+            <section id="section-dashboard" class="content-section">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h2>
+                    <p class="text-gray-600">Welcome back! Here's what's happening with your system today.</p>
                 </div>
-                <div class="p-6 flex-grow">
-                    <form th:action="@{/admin/create-institution}" method="post" th:object="${institutionDto}"
-                        class="space-y-4">
-                        <div>
-                            <label
-                                class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Name</label>
-                            <input type="text" th:field="*{name}" required placeholder="e.g. University of Science"
-                                class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition outline-none">
+
+                <!-- System Statistics -->
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">System Statistics</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- Total Users Card -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">Total Users</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="totalUsers" th:text="${stats != null and stats.totalUsers != null ? #numbers.formatInteger(stats.totalUsers, 1, 'COMMA') : '0'}">0</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="userGrowth" th:text="${stats != null and stats.userGrowth != null ? stats.userGrowth : '+0%'}">+0%</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#00B0FF] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Students</span>
+                                    <span class="font-medium text-gray-800" id="studentCount" th:text="${stats != null and stats.studentCount != null ? #numbers.formatInteger(stats.studentCount, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Faculty</span>
+                                    <span class="font-medium text-gray-800" id="facultyCount" th:text="${stats != null and stats.facultyCount != null ? #numbers.formatInteger(stats.facultyCount, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Staff</span>
+                                    <span class="font-medium text-gray-800" id="staffCount" th:text="${stats != null and stats.staffCount != null ? #numbers.formatInteger(stats.staffCount, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Admins</span>
+                                    <span class="font-medium text-gray-800" id="adminCount" th:text="${stats != null and stats.adminCount != null ? #numbers.formatInteger(stats.adminCount, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label
-                                class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Location/Address</label>
-                            <input type="text" th:field="*{address}" required placeholder="e.g. London, UK"
-                                class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition outline-none">
+
+                        <!-- Active Sessions Card -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">Active Sessions Today</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="activeSessions" th:text="${stats != null and stats.activeSessions != null ? #numbers.formatInteger(stats.activeSessions, 1, 'COMMA') : '0'}">0</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="sessionGrowth" th:text="${stats != null and stats.sessionGrowth != null ? stats.sessionGrowth : '+0%'}">+0%</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#FDD835] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Current</span>
+                                    <span class="font-medium text-gray-800" id="currentSessions" th:text="${stats != null and stats.currentSessions != null ? #numbers.formatInteger(stats.currentSessions, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Peak Today</span>
+                                    <span class="font-medium text-gray-800" id="peakSessions" th:text="${stats != null and stats.peakSessions != null ? #numbers.formatInteger(stats.peakSessions, 1, 'COMMA') : '0'}">0</span>
+                                </div>
+                            </div>
                         </div>
-                        <button type="submit"
-                            class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition duration-200 flex items-center justify-center gap-2">
-                            <span>Create Institution</span>
-                        </button>
-                    </form>
+
+                        <!-- Database Size Card -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">Database Size</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="databaseSize" th:text="${stats != null and stats.databaseSize != null ? stats.databaseSize : '0 GB'}">0 GB</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="dbGrowth" th:text="${stats != null and stats.dbGrowth != null ? stats.dbGrowth : '+0 GB'}">+0 GB</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#00B0FF] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Documents</span>
+                                    <span class="font-medium text-gray-800" id="documentsSize" th:text="${stats != null and stats.documentsSize != null ? stats.documentsSize : '0 GB'}">0 GB</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Media</span>
+                                    <span class="font-medium text-gray-800" id="mediaSize" th:text="${stats != null and stats.mediaSize != null ? stats.mediaSize : '0 GB'}">0 GB</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Data</span>
+                                    <span class="font-medium text-gray-800" id="dataSize" th:text="${stats != null and stats.dataSize != null ? stats.dataSize : '0 GB'}">0 GB</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Uptime Card -->
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">System Uptime</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="systemUptime" th:text="${stats != null and stats.systemUptime != null ? stats.systemUptime : '0%'}">0%</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="uptimeDays" th:text="${stats != null and stats.uptimeDays != null ? stats.uptimeDays + ' days' : '0 days'}">0 days</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#FDD835] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Last Restart</span>
+                                    <span class="font-medium text-gray-800" id="lastRestart" th:text="${stats != null and stats.lastRestart != null ? stats.lastRestart : '0d ago'}">0d ago</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Avg Response</span>
+                                    <span class="font-medium text-gray-800" id="avgResponse" th:text="${stats != null and stats.avgResponse != null ? stats.avgResponse : '0ms'}">0ms</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-600 text-sm">Total Institutions</p>
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="totalInstitutions" th:text="${stats != null and stats.totalInstitutions != null ? #numbers.formatInteger(stats.totalInstitutions, 1, 'COMMA') : '0'}">0</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-600 text-sm">Active Staff</p>
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="activeStaff" th:text="${stats != null and stats.activeStaff != null ? #numbers.formatInteger(stats.activeStaff, 1, 'COMMA') : '0'}">0</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-600 text-sm">Total Students</p>
+                            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                            </svg>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="totalStudents" th:text="${stats != null and stats.totalStudents != null ? #numbers.formatInteger(stats.totalStudents, 1, 'COMMA') : '0'}">0</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-gray-600 text-sm">Security Alerts</p>
+                        </div>
+                        <p class="text-3xl font-bold text-gray-800" id="securityAlerts" th:text="${stats != null and stats.securityAlerts != null ? #numbers.formatInteger(stats.securityAlerts, 1, 'COMMA') : '0'}">0</p>
+                    </div>
+                </div>
+
+                <!-- Recent Activities and Pending Tasks -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Recent Activities -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-6 h-6 text-[#00B0FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                </svg>
+                                <h3 class="text-xl font-semibold text-gray-800">Recent Activities</h3>
+                            </div>
+                            <a href="#" class="text-[#00B0FF] text-sm font-medium hover:underline">View All</a>
+                        </div>
+
+                        <div class="space-y-4" id="activitiesList">
+                            <div th:if="${activities == null or activities.isEmpty()}" class="text-center py-8 text-gray-500">
+                                No recent activities
+                            </div>
+                            <div th:each="activity : ${activities}" class="flex gap-4">
+                                <div th:class="${'w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-' + activity.colorClass}">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" th:attr="data-icon=${activity.icon}">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-medium text-gray-800" th:text="${activity.title}">Activity</p>
+                                    <p class="text-sm text-gray-600" th:text="${activity.description}">Description</p>
+                                    <p class="text-xs text-gray-500 mt-1" th:text="${activity.timestamp + ' • ' + activity.user}">Time • User</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Tasks -->
+                    <div class="bg-white rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <h3 class="text-xl font-semibold text-gray-800">Pending Tasks</h3>
+                            </div>
+                            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-lg text-sm font-medium" th:text="${tasks != null ? tasks.size() + ' Total' : '0 Total'}">0 Total</span>
+                        </div>
+
+                        <div class="space-y-3" id="tasksList">
+                            <div th:if="${tasks == null or tasks.isEmpty()}" class="text-center py-8 text-gray-500">
+                                No pending tasks
+                            </div>
+                            <div th:each="task : ${tasks}" th:class="${'border rounded-xl p-4 bg-' + task.colorClass + '-50 border-' + task.colorClass + '-200'}">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p th:class="${'font-medium text-' + task.colorClass + '-800'}" th:text="${task.title}">Task Title</p>
+                                        <p th:class="${'text-sm text-' + task.colorClass + '-600 mt-1'}" th:text="${task.count + ' pending items'}">0 pending items</p>
+                                    </div>
+                                    <button th:class="${'px-4 py-2 bg-white border rounded-lg text-sm font-medium hover:bg-' + task.colorClass + '-50 transition-colors text-' + task.colorClass + '-700 border-' + task.colorClass + '-200'}">
+                                        Review
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Other Sections (Institutions, Access, Security, Audit, Settings) -->
+            <section id="section-institutions" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Institutions</h2>
+                    <p class="text-gray-600">View and manage all institutions in the system.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Institution management interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <section id="section-access" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Access</h2>
+                    <p class="text-gray-600">Control user access and permissions.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Access management interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <section id="section-security" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Security & Statistics</h2>
+                    <p class="text-gray-600">Monitor security alerts and system statistics.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Security and statistics interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <section id="section-audit" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Audit Logs</h2>
+                    <p class="text-gray-600">View system audit logs and activity history.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Audit logs interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <section id="section-settings" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">System Settings</h2>
+                    <p class="text-gray-600">Configure system settings and preferences.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">System settings interface will be displayed here.</p>
                 </div>
             </section>
         </div>
-    </div>
+    </main>
+</div>
 
-    <script th:src="@{/js/admin/admin-dashboard.js}"></script>
+<script th:src="@{/js/dashboard.js}"></script>
 </body>
-
 </html>
