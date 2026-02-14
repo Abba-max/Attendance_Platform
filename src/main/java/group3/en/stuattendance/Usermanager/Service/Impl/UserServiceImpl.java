@@ -12,6 +12,7 @@ import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final InstitutionRepository institutionRepository;
     private final ClassroomRepository classroomRepository;
     private final UserMapper userMapper;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
     public User registerUser(UserDto dto) {
