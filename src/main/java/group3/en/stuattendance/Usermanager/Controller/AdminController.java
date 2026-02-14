@@ -24,6 +24,12 @@ public class AdminController {
         return ResponseEntity.ok(userService.registerStaff(dto));
     }
 
+    @PutMapping("/roles/{roleName}/permissions")
+    public ResponseEntity<Void> syncRolePermissions(@PathVariable String roleName, @RequestBody java.util.Set<String> permissionNames) {
+        permissionService.syncRolePermissions(roleName, permissionNames);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
