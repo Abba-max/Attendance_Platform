@@ -33,4 +33,14 @@ public class PermissionServiceImpl implements PermissionService {
                 .map(Role::getPermissions)
                 .orElse(new java.util.HashSet<>());
     }
+
+    @Override
+    public void addPermissionToRole(String roleName, String permissionName) {
+        roleRepository.findByName(roleName).ifPresent(role -> {
+            permissionRepository.findByName(permissionName).ifPresent(permission -> {
+                role.getPermissions().add(permission);
+                roleRepository.save(role);
+            });
+        });
+    }
 }
