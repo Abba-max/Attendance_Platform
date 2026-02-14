@@ -17,6 +17,12 @@ import java.util.List;
 public class AdminController {
 
     private final UserService userService;
+    private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
+
+    @PostMapping("/staff")
+    public ResponseEntity<User> registerStaff(@RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
+        return ResponseEntity.ok(userService.registerStaff(dto));
+    }
 
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {
