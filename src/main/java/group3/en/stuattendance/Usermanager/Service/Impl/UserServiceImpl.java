@@ -4,6 +4,7 @@ import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Institutionmanager.Repository.InstitutionRepository;
+import group3.en.stuattendance.Usermanager.DTO.StaffCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
 import group3.en.stuattendance.Usermanager.Model.Role;
@@ -12,6 +13,7 @@ import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class UserServiceImpl implements UserService {
     private final InstitutionRepository institutionRepository;
     private final ClassroomRepository classroomRepository;
     private final UserMapper userMapper;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
     public User registerUser(UserDto dto) {
@@ -41,14 +44,47 @@ public class UserServiceImpl implements UserService {
             classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
 
         Set<Role> roles = dto.getRoleIds() != null ? 
-            new HashSet<>(roleRepository.findAllById(dto.getRoleIds())) : new HashSet<>();
+            new java.util.HashSet<>(roleRepository.findAllById(dto.getRoleIds())) : new java.util.HashSet<>();
 
         Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ? 
-            new HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new HashSet<>();
+            new java.util.HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new java.util.HashSet<>();
 
         User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms);
-        // Password hashing should be done here in a real app
+        if (user.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
         return userRepository.save(user);
+    }
+
+    @Override
+    public User registerStaff(StaffCreateDto dto) {
+        Institution institution = dto.getInstitutionId() != null ?
+            institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
+
+        Set<Role> roles = dto.getRoleNames() != null ?
+            dto.getRoleNames().stream()
+                .map(roleName -> roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                .collect(java.util.stream.Collectors.toSet()) : new java.util.HashSet<>();
+
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .institution(institution)
+                .roles(roles)
+                .isActive(dto.getIsActive())
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    public List<User> getAllStaff() {
+        return userRepository.findAll().stream()
+            .filter(u -> u.getRoles().stream()
+                .anyMatch(r -> !r.getName().equals("STUDENT")))
+            .collect(java.util.stream.Collectors.toList());
     }
 
     @Override

@@ -17,6 +17,26 @@ import java.util.List;
 public class AdminController {
 
     private final UserService userService;
+    private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
+
+    @PostMapping("/staff")
+    public ResponseEntity<User> registerStaff(
+        @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
+        return ResponseEntity.ok(userService.registerStaff(dto));
+    }
+
+    @GetMapping("/staff")
+    public ResponseEntity<List<User>> getAllStaff() {
+        return ResponseEntity.ok(userService.getAllStaff());
+    }
+
+    @PutMapping("/roles/{roleName}/permissions")
+    public ResponseEntity<Void> syncRolePermissions(
+        @PathVariable String roleName,
+        @RequestBody java.util.Set<String> permissionNames) {
+        permissionService.syncRolePermissions(roleName, permissionNames);
+        return ResponseEntity.ok().build();
+    }
 
     @GetMapping("/users")
     public ResponseEntity<List<User>> getAllUsers() {

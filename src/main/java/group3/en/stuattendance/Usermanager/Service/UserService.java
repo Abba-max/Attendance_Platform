@@ -7,8 +7,10 @@ import java.util.Optional;
 
 public interface UserService {
     // Basic User Management
-    User registerUser(UserDto dto);
+    User registerUser(group3.en.stuattendance.Usermanager.DTO.UserDto dto);
+    User registerStaff(group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto);
     Optional<User> getUserById(Integer userId);
+    List<User> getAllStaff();
     Optional<User> getUserByUsername(String username);
     Optional<User> getUserByEmail(String email);
     List<User> getAllUsers();
