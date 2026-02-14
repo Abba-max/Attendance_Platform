@@ -1,7 +1,7 @@
 package group3.en.stuattendance.Justificationmanager.Model;
 
 import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
-import group3.en.stuattendance.Usermanager.Model.Student;
+import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Justificationmanager.Enum.JustificationStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "justifications", indexes = {
-        @Index(name = "idx_student_status", columnList = "student_id, status")
+        @Index(name = "idx_user_status", columnList = "user_id, status")
 })
 @Data
 @NoArgsConstructor
@@ -29,9 +29,9 @@ public class Justification {
     private Integer justificationId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id")
+    @JoinColumn(name = "user_id")
     @JsonIgnore
-    private Student student;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "attendance_id")

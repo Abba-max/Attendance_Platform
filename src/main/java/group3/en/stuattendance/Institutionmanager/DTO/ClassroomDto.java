@@ -31,4 +31,7 @@ public class ClassroomDto {
 
     @NotNull(message = "Department ID is required")
     private Integer departmentId;
+
+    private String field; // Added for UI compatibility
+    private Integer institutionId; // Added for UI compatibility
 }

@@ -3,7 +3,7 @@ package group3.en.stuattendance.Attendancemanager.Mapper;
 import group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto;
 import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
-import group3.en.stuattendance.Usermanager.Model.Student;
+import group3.en.stuattendance.Usermanager.Model.User;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,7 +13,7 @@ public class AttendanceRecordMapper {
         if (entity == null) return null;
         return AttendanceRecordDto.builder()
                 .attendanceId(entity.getAttendanceId())
-                .studentId(entity.getStudent() != null ? entity.getStudent().getUserId() : null)
+                .studentId(entity.getUser() != null ? entity.getUser().getUserId() : null)
                 .sessionId(entity.getSession() != null ? entity.getSession().getSessionId() : null)
                 .status(entity.getStatus())
                 .timestamp(entity.getTimestamp())
@@ -22,11 +22,11 @@ public class AttendanceRecordMapper {
                 .build();
     }
 
-    public AttendanceRecord toEntity(AttendanceRecordDto dto, Student student, Session session) {
+    public AttendanceRecord toEntity(AttendanceRecordDto dto, User user, Session session) {
         if (dto == null) return null;
         return AttendanceRecord.builder()
                 .attendanceId(dto.getAttendanceId())
-                .student(student)
+                .user(user)
                 .session(session)
                 .status(dto.getStatus())
                 .timestamp(dto.getTimestamp())

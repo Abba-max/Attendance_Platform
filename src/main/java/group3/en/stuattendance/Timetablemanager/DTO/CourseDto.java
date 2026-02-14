@@ -16,4 +16,5 @@ public class CourseDto {
     private Integer credits;
     private String description;
     private Integer teacherId;
+    private Integer classroomId; // Added for UI compatibility
 }

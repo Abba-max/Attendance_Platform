@@ -1,7 +1,6 @@
 package group3.en.stuattendance.Institutionmanager.Model;
 
 import group3.en.stuattendance.Usermanager.Model.User;
-import group3.en.stuattendance.Usermanager.Model.Pedagog;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -11,11 +10,13 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "departments")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -38,16 +39,14 @@ public class Department {
     @JsonIgnore
     private Institution institution;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cycle_id")
-    private Cycle cycle;
-
-    @OneToOne(mappedBy = "department")
     @JsonIgnore
-    private Pedagog pedagog;
+    private Cycle cycle;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private Set<Classroom> classrooms = new HashSet<>();
 
     @CreatedDate
@@ -57,4 +56,17 @@ public class Department {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Department that = (Department) o;
+        return Objects.equals(departmentId, that.departmentId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(departmentId);
+    }
 }

@@ -2,17 +2,34 @@ package group3.en.stuattendance.Usermanager.Service;
 
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Model.User;
-
 import java.util.List;
+import java.util.Optional;
 
 public interface UserService {
-    User getUserById(Integer userId);
-    User getUserByUsername(String username);
-    User getUserByEmail(String email);
-    void updateUser(Integer userId, UserDto dto);
-    void changePassword(Integer userId, String oldPassword, String newPassword);
+    // Basic User Management
+    User registerUser(UserDto dto);
+    Optional<User> getUserById(Integer userId);
+    Optional<User> getUserByUsername(String username);
+    Optional<User> getUserByEmail(String email);
+    List<User> getAllUsers();
+    User updateUser(Integer userId, UserDto dto);
+    void deleteUser(Integer userId);
     void deactivateUser(Integer userId);
     void activateUser(Integer userId);
-    List<User> getAllUsers();
-    List<User> getActiveUsers();
+
+    // Role and Permissions
+    void assignRole(Integer userId, Integer roleId);
+    void removeRole(Integer userId, Integer roleId);
+
+    // Student Specific
+    Optional<User> getUserByMatricule(String matricule);
+    List<User> getStudentsByClassroom(Integer classroomId);
+    void assignStudentToClassroom(Integer userId, Integer classroomId);
+
+    // Teacher Specific
+    Optional<User> getUserByJoinCode(String joinCode);
+    void assignStaffToClassroom(Integer userId, Integer classroomId);
+    
+    // Auth related
+    void resetPassword(Integer userId, String newPassword);
 }

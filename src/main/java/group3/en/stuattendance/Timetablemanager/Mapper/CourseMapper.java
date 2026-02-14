@@ -2,7 +2,7 @@ package group3.en.stuattendance.Timetablemanager.Mapper;
 
 import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Timetablemanager.Model.Course;
-import group3.en.stuattendance.Usermanager.Model.Teacher;
+import group3.en.stuattendance.Usermanager.Model.User;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,7 +19,7 @@ public class CourseMapper {
                 .build();
     }
 
-    public Course toEntity(CourseDto dto, Teacher teacher) {
+    public Course toEntity(CourseDto dto, User teacher) {
         if (dto == null) return null;
         return Course.builder()
                 .courseId(dto.getCourseId())

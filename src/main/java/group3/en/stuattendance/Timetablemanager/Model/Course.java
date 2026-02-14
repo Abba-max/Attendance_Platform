@@ -1,6 +1,6 @@
 package group3.en.stuattendance.Timetablemanager.Model;
 
-import group3.en.stuattendance.Usermanager.Model.Teacher;
+import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -30,9 +30,9 @@ public class Course {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
+    @JoinColumn(name = "user_id")
     @JsonIgnore
-    private Teacher teacher;
+    private User teacher;
 
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
     @JsonIgnore

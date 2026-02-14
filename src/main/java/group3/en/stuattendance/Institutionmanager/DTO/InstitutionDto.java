@@ -24,4 +24,6 @@ public class InstitutionDto {
 
     @Size(max = 200, message = "Contact info must not exceed 200 characters")
     private String contactInfo;
+
+    private String location; // Added for UI compatibility
 }

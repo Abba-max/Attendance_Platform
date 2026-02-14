@@ -13,7 +13,7 @@ public class ClassroomMapper {
         return ClassroomDto.builder()
                 .classId(classroom.getClassId())
                 .name(classroom.getName())
-                .level(classroom.getLevel())
+                .level(classroom.getLevel() != null ? classroom.getLevel().toString() : null)
                 .capacity(classroom.getCapacity())
                 .departmentId(classroom.getDepartment() != null ? classroom.getDepartment().getDepartmentId() : null)
                 .build();
@@ -24,7 +24,7 @@ public class ClassroomMapper {
         return Classroom.builder()
                 .classId(dto.getClassId())
                 .name(dto.getName())
-                .level(dto.getLevel())
+                .level(dto.getLevel() != null ? Integer.parseInt(dto.getLevel()) : null)
                 .capacity(dto.getCapacity())
                 .department(department)
                 .build();

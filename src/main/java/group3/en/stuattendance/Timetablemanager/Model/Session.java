@@ -2,7 +2,7 @@ package group3.en.stuattendance.Timetablemanager.Model;
 
 import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
-import group3.en.stuattendance.Usermanager.Model.Teacher;
+import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -53,9 +53,9 @@ public class Session {
     private Course course;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
+    @JoinColumn(name = "user_id")
     @JsonIgnore
-    private Teacher teacher;
+    private User teacher;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "classroom_id")

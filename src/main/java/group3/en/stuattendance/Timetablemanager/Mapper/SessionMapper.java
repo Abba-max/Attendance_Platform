@@ -3,7 +3,7 @@ package group3.en.stuattendance.Timetablemanager.Mapper;
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Timetablemanager.Model.Course;
-import group3.en.stuattendance.Usermanager.Model.Teacher;
+import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +27,7 @@ public class SessionMapper {
                 .build();
     }
 
-    public Session toEntity(SessionDto dto, Course course, Teacher teacher, Classroom classroom) {
+    public Session toEntity(SessionDto dto, Course course, User teacher, Classroom classroom) {
         if (dto == null) return null;
         return Session.builder()
                 .sessionId(dto.getSessionId())

@@ -1,0 +1,12 @@
+{
+  "name": "stuattendance",
+  "version": "0.0.1",
+  "scripts": {
+    "watch": "tailwindcss -i ./src/main/resources/static/css/input.css -o ./src/main/resources/static/css/main.css --watch",
+    "build": "tailwindcss -i ./src/main/resources/static/css/input.css -o ./src/main/resources/static/css/main.css && npx prettier --write ./src/main/resources/static/css/main.css"
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "tailwindcss": "^4.1.18"
+  }
+}

@@ -24,4 +24,6 @@ public class DepartmentDto {
 
     @Size(max = 200, message = "Contact info must not exceed 200 characters")
     private String contactInfo;
+
+    private Integer cycleId;
 }

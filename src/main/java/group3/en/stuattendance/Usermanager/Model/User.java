@@ -1,8 +1,12 @@
 package group3.en.stuattendance.Usermanager.Model;
 
+import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
+import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
+import group3.en.stuattendance.Justificationmanager.Model.Justification;
 import group3.en.stuattendance.Notificationmanager.Model.Notification;
-import group3.en.stuattendance.Usermanager.Enum.UserRole;
+import group3.en.stuattendance.Timetablemanager.Model.Course;
+import group3.en.stuattendance.Timetablemanager.Model.Session;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -12,16 +16,18 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "users")
-@Inheritance(strategy = InheritanceType.JOINED)
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EntityListeners(AuditingEntityListener.class)
-public abstract class User {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -38,20 +44,75 @@ public abstract class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 20)
-    private UserRole role;
-
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 
+    // RBAC
+    @ManyToMany
+    @JoinTable(
+        name = "user_roles",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id")
+    )
+    @Builder.Default
+    private Set<Role> roles = new HashSet<>();
+
+    // Institutional Hierarchy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "institution_id")
     @JsonIgnore
     private Institution institution;
 
+    // For Students
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "classroom_id")
+    @JsonIgnore
+    private Classroom classroom;
+
+    @Column(unique = true, length = 50)
+    private String matricule;
+
+    @Column(name = "external_email", length = 100)
+    private String externalEmail;
+
+    // For Staff (Teachers, Supervisors, etc.)
+    @ManyToMany
+    @JoinTable(
+        name = "staff_classrooms",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "class_id")
+    )
+    @Builder.Default
+    private Set<Classroom> staffClassrooms = new HashSet<>();
+
+    @Column(name = "join_code", unique = true, length = 20)
+    private String joinCode;
+
+    // Relationships inherited from previous sub-entities
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
+    private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @Builder.Default
+    private Set<Justification> justifications = new HashSet<>();
+
+    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @Builder.Default
+    private Set<Course> courses = new HashSet<>();
+
+    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @Builder.Default
+    private Set<Session> sessions = new HashSet<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @Builder.Default
     private Set<Notification> notifications = new HashSet<>();
 
     @CreatedDate
@@ -61,4 +122,17 @@ public abstract class User {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(userId, user.userId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(userId);
+    }
 }

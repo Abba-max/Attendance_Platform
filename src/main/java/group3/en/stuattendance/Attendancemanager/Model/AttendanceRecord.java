@@ -3,7 +3,7 @@ package group3.en.stuattendance.Attendancemanager.Model;
 import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
 import group3.en.stuattendance.Justificationmanager.Model.Justification;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
-import group3.en.stuattendance.Usermanager.Model.Student;
+import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -16,7 +16,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "attendance_records", indexes = {
-        @Index(name = "idx_student_session", columnList = "student_id, session_id")
+        @Index(name = "idx_user_session", columnList = "user_id, session_id")
 })
 @Data
 @NoArgsConstructor
@@ -31,9 +31,9 @@ public class AttendanceRecord {
     private Integer attendanceId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @JsonIgnore
-    private Student student;
+    private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
