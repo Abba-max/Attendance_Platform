@@ -35,21 +35,25 @@ public class UserServiceImpl implements UserService {
     private final BCryptPasswordEncoder passwordEncoder;
 
     @Override
-    public User registerUser(UserDto dto) {
-        Institution institution = dto.getInstitutionId() != null ? 
+    public User registerStaff(group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
+        Institution institution = dto.getInstitutionId() != null ?
             institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
-        
-        Classroom studentClassroom = dto.getClassroomId() != null ? 
-            classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
 
-        Set<Role> roles = dto.getRoleIds() != null ? 
-            new HashSet<>(roleRepository.findAllById(dto.getRoleIds())) : new HashSet<>();
+        Set<Role> roles = dto.getRoleNames() != null ?
+            dto.getRoleNames().stream()
+                .map(roleName -> roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                .collect(java.util.stream.Collectors.toSet()) : new java.util.HashSet<>();
 
-        Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ? 
-            new HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new HashSet<>();
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .institution(institution)
+                .roles(roles)
+                .isActive(dto.getIsActive())
+                .build();
 
-        User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms);
-        // Password hashing should be done here in a real app
         return userRepository.save(user);
     }
 
