@@ -58,6 +58,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<User> getAllStaff() {
+        return userRepository.findAll().stream()
+            .filter(u -> u.getRoles().stream()
+                .anyMatch(r -> !r.getName().equals("STUDENT")))
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public Optional<User> getUserById(Integer userId) {
         return userRepository.findById(userId);
     }
