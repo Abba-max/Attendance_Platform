@@ -53,5 +53,17 @@ public class PermissionServiceImpl implements PermissionService {
             });
         });
     }
-    
+
+    @Override
+    public void syncRolePermissions(String roleName, Set<String> permissionNames) {
+        roleRepository.findByName(roleName).ifPresent(role -> {
+            Set<Permission> permissions = permissionNames.stream()
+                    .map(name -> permissionRepository.findByName(name)
+                            .orElseThrow(() -> new RuntimeException("Permission not found: " + name)))
+                    .collect(java.util.stream.Collectors.toSet());
+            role.setPermissions(permissions);
+            roleRepository.save(role);
+        });
+    }
+
 }
