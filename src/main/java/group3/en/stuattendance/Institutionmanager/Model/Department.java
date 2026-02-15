@@ -21,7 +21,8 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 @EntityListeners(AuditingEntityListener.class)
-public class Department {
+public class
+Department {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
