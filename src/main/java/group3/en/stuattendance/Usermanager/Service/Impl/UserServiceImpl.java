@@ -219,7 +219,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void resetPassword(Integer userId, String newPassword) {
         userRepository.findById(userId).ifPresent(user -> {
-            user.setPassword(newPassword); // Should hash in real app
+            user.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(user);
         });
     }

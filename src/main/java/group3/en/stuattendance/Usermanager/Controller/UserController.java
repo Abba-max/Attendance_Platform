@@ -44,13 +44,13 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/{id}/deactivate")
+    @PostMapping("/{id}/deactivate")
     public ResponseEntity<Void> deactivateUser(@PathVariable Integer id) {
         userService.deactivateUser(id);
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/{id}/activate")
+    @PostMapping("/{id}/activate")
     public ResponseEntity<Void> activateUser(@PathVariable Integer id) {
         userService.activateUser(id);
         return ResponseEntity.ok().build();

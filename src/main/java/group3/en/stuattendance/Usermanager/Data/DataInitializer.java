@@ -1,7 +1,9 @@
 package group3.en.stuattendance.Usermanager.Data;
 
+import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Usermanager.Model.Permission;
 import group3.en.stuattendance.Usermanager.Model.Role;
+import group3.en.stuattendance.Institutionmanager.Repository.InstitutionRepository;
 import group3.en.stuattendance.Usermanager.Repository.PermissionRepository;
 import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,12 +21,23 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final InstitutionRepository institutionRepository;
 
     @Override
     @Transactional
     public void run(String... args) throws Exception {
+        seedInstitutions();
         seedRoles();
         seedPermissions();
+    }
+
+    private void seedInstitutions() {
+        if (institutionRepository.findById(1).isEmpty()) {
+            institutionRepository.save(Institution.builder()
+                    .name("SJI")
+                    .location("Eyang & Etokoss")
+                    .build());
+        }
     }
 
     private void seedRoles() {

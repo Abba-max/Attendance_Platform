@@ -37,3 +37,4 @@ build/
 List of the different Modules.pdf
 Student_Project_Form_Digitalisation_Roll_Call].pdf
 .models/
+.node_modules/

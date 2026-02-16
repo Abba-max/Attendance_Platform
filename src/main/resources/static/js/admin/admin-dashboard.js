@@ -3,10 +3,17 @@
 
 // Configuration
 const API_BASE_URL = '/api/dashboard';
+const USER_API_BASE_URL = '/api/users';
+const ADMIN_API_BASE_URL = '/api/admin/users';
+const ROLES_API_URL = '/api/admin/roles';
+const PERMISSIONS_API_URL = '/api/admin/permissions';
 const REFRESH_INTERVAL = 30000; // 30 seconds
 let refreshTimer = null;
+let allUsers = []; // Cache for filtering
+let allRoles = [];
+let allPermissions = [];
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('Dashboard initializing...');
 
     // Initialize all components
@@ -17,9 +24,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load initial data
     loadDashboardData();
+    loadRoleAndPermissionData();
 
     // Set up auto-refresh
     setupAutoRefresh();
+
+    // Set up user search
+    setupUserSearch();
 });
 
 /**
@@ -58,6 +69,361 @@ async function loadDashboardData() {
         showNotification('Failed to load dashboard data', 'error');
         showLoading(false);
     }
+}
+
+/**
+ * Load Users from API
+ */
+async function loadUsers() {
+    try {
+        const tableBody = document.getElementById('userTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                        <div class="flex flex-col items-center gap-2">
+                            <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
+                            <span>Loading users...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        const response = await fetch('/api/admin/users');
+        if (!response.ok) throw new Error('Failed to fetch users');
+
+        allUsers = await response.json();
+        renderUserTable(allUsers);
+        console.log('Users loaded successfully');
+
+    } catch (error) {
+        console.error('Error loading users:', error);
+        showNotification('Failed to load users', 'error');
+        const tableBody = document.getElementById('userTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading users</td></tr>';
+        }
+    }
+}
+
+/**
+ * Render User Table
+ */
+function renderUserTable(users) {
+    const tableBody = document.getElementById('userTableBody');
+    if (!tableBody) return;
+
+    if (!users || users.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No users found</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = users.map(user => `
+        <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-6 py-4 text-sm font-medium text-gray-400 text-center">#${user.userId}</td>
+            <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-[#00B0FF] bg-opacity-10 rounded-full flex items-center justify-center text-[#00B0FF] font-semibold">
+                        ${user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <div class="text-sm font-semibold text-gray-800">${escapeHtml(user.username)}</div>
+                        <div class="text-xs text-gray-500">${escapeHtml(user.email || 'No email')}</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="flex flex-wrap gap-1">
+                    ${user.roles.map(role => `
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-tight">
+                            ${escapeHtml(role.name)}
+                        </span>
+                    `).join('')}
+                </div>
+            </td>
+            <td class="px-6 py-4 text-center">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                    ${user.isActive ? 'Active' : 'Inactive'}
+                </span>
+            </td>
+            <td class="px-6 py-4 text-right">
+                <div class="flex items-center justify-end gap-2">
+                    <button onclick="handleResetPassword(${user.userId})" class="p-2 text-gray-400 hover:text-[#00B0FF] transition-colors" title="Reset Password">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                        </svg>
+                    </button>
+                    <button onclick="handleToggleStatus(${user.userId}, ${user.isActive})" class="p-2 text-gray-400 hover:text-orange-500 transition-colors" title="${user.isActive ? 'Deactivate' : 'Activate'}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                        </svg>
+                    </button>
+                    <button onclick="handleDeleteUser(${user.userId})" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete User">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                    <div class="relative group">
+                        <button class="p-2 text-gray-400 hover:text-indigo-500 transition-colors" title="Manage Roles">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                        </button>
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Assign Role</div>
+                            ${allRoles.map(role => {
+        const hasRole = user.roles.some(r => r.roleId === role.roleId);
+        return `
+                                    <button onclick="handleUpdateUserRole(${user.userId}, ${role.roleId}, ${!hasRole})" 
+                                        class="w-full text-left px-4 py-2 text-sm ${hasRole ? 'text-[#00B0FF] bg-blue-50' : 'text-gray-600 hover:bg-gray-50'} transition-colors flex items-center justify-between">
+                                        ${escapeHtml(role.name)}
+                                        ${hasRole ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+                                    </button>
+                                `;
+    }).join('')}
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Load Role and Permission Data
+ */
+async function loadRoleAndPermissionData() {
+    try {
+        const [roles, permissions] = await Promise.all([
+            fetch('/api/admin/roles').then(r => r.json()),
+            fetch('/api/admin/permissions').then(r => r.json())
+        ]);
+        allRoles = roles;
+        allPermissions = permissions;
+        console.log('Roles and permissions loaded');
+        renderRolesGrid();
+    } catch (error) {
+        console.error('Error loading roles/permissions:', error);
+    }
+}
+
+/**
+ * Handle Update User Role
+ */
+async function handleUpdateUserRole(userId, roleId, add) {
+    try {
+        const user = allUsers.find(u => u.userId === userId);
+        if (!user) return;
+
+        let roleIds = user.roles.map(r => r.roleId);
+        if (add) {
+            roleIds.push(roleId);
+        } else {
+            roleIds = roleIds.filter(id => id !== roleId);
+        }
+
+        const response = await fetch(`/api/admin/users/${userId}/roles`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(roleIds)
+        });
+
+        if (response.ok) {
+            showNotification('Roles updated successfully', 'success');
+            loadUsers(); // Reload to update table
+        } else {
+            throw new Error('Failed to update roles');
+        }
+    } catch (error) {
+        console.error('Error updating user roles:', error);
+        showNotification('Error updating roles', 'error');
+    }
+}
+
+/**
+ * Render Roles Grid
+ */
+function renderRolesGrid() {
+    const grid = document.getElementById('rolesGrid');
+    if (!grid) return;
+
+    if (!allRoles || allRoles.length === 0) {
+        grid.innerHTML = '<div class="col-span-2 text-center py-8 text-gray-500">No roles found</div>';
+        return;
+    }
+
+    grid.innerHTML = allRoles.map(role => `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 flex flex-col">
+            <div class="p-6 border-b border-gray-50 bg-gray-50 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">${escapeHtml(role.name)}</h3>
+                    <p class="text-sm text-gray-500">${escapeHtml(role.description || 'No description')}</p>
+                </div>
+                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="p-6 flex-1">
+                <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Permissions</div>
+                <div class="flex flex-wrap gap-2 mb-6">
+                    ${role.permissions.map(p => `
+                        <span class="px-2 py-1 bg-[#00B0FF] bg-opacity-10 text-white rounded-lg text-xs font-medium flex items-center gap-1">
+                            ${escapeHtml(p.name)}
+                            <button onclick="handleToggleRolePermission('${role.name}', '${p.name}', false)" class="hover:text-red-500 transition-colors">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </span>
+                    `).join('')}
+                    ${role.permissions.length === 0 ? '<p class="text-sm text-gray-400 italic">No permissions assigned</p>' : ''}
+                </div>
+                
+                <div class="mt-auto">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Add Permission</label>
+                    <select onchange="handleToggleRolePermission('${role.name}', this.value, true); this.value='';" 
+                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B0FF]">
+                        <option value="">Select permission...</option>
+                        ${allPermissions
+            .filter(p => !role.permissions.some(rp => rp.name === p.name))
+            .map(p => `<option value="${p.name}">${escapeHtml(p.name)}</option>`)
+            .join('')}
+                    </select>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Handle Toggle Role Permission
+ */
+async function handleToggleRolePermission(roleName, permissionName, add) {
+    try {
+        const role = allRoles.find(r => r.name === roleName);
+        if (!role) return;
+
+        let permissions = role.permissions.map(p => p.name);
+        if (add) {
+            permissions.push(permissionName);
+        } else {
+            permissions = permissions.filter(p => p !== permissionName);
+        }
+
+        const response = await fetch(`/api/admin/roles/${roleName}/permissions`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(permissions)
+        });
+
+        if (response.ok) {
+            showNotification('Role permissions updated', 'success');
+            loadRoleAndPermissionData(); // Reload to refresh grid
+        } else {
+            throw new Error('Failed to update role permissions');
+        }
+    } catch (error) {
+        console.error('Error updating role permissions:', error);
+        showNotification('Error updating role permissions', 'error');
+    }
+}
+
+/**
+ * Handle Reset Password
+ */
+async function handleResetPassword(userId) {
+    const newPassword = prompt("Enter new password for this user:");
+    if (!newPassword) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            body: newPassword
+        });
+
+        if (response.ok) {
+            showNotification('Password reset successfully', 'success');
+        } else {
+            throw new Error('Failed to reset password');
+        }
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showNotification('Error resetting password', 'error');
+    }
+}
+
+/**
+ * Handle Toggle User Status (Deactivate/Activate)
+ */
+async function handleToggleStatus(userId, currentIsActive) {
+    const action = currentIsActive ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    try {
+        const response = await fetch(`/api/users/${userId}/${action}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showNotification(`User ${action}d successfully`, 'success');
+            loadUsers(); // Reload to update UI
+        } else {
+            throw new Error(`Failed to ${action} user`);
+        }
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        showNotification(`Error ${action}ing user`, 'error');
+    }
+}
+
+/**
+ * Handle Delete User
+ */
+async function handleDeleteUser(userId) {
+    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('User deleted successfully', 'success');
+            loadUsers();
+        } else {
+            throw new Error('Failed to delete user');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showNotification('Error deleting user', 'error');
+    }
+}
+
+/**
+ * Setup User Search
+ */
+function setupUserSearch() {
+    const searchInput = document.getElementById('userSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allUsers.filter(user =>
+                user.username.toLowerCase().includes(term) ||
+                (user.email && user.email.toLowerCase().includes(term))
+            );
+            renderUserTable(filtered);
+        });
+    }
+}
+
+/**
+ * Manual Refresh Users
+ */
+function refreshUsers() {
+    console.log('Refreshing user list...');
+    showNotification('Refreshing user list...', 'info');
+    loadUsers();
 }
 
 /**
@@ -292,6 +658,7 @@ function formatNumber(num) {
  * Escape HTML to prevent XSS
  */
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -340,38 +707,7 @@ function refreshDashboard() {
  * Initialize Sidebar Functionality
  */
 function initializeSidebar() {
-    const sidebar = document.getElementById('sidebar');
-    const collapseBtn = document.getElementById('collapseBtn');
-
-    if (collapseBtn) {
-        collapseBtn.addEventListener('click', function() {
-            sidebar.classList.toggle('collapsed');
-
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebarCollapsed', isCollapsed);
-            updateCollapseButtonIcon(isCollapsed);
-        });
-
-        const savedState = localStorage.getItem('sidebarCollapsed');
-        if (savedState === 'true') {
-            sidebar.classList.add('collapsed');
-            updateCollapseButtonIcon(true);
-        }
-    }
-}
-
-/**
- * Update Collapse Button Icon
- */
-function updateCollapseButtonIcon(isCollapsed) {
-    const collapseBtn = document.getElementById('collapseBtn');
-    const svg = collapseBtn.querySelector('svg');
-
-    if (isCollapsed) {
-        svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>';
-    } else {
-        svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>';
-    }
+    // Legacy support for sidebar collapse if needed
 }
 
 /**
@@ -382,7 +718,7 @@ function initializeNavigation() {
     const contentSections = document.querySelectorAll('.content-section');
 
     navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
+        item.addEventListener('click', function (e) {
             e.preventDefault();
 
             const targetSection = this.getAttribute('data-section');
@@ -402,6 +738,16 @@ function initializeNavigation() {
             const targetElement = document.getElementById(`section-${targetSection}`);
             if (targetElement) {
                 targetElement.classList.remove('hidden');
+
+                // Special handling for User Management section
+                if (targetSection === 'access') {
+                    loadUsers();
+                }
+
+                // Special handling for Roles section
+                if (targetSection === 'roles') {
+                    loadRoleAndPermissionData();
+                }
 
                 const mainContent = document.querySelector('main');
                 if (mainContent) {
@@ -450,9 +796,12 @@ function initializeMobileMenu() {
             </svg>
         `;
 
-        header.querySelector('div').insertBefore(menuToggle, header.querySelector('div > div:last-child'));
+        const container = header.querySelector('div');
+        if (container) {
+            container.insertBefore(menuToggle, container.querySelector('div:last-child'));
+        }
 
-        menuToggle.addEventListener('click', function() {
+        menuToggle.addEventListener('click', function () {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.toggle('mobile-open');
 
@@ -464,7 +813,7 @@ function initializeMobileMenu() {
                 overlay.style.display = 'none';
                 document.body.appendChild(overlay);
 
-                overlay.addEventListener('click', function() {
+                overlay.addEventListener('click', function () {
                     sidebar.classList.remove('mobile-open');
                     this.style.display = 'none';
                 });
@@ -474,7 +823,13 @@ function initializeMobileMenu() {
         });
     }
 
-    window.addEventListener('resize', function() {
+    // Set up staff form submission
+    const staffForm = document.getElementById('staffForm');
+    if (staffForm) {
+        staffForm.addEventListener('submit', handleCreateStaff);
+    }
+
+    window.addEventListener('resize', function () {
         if (window.innerWidth > 768) {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.remove('mobile-open');
@@ -535,19 +890,119 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+/**
+ * Open Staff Modal
+ */
+function openStaffModal() {
+    const modal = document.getElementById('staffModal');
+    const content = document.getElementById('staffModalContent');
+    const roleSelect = document.querySelector('select[name="roleNames"]');
+
+    if (modal && content) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        // Populate roles if not already done or to refresh
+        if (roleSelect) {
+            roleSelect.innerHTML = allRoles
+                .filter(role => role.name !== 'STUDENT') // Filter out students for staff creation
+                .map(role => `<option value="${role.name}">${escapeHtml(role.name)}</option>`)
+                .join('');
+        }
+    }
+}
+
+/**
+ * Close Staff Modal
+ */
+function closeStaffModal() {
+    const modal = document.getElementById('staffModal');
+    const content = document.getElementById('staffModalContent');
+
+    if (modal && content) {
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.getElementById('staffForm').reset();
+        }, 300);
+    }
+}
+
+/**
+ * Handle Create Staff Form Submission
+ */
+async function handleCreateStaff(e) {
+    e.preventDefault();
+    const form = e.target;
+    const loader = document.getElementById('staffSubmitLoader');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    const formData = new FormData(form);
+    const roleNames = Array.from(form.querySelector('select[name="roleNames"]').selectedOptions).map(opt => opt.value);
+
+    const payload = {
+        username: formData.get('username'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+        roleNames: roleNames,
+        institutionId: 1, // Default single institution
+        isActive: true
+    };
+
+    try {
+        loader.classList.remove('hidden');
+        submitBtn.disabled = true;
+
+        const response = await fetch('/api/admin/staff', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showNotification('Staff member created successfully!', 'success');
+            closeStaffModal();
+            loadUsers(); // Refresh table
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to create staff member');
+        }
+    } catch (error) {
+        console.error('Error creating staff:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        loader.classList.add('hidden');
+        submitBtn.disabled = false;
+    }
+}
+
 // Export functions for global access
 window.dashboardFunctions = {
     refreshDashboard,
     toggleTheme,
     showNotification,
-    loadDashboardData
+    loadDashboardData,
+    refreshUsers,
+    openStaffModal,
+    closeStaffModal
 };
 
+// Global handlers for buttons
+window.handleResetPassword = handleResetPassword;
+window.handleToggleStatus = handleToggleStatus;
+window.handleDeleteUser = handleDeleteUser;
+window.openStaffModal = openStaffModal;
+window.closeStaffModal = closeStaffModal;
+
 // Cleanup on page unload
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     if (refreshTimer) {
         clearInterval(refreshTimer);
     }
 });
 
-console.log('Dashboard script loaded successfully - Dynamic version');
+console.log('Dashboard script loaded successfully - Staff Creation version');

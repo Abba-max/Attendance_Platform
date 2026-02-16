@@ -37,6 +37,7 @@ public class UserMapper {
                 .userId(dto.getUserId())
                 .username(dto.getUsername())
                 .email(dto.getEmail())
+                .password(dto.getPassword())
                 .isActive(dto.getIsActive())
                 .institution(institution)
                 .roles(roles != null ? roles : new HashSet<>())

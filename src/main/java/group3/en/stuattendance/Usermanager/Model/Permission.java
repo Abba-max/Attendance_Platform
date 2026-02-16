@@ -2,6 +2,7 @@ package group3.en.stuattendance.Usermanager.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -26,6 +27,7 @@ public class Permission {
     @Column(length = 255)
     private String description;
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "permissions")
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
@@ -43,3 +45,4 @@ public class Permission {
         return Objects.hashCode(permissionId);
     }
 }
+

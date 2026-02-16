@@ -18,6 +18,33 @@ public class AdminController {
 
     private final UserService userService;
     private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
+    private final group3.en.stuattendance.Usermanager.Service.RoleService roleService;
+
+    @GetMapping("/roles")
+    public ResponseEntity<List<group3.en.stuattendance.Usermanager.Model.Role>> getAllRoles() {
+        return ResponseEntity.ok(roleService.getAllRoles());
+    }
+
+    @GetMapping("/permissions")
+    public ResponseEntity<List<group3.en.stuattendance.Usermanager.Model.Permission>> getAllPermissions() {
+        return ResponseEntity.ok(permissionService.getAllPermissions());
+    }
+
+    @PutMapping("/users/{id}/roles")
+    public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {
+        User existingUser = userService.getUserById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        UserDto dto = UserDto.builder()
+            .username(existingUser.getUsername())
+            .email(existingUser.getEmail())
+            .roleIds(roleIds)
+            .isActive(existingUser.getIsActive())
+            .build();
+            
+        userService.updateUser(id, dto);
+        return ResponseEntity.ok().build();
+    }
 
     @PostMapping("/staff")
     public ResponseEntity<User> registerStaff(
@@ -31,8 +58,7 @@ public class AdminController {
     }
 
     @PutMapping("/roles/{roleName}/permissions")
-    public ResponseEntity<Void> syncRolePermissions(
-        @PathVariable String roleName,
+    public ResponseEntity<Void> syncRolePermissions(@PathVariable String roleName,
         @RequestBody java.util.Set<String> permissionNames) {
         permissionService.syncRolePermissions(roleName, permissionNames);
         return ResponseEntity.ok().build();
@@ -49,7 +75,7 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @PatchMapping("/users/{id}/reset-password")
+    @PostMapping("/users/{id}/reset-password")
     public ResponseEntity<Void> resetPassword(@PathVariable Integer id, @RequestBody String newPassword) {
         userService.resetPassword(id, newPassword);
         return ResponseEntity.ok().build();
