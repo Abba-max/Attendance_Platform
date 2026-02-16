@@ -253,24 +253,44 @@ function renderRolesGrid() {
         return;
     }
 
-    grid.innerHTML = allRoles.map(role => `
+    // Add "Create Role" card
+    let html = `
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-dashed border-gray-300 flex flex-col items-center justify-center p-6 text-center hover:bg-gray-50 transition-colors cursor-pointer group" onclick="openCreateRoleModal()">
+            <div class="w-12 h-12 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+            </div>
+            <h3 class="font-bold text-gray-800 text-lg">Create New Role</h3>
+            <p class="text-sm text-gray-500 mt-1">Define a new user role</p>
+        </div>
+    `;
+
+    html += allRoles.map(role => `
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100 flex flex-col">
             <div class="p-6 border-b border-gray-50 bg-gray-50 flex items-center justify-between">
                 <div>
                     <h3 class="font-bold text-gray-800 text-lg">${escapeHtml(role.name)}</h3>
                     <p class="text-sm text-gray-500">${escapeHtml(role.description || 'No description')}</p>
                 </div>
-                <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
+                <div class="flex items-center gap-2">
+                    <button onclick="handleDeleteRole(${role.roleId})" class="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Delete Role">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
                 </div>
             </div>
             <div class="p-6 flex-1">
                 <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Permissions</div>
                 <div class="flex flex-wrap gap-2 mb-6">
                     ${role.permissions.map(p => `
-                        <span class="px-2 py-1 bg-[#00B0FF] bg-opacity-10 text-white rounded-lg text-xs font-medium flex items-center gap-1">
+                        <span class="px-2 py-1 bg-[#0091D5]  text-white rounded-lg text-xs font-medium flex items-center gap-1">
                             ${escapeHtml(p.name)}
                             <button onclick="handleToggleRolePermission('${role.name}', '${p.name}', false)" class="hover:text-red-500 transition-colors">
                                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>

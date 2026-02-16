@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Usermanager.Service;
 
+import group3.en.stuattendance.Usermanager.DTO.PermissionDto;
 import group3.en.stuattendance.Usermanager.Model.Permission;
 import java.util.List;
 import java.util.Set;
@@ -10,4 +11,7 @@ public interface PermissionService {
     void addPermissionToRole(String roleName, String permissionName);
     void removePermissionFromRole(String roleName, String permissionName);
     void syncRolePermissions(String roleName, Set<String> permissionNames);
+    Permission createPermission(PermissionDto dto);
+    Permission updatePermission(Integer id, PermissionDto dto);
+    void deletePermission(Integer id);
 }

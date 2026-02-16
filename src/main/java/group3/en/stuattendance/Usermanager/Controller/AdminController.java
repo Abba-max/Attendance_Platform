@@ -25,9 +25,41 @@ public class AdminController {
         return ResponseEntity.ok(roleService.getAllRoles());
     }
 
+    @PostMapping("/roles")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.Model.Role> createRole(@RequestBody group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+        return ResponseEntity.ok(roleService.createRole(dto));
+    }
+
+    @PutMapping("/roles/{id}")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.Model.Role> updateRole(@PathVariable Integer id, @RequestBody group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+        return ResponseEntity.ok(roleService.updateRole(id, dto));
+    }
+
+    @DeleteMapping("/roles/{id}")
+    public ResponseEntity<Void> deleteRole(@PathVariable Integer id) {
+        roleService.deleteRole(id);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/permissions")
     public ResponseEntity<List<group3.en.stuattendance.Usermanager.Model.Permission>> getAllPermissions() {
         return ResponseEntity.ok(permissionService.getAllPermissions());
+    }
+
+    @PostMapping("/permissions")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.Model.Permission> createPermission(@RequestBody group3.en.stuattendance.Usermanager.DTO.PermissionDto dto) {
+        return ResponseEntity.ok(permissionService.createPermission(dto));
+    }
+
+    @PutMapping("/permissions/{id}")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.Model.Permission> updatePermission(@PathVariable Integer id, @RequestBody group3.en.stuattendance.Usermanager.DTO.PermissionDto dto) {
+        return ResponseEntity.ok(permissionService.updatePermission(id, dto));
+    }
+
+    @DeleteMapping("/permissions/{id}")
+    public ResponseEntity<Void> deletePermission(@PathVariable Integer id) {
+        permissionService.deletePermission(id);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/users/{id}/roles")

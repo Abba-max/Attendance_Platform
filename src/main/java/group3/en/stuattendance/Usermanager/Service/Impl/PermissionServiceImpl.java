@@ -66,4 +66,27 @@ public class PermissionServiceImpl implements PermissionService {
         });
     }
 
+    @Override
+    public Permission createPermission(group3.en.stuattendance.Usermanager.DTO.PermissionDto dto) {
+        Permission permission = Permission.builder()
+                .name(dto.getName())
+                .description(dto.getDescription())
+                .build();
+        return permissionRepository.save(permission);
+    }
+
+    @Override
+    public Permission updatePermission(Integer id, group3.en.stuattendance.Usermanager.DTO.PermissionDto dto) {
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+        permission.setName(dto.getName());
+        permission.setDescription(dto.getDescription());
+        return permissionRepository.save(permission);
+    }
+
+    @Override
+    public void deletePermission(Integer id) {
+        permissionRepository.deleteById(id);
+    }
+
 }

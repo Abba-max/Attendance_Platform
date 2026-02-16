@@ -29,4 +29,27 @@ public class RoleServiceImpl implements RoleService {
     public Optional<Role> getRoleByName(String name) {
         return roleRepository.findByName(name);
     }
+
+    @Override
+    public Role createRole(group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+        Role role = Role.builder()
+                .name(dto.getName())
+                .description(dto.getDescription())
+                .build();
+        return roleRepository.save(role);
+    }
+
+    @Override
+    public Role updateRole(Integer id, group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+        Role role = roleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Role not found"));
+        role.setName(dto.getName());
+        role.setDescription(dto.getDescription());
+        return roleRepository.save(role);
+    }
+
+    @Override
+    public void deleteRole(Integer id) {
+        roleRepository.deleteById(id);
+    }
 }
