@@ -14,7 +14,7 @@ let allRoles = [];
 let allPermissions = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('Dashboard initializing...');
+    console.log('Dashboard initializing... v20260216-2'); // Version check
 
     // Initialize all components
     initializeDashboard();
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeMobileMenu();
 
     // Load initial data
-    loadDashboardData();
+    // loadDashboardData(); // Disabled as DashboardController is removed
     loadRoleAndPermissionData();
 
     // Set up auto-refresh
