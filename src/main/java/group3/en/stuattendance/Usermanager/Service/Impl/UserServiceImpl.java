@@ -80,6 +80,61 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User registerTeacher(group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto dto) {
+        Institution institution = dto.getInstitutionId() != null ?
+            institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
+
+        Set<Classroom> staffClassrooms = dto.getClassroomIds() != null ?
+            new java.util.HashSet<>(classroomRepository.findAllById(dto.getClassroomIds())) : new java.util.HashSet<>();
+
+        Role teacherRole = roleRepository.findByName("TEACHER")
+                .orElseThrow(() -> new RuntimeException("Role TEACHER not found"));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(teacherRole);
+
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .institution(institution)
+                .roles(roles)
+                .staffClassrooms(staffClassrooms)
+                .isActive(dto.getIsActive())
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User registerStudent(group3.en.stuattendance.Usermanager.DTO.StudentCreateDto dto) {
+        Institution institution = dto.getInstitutionId() != null ?
+            institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
+
+        Classroom classroom = dto.getClassroomId() != null ?
+            classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
+
+        Role studentRole = roleRepository.findByName("STUDENT")
+                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(studentRole);
+
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .password(passwordEncoder.encode(dto.getPassword()))
+                .matricule(dto.getMatricule())
+                .institution(institution)
+                .classroom(classroom)
+                .roles(roles)
+                .isActive(dto.getIsActive())
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    @Override
     public List<User> getAllStaff() {
         return userRepository.findAll().stream()
             .filter(u -> u.getRoles().stream()

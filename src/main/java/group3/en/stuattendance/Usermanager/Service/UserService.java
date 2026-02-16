@@ -9,6 +9,8 @@ public interface UserService {
     // Basic User Management
     User registerUser(group3.en.stuattendance.Usermanager.DTO.UserDto dto);
     User registerStaff(group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto);
+    User registerTeacher(group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto dto);
+    User registerStudent(group3.en.stuattendance.Usermanager.DTO.StudentCreateDto dto);
     Optional<User> getUserById(Integer userId);
     List<User> getAllStaff();
     Optional<User> getUserByUsername(String username);
