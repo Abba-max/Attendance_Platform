@@ -195,16 +195,37 @@ function renderUserTable(users) {
  */
 async function loadRoleAndPermissionData() {
     try {
-        const [roles, permissions] = await Promise.all([
-            fetch('/api/admin/roles').then(r => r.json()),
-            fetch('/api/admin/permissions').then(r => r.json())
+        const [rolesResponse, permissionsResponse] = await Promise.all([
+            fetch('/api/admin/roles'),
+            fetch('/api/admin/permissions')
         ]);
-        allRoles = roles;
-        allPermissions = permissions;
-        console.log('Roles and permissions loaded');
+
+        if (!rolesResponse.ok) throw new Error(`Failed to fetch roles: ${rolesResponse.status}`);
+        if (!permissionsResponse.ok) throw new Error(`Failed to fetch permissions: ${permissionsResponse.status}`);
+
+        const roles = await rolesResponse.json();
+        const permissions = await permissionsResponse.json();
+
+        allRoles = roles || [];
+        allPermissions = permissions || [];
+        console.log('Roles and permissions loaded', { roles: allRoles.length, permissions: allPermissions.length });
         renderRolesGrid();
     } catch (error) {
         console.error('Error loading roles/permissions:', error);
+        const grid = document.getElementById('rolesGrid');
+        if (grid) {
+            grid.innerHTML = `
+                <div class="col-span-1 lg:col-span-2 text-center py-12">
+                    <div class="bg-red-50 text-red-600 p-4 rounded-xl inline-block">
+                        <p class="font-bold">Error loading data</p>
+                        <p class="text-sm">${error.message}</p>
+                        <button onclick="loadRoleAndPermissionData()" class="mt-3 px-4 py-2 bg-white border border-red-200 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
     }
 }
 
@@ -289,7 +310,7 @@ function renderRolesGrid() {
             <div class="p-6 flex-1">
                 <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Permissions</div>
                 <div class="flex flex-wrap gap-2 mb-6">
-                    ${role.permissions.map(p => `
+                    ${(role.permissions || []).map(p => `
                         <span class="px-2 py-1 bg-[#0091D5]  text-white rounded-lg text-xs font-medium flex items-center gap-1">
                             ${escapeHtml(p.name)}
                             <button onclick="handleToggleRolePermission('${role.name}', '${p.name}', false)" class="hover:text-red-500 transition-colors">
@@ -306,7 +327,7 @@ function renderRolesGrid() {
                         class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B0FF]">
                         <option value="">Select permission...</option>
                         ${allPermissions
-            .filter(p => !role.permissions.some(rp => rp.name === p.name))
+            .filter(p => !(role.permissions || []).some(rp => rp.name === p.name))
             .map(p => `<option value="${p.name}">${escapeHtml(p.name)}</option>`)
             .join('')}
                     </select>
