@@ -309,32 +309,29 @@ function renderRolesGrid() {
             </div>
             <div class="p-6 flex-1">
                 <div class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Permissions</div>
-                <div class="flex flex-wrap gap-2 mb-6">
-                    ${(role.permissions || []).map(p => `
-                        <span class="px-2 py-1 bg-[#0091D5]  text-white rounded-lg text-xs font-medium flex items-center gap-1">
-                            ${escapeHtml(p.name)}
-                            <button onclick="handleToggleRolePermission('${role.name}', '${p.name}', false)" class="hover:text-red-500 transition-colors">
-                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            </button>
-                        </span>
-                    `).join('')}
-                    ${role.permissions.length === 0 ? '<p class="text-sm text-gray-400 italic">No permissions assigned</p>' : ''}
-                </div>
-                
-                <div class="mt-auto">
-                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Add Permission</label>
-                    <select onchange="handleToggleRolePermission('${role.name}', this.value, true); this.value='';" 
-                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#00B0FF]">
-                        <option value="">Select permission...</option>
-                        ${allPermissions
-            .filter(p => !(role.permissions || []).some(rp => rp.name === p.name))
-            .map(p => `<option value="${p.name}">${escapeHtml(p.name)}</option>`)
-            .join('')}
-                    </select>
+                <div class="max-h-60 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                    ${allPermissions.map(permission => {
+        const hasPermission = (role.permissions || []).some(p => p.name === permission.name);
+        return `
+                        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors border border-transparent hover:border-gray-100">
+                            <input type="checkbox" 
+                                   ${hasPermission ? 'checked' : ''} 
+                                   onchange="handleToggleRolePermission('${role.name}', '${permission.name}', this.checked)"
+                                   class="form-checkbox h-4 w-4 text-[#0091D5] rounded border-gray-300 focus:ring-[#0091D5] transition duration-150 ease-in-out">
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">${escapeHtml(permission.name)}</div>
+                                <div class="text-xs text-gray-400">${escapeHtml(permission.description || '')}</div>
+                            </div>
+                        </label>
+                        `;
+    }).join('')}
+                    ${allPermissions.length === 0 ? '<p class="text-sm text-gray-400 italic">No permissions available</p>' : ''}
                 </div>
             </div>
         </div>
     `).join('');
+
+    grid.innerHTML = html;
 }
 
 /**
@@ -1047,3 +1044,247 @@ window.addEventListener('beforeunload', function () {
 });
 
 console.log('Dashboard script loaded successfully - Staff Creation version');
+
+/**
+ * Open Create Role Modal
+ */
+function openCreateRoleModal() {
+    const modal = document.getElementById('roleModal');
+    const content = document.getElementById('roleModalContent');
+    if (modal && content) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+}
+
+/**
+ * Close Create Role Modal
+ */
+function closeCreateRoleModal() {
+    const modal = document.getElementById('roleModal');
+    const content = document.getElementById('roleModalContent');
+    if (modal && content) {
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            document.getElementById('roleForm').reset();
+        }, 300);
+    }
+}
+
+/**
+ * Handle Create Role
+ */
+async function handleCreateRole(e) {
+    e.preventDefault();
+    const form = e.target;
+    const loader = document.getElementById('roleSubmitLoader');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    const formData = new FormData(form);
+    const payload = {
+        name: formData.get('name').toUpperCase(),
+        description: formData.get('description'),
+        permissions: [] // Start with no permissions
+    };
+
+    try {
+        loader.classList.remove('hidden');
+        submitBtn.disabled = true;
+
+        const response = await fetch('/api/admin/roles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showNotification('Role created successfully', 'success');
+            closeCreateRoleModal();
+            loadRoleAndPermissionData(); // Refresh grid
+        } else {
+            const error = await response.json().catch(() => ({ message: 'Failed to create role' }));
+            throw new Error(error.message || 'Failed to create role');
+        }
+    } catch (error) {
+        console.error('Error creating role:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        loader.classList.add('hidden');
+        submitBtn.disabled = false;
+    }
+}
+
+/**
+ * Handle Delete Role
+ */
+async function handleDeleteRole(roleId) {
+    if (!confirm('Are you sure you want to delete this role? Users assigned to this role may lose access.')) return;
+
+    try {
+        const response = await fetch(`/api/admin/roles/${roleId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('Role deleted successfully', 'success');
+            loadRoleAndPermissionData();
+        } else {
+            throw new Error('Failed to delete role');
+        }
+    } catch (error) {
+        console.error('Error deleting role:', error);
+        showNotification('Error deleting role', 'error');
+    }
+}
+
+// Export new functions
+window.openCreateRoleModal = openCreateRoleModal;
+window.closeCreateRoleModal = closeCreateRoleModal;
+window.handleCreateRole = handleCreateRole;
+window.handleDeleteRole = handleDeleteRole;
+
+/**
+ * Open Manage Permissions Modal
+ */
+function openManagePermissionsModal() {
+    const modal = document.getElementById('permissionsModal');
+    const content = document.getElementById('permissionsModalContent');
+    if (modal && content) {
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+        renderPermissionsList();
+    }
+}
+
+/**
+ * Close Manage Permissions Modal
+ */
+function closeManagePermissionsModal() {
+    const modal = document.getElementById('permissionsModal');
+    const content = document.getElementById('permissionsModalContent');
+    if (modal && content) {
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+}
+
+/**
+ * Render Permissions List in Modal
+ */
+function renderPermissionsList() {
+    const list = document.getElementById('permissionsList');
+    if (!list) return;
+
+    if (!allPermissions || allPermissions.length === 0) {
+        list.innerHTML = '<div class="text-center py-8 text-gray-500">No permissions found</div>';
+        return;
+    }
+
+    list.innerHTML = allPermissions.map(p => `
+        <div class="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+            <div>
+                <div class="font-medium text-gray-800 text-sm">${escapeHtml(p.name)}</div>
+                <div class="text-xs text-gray-500">${escapeHtml(p.description || '')}</div>
+            </div>
+            <button onclick="handleDeletePermission(${p.permissionId})" 
+                class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Delete Permission">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+/**
+ * Handle Create Permission
+ */
+async function handleCreatePermission(e) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    const formData = new FormData(form);
+    const payload = {
+        name: formData.get('name').toUpperCase(),
+        description: formData.get('description')
+    };
+
+    try {
+        submitBtn.disabled = true;
+        const response = await fetch('/api/admin/permissions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showNotification('Permission added', 'success');
+            form.reset();
+            await loadRoleAndPermissionData(); // Reload global data
+            renderPermissionsList(); // Refresh list in modal
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to create permission');
+        }
+    } catch (error) {
+        console.error('Error creating permission:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+/**
+ * Handle Delete Permission
+ */
+async function handleDeletePermission(id) {
+    if (!confirm('Are you sure? This will remove this permission from all roles.')) return;
+
+    try {
+        const response = await fetch(`/api/admin/permissions/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('Permission deleted', 'success');
+            await loadRoleAndPermissionData(); // Reload global data
+            renderPermissionsList(); // Refresh list in modal
+        } else {
+            throw new Error('Failed to delete permission');
+        }
+    } catch (error) {
+        console.error('Error deleting permission:', error);
+        showNotification('Error deleting permission', 'error');
+    }
+}
+
+// Export new Permission functions
+window.openManagePermissionsModal = openManagePermissionsModal;
+window.closeManagePermissionsModal = closeManagePermissionsModal;
+window.handleCreatePermission = handleCreatePermission;
+window.handleDeletePermission = handleDeletePermission;
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
