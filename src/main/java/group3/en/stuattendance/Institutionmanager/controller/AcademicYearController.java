@@ -36,6 +36,16 @@ public class AcademicYearController {
         return ResponseEntity.ok(academicYearService.activateAcademicYear(id));
     }
 
+    @PutMapping("/{id}/suspend")
+    public ResponseEntity<AcademicYearDto> suspendAcademicYear(@PathVariable Long id) {
+        return ResponseEntity.ok(academicYearService.suspendAcademicYear(id));
+    }
+
+    @PutMapping("/{id}/close")
+    public ResponseEntity<AcademicYearDto> closeAcademicYear(@PathVariable Long id) {
+        return ResponseEntity.ok(academicYearService.closeAcademicYear(id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteAcademicYear(@PathVariable Long id) {
         academicYearService.deleteAcademicYear(id);

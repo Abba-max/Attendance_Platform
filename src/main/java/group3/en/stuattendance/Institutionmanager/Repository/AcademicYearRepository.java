@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface AcademicYearRepository extends JpaRepository<AcademicYear, Long> {
 
-    @Query("SELECT a FROM AcademicYear a WHERE a.isActive = true")
+    @Query("SELECT a FROM AcademicYear a WHERE a.status = group3.en.stuattendance.Institutionmanager.Model.AcademicYearStatus.ACTIVE")
     Optional<AcademicYear> findActiveAcademicYear();
 
     Optional<AcademicYear> findByAcademicYear(String academicYear);

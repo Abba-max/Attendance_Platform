@@ -15,6 +15,7 @@ public class AcademicYearDto {
     private Long id;
     private LocalDate startDate;
     private LocalDate endDate;
+    private String status; // ACTIVE, SUSPENDED, CLOSED
     private boolean isActive;
     private String academicYear;
 }

@@ -3,6 +3,7 @@ package group3.en.stuattendance.Institutionmanager.ServiceImpl;
 import group3.en.stuattendance.Institutionmanager.DTO.AcademicYearDto;
 import group3.en.stuattendance.Institutionmanager.Mapper.AcademicYearMapper;
 import group3.en.stuattendance.Institutionmanager.Model.AcademicYear;
+import group3.en.stuattendance.Institutionmanager.Model.AcademicYearStatus;
 import group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository;
 import group3.en.stuattendance.Institutionmanager.Service.AcademicYearService;
 import lombok.RequiredArgsConstructor;
@@ -22,13 +23,18 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Override
     @Transactional
     public AcademicYearDto createAcademicYear(AcademicYearDto dto) {
+        if (dto.getStartDate().isAfter(dto.getEndDate())) {
+            throw new IllegalArgumentException("Start date must be before end date");
+        }
+
         AcademicYear entity = academicYearMapper.toEntity(dto);
         
-        // If this is the first one or set to active, deactivate others
+        // If this is set to active, deactivate the current active one
         if (entity.isActive()) {
-            deactivateAll();
+            deactivateCurrentActive();
         } else if (academicYearRepository.count() == 0) {
-            entity.setActive(true);
+            // First one ever created should be active by default if not specified
+            entity.setStatus(AcademicYearStatus.ACTIVE);
         }
 
         AcademicYear saved = academicYearRepository.save(entity);
@@ -55,9 +61,31 @@ public class AcademicYearServiceImpl implements AcademicYearService {
         AcademicYear year = academicYearRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Academic Year not found"));
         
-        deactivateAll();
-        year.setActive(true);
+        if (year.isActive()) {
+            return academicYearMapper.toDto(year);
+        }
+
+        deactivateCurrentActive();
+        year.setStatus(AcademicYearStatus.ACTIVE);
         
+        return academicYearMapper.toDto(academicYearRepository.save(year));
+    }
+
+    @Override
+    @Transactional
+    public AcademicYearDto suspendAcademicYear(Long id) {
+        AcademicYear year = academicYearRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Academic Year not found"));
+        year.setStatus(AcademicYearStatus.SUSPENDED);
+        return academicYearMapper.toDto(academicYearRepository.save(year));
+    }
+
+    @Override
+    @Transactional
+    public AcademicYearDto closeAcademicYear(Long id) {
+        AcademicYear year = academicYearRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Academic Year not found"));
+        year.setStatus(AcademicYearStatus.CLOSED);
         return academicYearMapper.toDto(academicYearRepository.save(year));
     }
 
@@ -74,9 +102,10 @@ public class AcademicYearServiceImpl implements AcademicYearService {
         academicYearRepository.delete(year);
     }
 
-    private void deactivateAll() {
-        List<AcademicYear> all = academicYearRepository.findAll();
-        all.forEach(a -> a.setActive(false));
-        academicYearRepository.saveAll(all);
+    private void deactivateCurrentActive() {
+        academicYearRepository.findActiveAcademicYear().ifPresent(activeYear -> {
+            activeYear.setStatus(AcademicYearStatus.CLOSED);
+            academicYearRepository.save(activeYear);
+        });
     }
 }

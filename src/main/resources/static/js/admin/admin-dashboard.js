@@ -191,6 +191,32 @@ function renderUserTable(users) {
     }).join('')}
                         </div>
                     </div>
+                    <!-- Permissions Dropdown -->
+                    <div class="relative group">
+                        <button class="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title="View Permissions">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+                            </svg>
+                        </button>
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50 italic">Effective Permissions</div>
+                            <div class="max-h-60 overflow-y-auto">
+                                ${(() => {
+            const userPermissions = new Set();
+            user.roles.forEach(role => {
+                (role.permissions || []).forEach(p => userPermissions.add(p.name));
+            });
+            if (userPermissions.size === 0) return '<div class="p-4 text-xs text-gray-400 text-center italic">No permissions granted</div>';
+            return Array.from(userPermissions).sort().map(pName => `
+                                        <div class="px-4 py-2 text-xs text-emerald-600 flex items-center gap-2 border-b border-gray-50 last:border-0 hover:bg-emerald-50">
+                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
+                                            ${escapeHtml(pName)}
+                                        </div>
+                                    `).join('');
+        })()}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </td>
         </tr>
@@ -1283,7 +1309,7 @@ window.closeManagePermissionsModal = closeManagePermissionsModal;
 window.handleCreatePermission = handleCreatePermission;
 window.handleDeletePermission = handleDeletePermission;
 
-// --- Academic Year Management ---
+const ACADEMIC_YEARS_API_URL = '/api/admin/academic-years';
 
 /**
  * Load Academic Years from API
@@ -1293,7 +1319,7 @@ async function loadAcademicYears() {
         const tableBody = document.getElementById('academicYearTableBody');
         if (!tableBody) return;
 
-        const response = await fetch('/api/academic-years');
+        const response = await fetch(ACADEMIC_YEARS_API_URL);
         if (!response.ok) throw new Error('Failed to fetch academic years');
 
         const years = await response.json();
@@ -1320,7 +1346,13 @@ function renderAcademicYearTable(years) {
         return;
     }
 
-    tableBody.innerHTML = years.map(year => `
+    tableBody.innerHTML = years.map(year => {
+        let statusClass = 'bg-slate-100 text-slate-500';
+        if (year.status === 'ACTIVE') statusClass = 'bg-green-100 text-green-700';
+        if (year.status === 'SUSPENDED') statusClass = 'bg-amber-100 text-amber-700';
+        if (year.status === 'CLOSED') statusClass = 'bg-red-100 text-red-700';
+
+        return `
         <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-4 py-4">
                 <div class="font-bold text-slate-800">${escapeHtml(year.academicYear)}</div>
@@ -1335,30 +1367,42 @@ function renderAcademicYearTable(years) {
                 </div>
             </td>
             <td class="px-4 py-4 text-center">
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${year.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}">
-                    ${year.active ? 'Active' : 'Archived'}
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusClass}">
+                    ${year.status}
                 </span>
             </td>
             <td class="px-4 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
-                    ${!year.active ? `
+                    ${year.status !== 'ACTIVE' ? `
                         <button onclick="handleActivateAcademicYear(${year.id})" class="p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors" title="Activate Year">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </button>
+                    ` : `
+                        <button onclick="handleSuspendAcademicYear(${year.id})" class="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" title="Suspend Year">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </button>
+                        <button onclick="handleCloseAcademicYear(${year.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Close Year">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    `}
+                    ${year.status !== 'ACTIVE' ? `
                         <button onclick="handleDeleteAcademicYear(${year.id})" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Delete Year">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                         </button>
-                    ` : `
-                        <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">CURRENT</span>
-                    `}
+                    ` : ''}
                 </div>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 /**
@@ -1378,7 +1422,7 @@ async function handleCreateAcademicYear(e) {
 
     try {
         submitBtn.disabled = true;
-        const response = await fetch('/api/academic-years', {
+        const response = await fetch(ACADEMIC_YEARS_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1408,7 +1452,7 @@ async function handleActivateAcademicYear(id) {
     if (!confirm('Activating this year will deactivate the current one. Continue?')) return;
 
     try {
-        const response = await fetch(`/api/academic-years/${id}/activate`, {
+        const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/activate`, {
             method: 'PUT'
         });
 
@@ -1425,13 +1469,59 @@ async function handleActivateAcademicYear(id) {
 }
 
 /**
+ * Handle Suspend Academic Year
+ */
+async function handleSuspendAcademicYear(id) {
+    if (!confirm('Suspend this academic year temporarily?')) return;
+
+    try {
+        const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/suspend`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            showNotification('Academic year suspended', 'warning');
+            loadAcademicYears();
+        } else {
+            throw new Error('Failed to suspend year');
+        }
+    } catch (error) {
+        console.error('Error suspending year:', error);
+        showNotification('Error suspending year', 'error');
+    }
+}
+
+/**
+ * Handle Close Academic Year
+ */
+async function handleCloseAcademicYear(id) {
+    if (!confirm('Are you sure you want to CLOSE this academic year? This should be done at the end of the session.')) return;
+
+    try {
+        const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/close`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            showNotification('Academic year closed', 'info');
+            loadAcademicYears();
+        } else {
+            throw new Error('Failed to close year');
+        }
+    } catch (error) {
+        console.error('Error closing year:', error);
+        showNotification('Error closing year', 'error');
+    }
+}
+
+/**
  * Handle Delete Academic Year
  */
 async function handleDeleteAcademicYear(id) {
     if (!confirm('Are you sure you want to delete this archived year?')) return;
 
     try {
-        const response = await fetch(`/api/academic-years/${id}`, {
+        const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}`, {
             method: 'DELETE'
         });
 
@@ -1471,6 +1561,8 @@ function closeAcademicYearModal() {
 window.openAcademicYearModal = openAcademicYearModal;
 window.closeAcademicYearModal = closeAcademicYearModal;
 window.handleActivateAcademicYear = handleActivateAcademicYear;
+window.handleSuspendAcademicYear = handleSuspendAcademicYear;
+window.handleCloseAcademicYear = handleCloseAcademicYear;
 window.handleDeleteAcademicYear = handleDeleteAcademicYear;
 
 /**

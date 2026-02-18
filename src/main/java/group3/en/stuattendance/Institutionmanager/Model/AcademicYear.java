@@ -29,10 +29,16 @@ public class AcademicYear {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean isActive;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    @Builder.Default
+    private AcademicYearStatus status = AcademicYearStatus.ACTIVE;
 
-    @Column(name = "academic_year_name", nullable = false, length = 9)
+    public boolean isActive() {
+        return this.status == AcademicYearStatus.ACTIVE;
+    }
+
+    @Column(name = "academic_year_name", nullable = false, unique = true, length = 20)
     private String academicYear; // Format: 20XX/20XX
 
     @CreatedDate
