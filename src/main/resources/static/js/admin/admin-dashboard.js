@@ -25,12 +25,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load initial data
     // loadDashboardData(); // Disabled as DashboardController is removed
     loadRoleAndPermissionData();
+    loadAcademicYears();
 
     // Set up auto-refresh
     setupAutoRefresh();
 
     // Set up user search
     setupUserSearch();
+
+    // Set up academic year form
+    const ayForm = document.getElementById('academicYearForm');
+    if (ayForm) {
+        ayForm.addEventListener('submit', handleCreateAcademicYear);
+    }
 });
 
 /**
@@ -1275,6 +1282,196 @@ window.openManagePermissionsModal = openManagePermissionsModal;
 window.closeManagePermissionsModal = closeManagePermissionsModal;
 window.handleCreatePermission = handleCreatePermission;
 window.handleDeletePermission = handleDeletePermission;
+
+// --- Academic Year Management ---
+
+/**
+ * Load Academic Years from API
+ */
+async function loadAcademicYears() {
+    try {
+        const tableBody = document.getElementById('academicYearTableBody');
+        if (!tableBody) return;
+
+        const response = await fetch('/api/academic-years');
+        if (!response.ok) throw new Error('Failed to fetch academic years');
+
+        const years = await response.json();
+        renderAcademicYearTable(years);
+        console.log('Academic years loaded successfully');
+    } catch (error) {
+        console.error('Error loading academic years:', error);
+        const tableBody = document.getElementById('academicYearTableBody');
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-8 text-center text-red-500">Error loading academic years</td></tr>';
+        }
+    }
+}
+
+/**
+ * Render Academic Year Table
+ */
+function renderAcademicYearTable(years) {
+    const tableBody = document.getElementById('academicYearTableBody');
+    if (!tableBody) return;
+
+    if (!years || years.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500">No academic years found. Launch one to get started.</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = years.map(year => `
+        <tr class="hover:bg-gray-50 transition-colors">
+            <td class="px-4 py-4">
+                <div class="font-bold text-slate-800">${escapeHtml(year.academicYear)}</div>
+                <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Session Name</div>
+            </td>
+            <td class="px-4 py-4 text-sm text-slate-600 font-medium">
+                <div class="flex items-center gap-2">
+                    <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    ${year.startDate} &mdash; ${year.endDate}
+                </div>
+            </td>
+            <td class="px-4 py-4 text-center">
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${year.active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}">
+                    ${year.active ? 'Active' : 'Archived'}
+                </span>
+            </td>
+            <td class="px-4 py-4 text-right">
+                <div class="flex items-center justify-end gap-2">
+                    ${!year.active ? `
+                        <button onclick="handleActivateAcademicYear(${year.id})" class="p-2 text-cyan-600 hover:bg-cyan-50 rounded-lg transition-colors" title="Activate Year">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </button>
+                        <button onclick="handleDeleteAcademicYear(${year.id})" class="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors" title="Delete Year">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    ` : `
+                        <span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded">CURRENT</span>
+                    `}
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+/**
+ * Handle Launch Academic Year
+ */
+async function handleCreateAcademicYear(e) {
+    e.preventDefault();
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    const payload = {
+        academicYear: document.getElementById('ay_name').value,
+        startDate: document.getElementById('ay_startDate').value,
+        endDate: document.getElementById('ay_endDate').value,
+        isActive: document.getElementById('ay_isActive').checked
+    };
+
+    try {
+        submitBtn.disabled = true;
+        const response = await fetch('/api/academic-years', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            showNotification('Academic year launched successfully!', 'success');
+            closeAcademicYearModal();
+            form.reset();
+            loadAcademicYears();
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to launch academic year');
+        }
+    } catch (error) {
+        console.error('Error launching academic year:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+    }
+}
+
+/**
+ * Handle Activate Academic Year
+ */
+async function handleActivateAcademicYear(id) {
+    if (!confirm('Activating this year will deactivate the current one. Continue?')) return;
+
+    try {
+        const response = await fetch(`/api/academic-years/${id}/activate`, {
+            method: 'PUT'
+        });
+
+        if (response.ok) {
+            showNotification('Academic year activated', 'success');
+            loadAcademicYears();
+        } else {
+            throw new Error('Failed to activate year');
+        }
+    } catch (error) {
+        console.error('Error activating year:', error);
+        showNotification('Error activating year', 'error');
+    }
+}
+
+/**
+ * Handle Delete Academic Year
+ */
+async function handleDeleteAcademicYear(id) {
+    if (!confirm('Are you sure you want to delete this archived year?')) return;
+
+    try {
+        const response = await fetch(`/api/academic-years/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('Academic year deleted', 'success');
+            loadAcademicYears();
+        } else {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to delete year');
+        }
+    } catch (error) {
+        console.error('Error deleting year:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+/**
+ * Modal Controls
+ */
+function openAcademicYearModal() {
+    const modal = document.getElementById('academicYearModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closeAcademicYearModal() {
+    const modal = document.getElementById('academicYearModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+// Export functions to window
+window.openAcademicYearModal = openAcademicYearModal;
+window.closeAcademicYearModal = closeAcademicYearModal;
+window.handleActivateAcademicYear = handleActivateAcademicYear;
+window.handleDeleteAcademicYear = handleDeleteAcademicYear;
 
 /**
  * Escape HTML to prevent XSS
