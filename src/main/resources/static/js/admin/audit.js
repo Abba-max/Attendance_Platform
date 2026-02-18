@@ -308,3 +308,31 @@ window.dashboardApp = {
     fetchAuditLogs,
     showPage
 };
+    document.addEventListener('DOMContentLoaded', function () {
+        const navItems = document.querySelectorAll('.nav-item');
+        const sections = document.querySelectorAll('.content-section');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetSection = this.getAttribute('data-section');
+
+                // Update active nav style
+                navItems.forEach(nav => {
+                    nav.classList.remove('active', 'bg-[#00B0FF]', 'text-white');
+                    nav.classList.add('text-gray-700');
+                });
+                this.classList.add('active', 'bg-[#00B0FF]', 'text-white');
+                this.classList.remove('text-gray-700');
+
+                // Show the matching section, hide all others
+                sections.forEach(section => {
+                    section.classList.add('hidden');
+                });
+                const target = document.getElementById('section-' + targetSection);
+                if (target) {
+                    target.classList.remove('hidden');
+                }
+            });
+        });
+    });

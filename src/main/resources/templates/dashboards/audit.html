@@ -1,71 +1,121 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>auditlog - Attendee</title>
+    <title>Attendee - Administrator Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 font-sans">
+
+<body class="bg-[#E3F2FD] font-sans">
 <div class="flex h-screen overflow-hidden">
     <!-- Sidebar -->
-    <aside id="sidebar" class="w-80 bg-white shadow-lg flex flex-col">
-        <!-- Logo Section -->
+    <aside id="sidebar" class="bg-white w-80 flex-shrink-0 shadow-lg transition-all duration-300">
         <div class="p-6 border-b border-gray-200">
             <div class="flex items-center gap-3">
-                <img th:src="@{/image/logo.jpeg}" alt="Attendee Logo" class="w-12 h-12 rounded-lg">
-                <span class="text-xl font-bold text-gray-800">Attendee</span>
+                <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg " alt="Attendee Logo"
+                     class="w-12 h-12 object-contain rounded-lg">
+                <span class="text-xl font-semibold text-gray-800">Attendee</span>
             </div>
         </div>
 
-        <!-- Navigation Menu -->
-        <nav class="flex-1 py-6">
-            <ul class="space-y-2 px-4">
+        <nav class="p-4">
+            <ul class="space-y-2">
                 <li>
-                    <a href="#" data-page="dashboard" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg bg-cyan-500 text-white transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    <a href="#"
+                       class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl text-white bg-[#00B0FF] hover:bg-[#0091D5] transition-all duration-200"
+                       data-section="dashboard">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
                         </svg>
-                        <span class="font-medium">Dashboard Overview</span>
+                        <span class="font-medium">Overview</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" data-page="institutions" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="institutions">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                            </path>
                         </svg>
                         <span class="font-medium">Manage Institutions</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" data-page="access" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="academic-year">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
                         </svg>
-                        <span class="font-medium">Manage Access</span>
+                        <span class="font-medium">Academic Year</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" data-page="security" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="access">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                            </path>
+                        </svg>
+                        <span class="font-medium">Manage Users</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="roles">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                            </path>
+                        </svg>
+                        <span class="font-medium">Roles & Permissions</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="security">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
+                            </path>
                         </svg>
                         <span class="font-medium">Security & Statistics</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" data-page="audit" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="audit">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                            </path>
                         </svg>
                         <span class="font-medium">Audit Logs</span>
                     </a>
                 </li>
                 <li>
-                    <a href="#" data-page="settings" class="nav-link flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] hover:text-white transition-all duration-200"
+                       data-section="settings">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                         <span class="font-medium">System Settings</span>
                     </a>
@@ -77,54 +127,275 @@
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto">
         <!-- Header -->
-        <header class="bg-white shadow-sm border-b border-gray-200 px-8 py-4">
+        <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-800" id="page-title"></h1>
-                    <p class="text-gray-600 mt-1" id="page-subtitle"></p>
+                    <h1 class="text-2xl font-semibold text-gray-800">Attendee • Administrator Dashboard</h1>
+                    <p class="text-gray-600 mt-1"
+                       th:text="${adminName != null ? adminName : 'Administrator'} + ' • ' + ${institution != null ? institution : 'Institution'}">
+                        Administrator • Institution</p>
                 </div>
-                <div class="flex items-center gap-4">
-                    <!-- Status Indicators -->
-                    <div class="flex items-center gap-2 text-green-600">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-sm font-medium">Database</span>
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <button class="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                                </path>
+                            </svg>
+                            <span th:if="${notifications != null and notifications > 0}"
+                                  class="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full"></span>
+                        </button>
                     </div>
-                    <div class="flex items-center gap-2 text-green-600">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-sm font-medium">API</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-yellow-600">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-sm font-medium">Storage</span>
-                    </div>
-                    <!-- Notifications -->
-                    <button class="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                    </button>
-                    <!-- Settings -->
-                    <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <button class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                     </button>
                 </div>
             </div>
         </header>
 
-        <!-- Page Content Container -->
-        <div id="page-content" class="p-8">
-            <!-- Audit Logs Page (Default) -->
-            <div id="audit-page" class="page-content">
+        <!-- Content Area -->
+        <div class="p-8">
+
+            <!-- ===== DASHBOARD OVERVIEW SECTION ===== -->
+            <section id="section-dashboard" class="content-section">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h2>
+                    <p class="text-gray-600">Welcome back! Here's what's happening with your system today.</p>
+                </div>
+                <div class="mb-8">
+                    <h3 class="text-xl font-semibold text-gray-800 mb-4">System Statistics</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">Total Users</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="totalUsers"
+                                       th:text="${stats != null and stats.totalUsers != null ? #numbers.formatInteger(stats.totalUsers, 1, 'COMMA') : '0'}">0</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="userGrowth"
+                                       th:text="${stats != null and stats.userGrowth != null ? stats.userGrowth : '+0%'}">+0%</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#00B0FF] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                        </path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between"><span class="text-gray-600">Students</span><span class="font-medium text-gray-800" id="studentCount" th:text="${stats != null and stats.studentCount != null ? #numbers.formatInteger(stats.studentCount, 1, 'COMMA') : '0'}">0</span></div>
+                                <div class="flex justify-between"><span class="text-gray-600">Faculty</span><span class="font-medium text-gray-800" id="facultyCount" th:text="${stats != null and stats.facultyCount != null ? #numbers.formatInteger(stats.facultyCount, 1, 'COMMA') : '0'}">0</span></div>
+                                <div class="flex justify-between"><span class="text-gray-600">Staff</span><span class="font-medium text-gray-800" id="staffCount" th:text="${stats != null and stats.staffCount != null ? #numbers.formatInteger(stats.staffCount, 1, 'COMMA') : '0'}">0</span></div>
+                                <div class="flex justify-between"><span class="text-gray-600">Admins</span><span class="font-medium text-gray-800" id="adminCount" th:text="${stats != null and stats.adminCount != null ? #numbers.formatInteger(stats.adminCount, 1, 'COMMA') : '0'}">0</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <p class="text-gray-600 text-sm mb-2">Active Sessions Today</p>
+                                    <p class="text-4xl font-bold text-gray-800" id="activeSessions"
+                                       th:text="${stats != null and stats.activeSessions != null ? #numbers.formatInteger(stats.activeSessions, 1, 'COMMA') : '0'}">0</p>
+                                    <p class="text-green-500 text-sm font-medium mt-2" id="sessionGrowth"
+                                       th:text="${stats != null and stats.sessionGrowth != null ? stats.sessionGrowth : '+0%'}">+0%</p>
+                                </div>
+                                <div class="w-14 h-14 bg-[#FDD835] rounded-xl flex items-center justify-center">
+                                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between"><span class="text-gray-600">Current</span><span class="font-medium text-gray-800" id="currentSessions" th:text="${stats != null and stats.currentSessions != null ? #numbers.formatInteger(stats.currentSessions, 1, 'COMMA') : '0'}">0</span></div>
+                                <div class="flex justify-between"><span class="text-gray-600">Peak Today</span><span class="font-medium text-gray-800" id="peakSessions" th:text="${stats != null and stats.peakSessions != null ? #numbers.formatInteger(stats.peakSessions, 1, 'COMMA') : '0'}">0</span></div>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl p-6 shadow-sm overflow-hidden flex flex-col">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-gray-600 text-sm">Total Cycles</p>
+                                            </div>
+                                            <p class="text-3xl font-bold text-gray-800" id="totalInstitutions"
+                                               th:text="${stats != null and stats.totalInstitutions != null ? #numbers.formatInteger(stats.totalInstitutions, 1, 'COMMA') : '0'}">0</p>
+                                        </div>
+                                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-gray-600 text-sm">Active Staff</p>
+                                            </div>
+                                            <p class="text-3xl font-bold text-gray-800" id="activeStaff"
+                                               th:text="${stats != null and stats.activeStaff != null ? #numbers.formatInteger(stats.activeStaff, 1, 'COMMA') : '0'}">0</p>
+                                        </div>
+                                        <div class="bg-white rounded-2xl p-6 shadow-sm">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-gray-600 text-sm">Total Students</p>
+                                            </div>
+                                            <p class="text-3xl font-bold text-gray-800" id="totalStudents"
+                                               th:text="${stats != null and stats.totalStudents != null ? #numbers.formatInteger(stats.totalStudents, 1, 'COMMA') : '0'}">0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== INSTITUTIONS SECTION ===== -->
+            <section id="section-institutions" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Institutions</h2>
+                    <p class="text-gray-600">View and manage all institutions in the system.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Institution management interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <!-- ===== ACADEMIC YEAR SECTION ===== -->
+            <section id="section-academic-year" class="content-section hidden">
+                <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Academic Year Management</h2>
+                        <p class="text-gray-600">Launch and track academic sessions for the institution.</p>
+                    </div>
+                    <button onclick="openAcademicYearModal()"
+                            class="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-all font-medium shadow-sm">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        <span>Launch New Year</span>
+                    </button>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Academic Year</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Dates</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Status</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="academicYearTableBody" class="divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="4" class="px-6 py-12 text-center text-gray-500">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Loading academic years...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== MANAGE USERS SECTION ===== -->
+            <section id="section-access" class="content-section hidden">
+                <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Users</h2>
+                        <p class="text-gray-600">View, manage, and audit all system users.</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="relative">
+                            <input type="text" id="userSearch" placeholder="Search users..."
+                                   class="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] w-64 lg:w-80">
+                            <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                        </div>
+                        <button onclick="openStaffModal()"
+                                class="flex items-center gap-2 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-sm">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            <span>Add Staff Member</span>
+                        </button>
+                        <button onclick="refreshUsers()" class="p-2 text-[#00B0FF] hover:bg-[#00B0FF] hover:bg-opacity-10 rounded-xl transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left">
+                            <thead class="bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">ID</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Roles</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Status</th>
+                                <th class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                            </tr>
+                            </thead>
+                            <tbody id="userTableBody" class="divide-y divide-gray-100">
+                            <tr>
+                                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                    <div class="flex flex-col items-center gap-2">
+                                        <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
+                                        <span>Loading users...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== ROLES & PERMISSIONS SECTION ===== -->
+            <section id="section-roles" class="content-section hidden">
+                <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Role & Permission Settings</h2>
+                        <p class="text-gray-600">Configure system roles and their associated permissions.</p>
+                    </div>
+                    <button onclick="openManagePermissionsModal()"
+                            class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
+                        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                        <span>Manage Permissions</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="rolesGrid">
+                    <div class="col-span-1 lg:col-span-2 flex justify-center py-12">
+                        <div class="flex flex-col items-center gap-2 text-gray-500">
+                            <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
+                            <span>Loading roles and permissions...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== SECURITY SECTION ===== -->
+            <section id="section-security" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Security & Statistics</h2>
+                    <p class="text-gray-600">Monitor security alerts and system statistics.</p>
+                </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">Security and statistics interface will be displayed here.</p>
+                </div>
+            </section>
+
+            <!-- ===== AUDIT LOGS SECTION (fully integrated from auditlog.html) ===== -->
+            <section id="section-audit" class="content-section hidden">
+                <!-- Header Banner -->
                 <div class="bg-blue-50 rounded-lg p-6 mb-6">
                     <div class="flex items-center justify-between">
                         <div>
@@ -147,7 +418,8 @@
                             <svg class="w-5 h-5 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                             </svg>
-                            <input type="text" id="searchInput" placeholder="Search logs by user, action, or target..." class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
+                            <input type="text" id="auditSearchInput" placeholder="Search logs by user, action, or target..."
+                                   class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                         </div>
                         <button class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
                             <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -179,7 +451,7 @@
                             </tr>
                             </thead>
                             <tbody id="auditLogsTable" class="divide-y divide-gray-200">
-                            <!-- Dynamic content will be inserted here -->
+                            <!-- Dynamic content injected by audit.js -->
                             </tbody>
                         </table>
                     </div>
@@ -194,7 +466,7 @@
                                 Previous
                             </button>
                             <div id="pageNumbers" class="flex gap-2">
-                                <!-- Page numbers will be inserted here -->
+                                <!-- Page numbers injected by audit.js -->
                             </div>
                             <button id="nextBtn" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 Next
@@ -202,47 +474,162 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Other Pages (Hidden by default) -->
-            <div id="dashboard-page" class="page-content hidden">
-                <div class="bg-white rounded-lg shadow-sm p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Dashboard Overview</h2>
-                    <p class="text-gray-600">Dashboard content will be displayed here.</p>
+            <!-- ===== SETTINGS SECTION ===== -->
+            <section id="section-settings" class="content-section hidden">
+                <div class="mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">System Settings</h2>
+                    <p class="text-gray-600">Configure system settings and preferences.</p>
                 </div>
-            </div>
+                <div class="bg-white rounded-2xl p-8 shadow-sm">
+                    <p class="text-gray-600">System settings interface will be displayed here.</p>
+                </div>
+            </section>
 
-            <div id="institutions-page" class="page-content hidden">
-                <div class="bg-white rounded-lg shadow-sm p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Institutions</h2>
-                    <p class="text-gray-600">Institutions management content will be displayed here.</p>
-                </div>
-            </div>
-
-            <div id="access-page" class="page-content hidden">
-                <div class="bg-white rounded-lg shadow-sm p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Access</h2>
-                    <p class="text-gray-600">Access management content will be displayed here.</p>
-                </div>
-            </div>
-
-            <div id="security-page" class="page-content hidden">
-                <div class="bg-white rounded-lg shadow-sm p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Security & Statistics</h2>
-                    <p class="text-gray-600">Security and statistics content will be displayed here.</p>
-                </div>
-            </div>
-
-            <div id="settings-page" class="page-content hidden">
-                <div class="bg-white rounded-lg shadow-sm p-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">System Settings</h2>
-                    <p class="text-gray-600">System settings content will be displayed here.</p>
-                </div>
-            </div>
         </div>
     </main>
 </div>
 
+<!-- ===== MODALS ===== -->
+
+<!-- Staff Registration Modal -->
+<div id="staffModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="staffModalContent">
+        <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+            <h3 class="text-xl font-bold">Register New Staff Member</h3>
+            <button onclick="closeStaffModal()" class="p-1 hover:bg-[#0091D5] hover:bg-opacity-20 rounded-lg transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="staffForm" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
+                <input type="text" name="username" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all" placeholder="e.g. jsmith">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                <input type="email" name="email" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all" placeholder="e.g. john.smith@institution.com">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
+                <input type="password" name="password" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all" placeholder="Min. 6 characters">
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Role</label>
+                <select name="roleNames" required multiple class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all min-h-[100px]"></select>
+                <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple roles.</p>
+            </div>
+            <div class="pt-4 flex gap-3">
+                <button type="button" onclick="closeStaffModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-md flex items-center justify-center gap-2">
+                    <span>Create Account</span>
+                    <div id="staffSubmitLoader" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Role Modal -->
+<div id="roleModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="roleModalContent">
+        <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+            <h3 class="text-xl font-bold">Create New Role</h3>
+            <button onclick="closeCreateRoleModal()" class="p-1 hover:bg-[#0091D5] hover:bg-opacity-20 rounded-lg transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="roleForm" onsubmit="handleCreateRole(event)" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Role Name</label>
+                <input type="text" name="name" required class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all" placeholder="e.g. LAB_MANAGER">
+                <p class="text-xs text-gray-500 mt-1">Use uppercase letters and underscores.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                <textarea name="description" rows="3" class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all" placeholder="Describe the responsibilities of this role..."></textarea>
+            </div>
+            <div class="pt-4 flex gap-3">
+                <button type="button" onclick="closeCreateRoleModal()" class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium">Cancel</button>
+                <button type="submit" class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-md flex items-center justify-center gap-2">
+                    <span>Create Role</span>
+                    <div id="roleSubmitLoader" class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden"></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Manage Permissions Modal -->
+<div id="permissionsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-95 opacity-0 duration-300 flex flex-col max-h-[90vh]" id="permissionsModalContent">
+        <div class="p-6 bg-gray-800 text-white flex justify-between items-center flex-shrink-0">
+            <h3 class="text-xl font-bold">Manage Permissions</h3>
+            <button onclick="closeManagePermissionsModal()" class="p-1 hover:bg-gray-700 rounded-lg transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+            <form onsubmit="handleCreatePermission(event)" class="mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Create New Permission</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="md:col-span-1">
+                        <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00B0FF] text-sm" placeholder="Name (e.g. USER_READ)">
+                    </div>
+                    <div class="md:col-span-2 flex gap-2">
+                        <input type="text" name="description" class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00B0FF] text-sm" placeholder="Description">
+                        <button type="submit" class="px-4 py-2 bg-[#00B0FF] text-white rounded-lg hover:bg-[#0091D5] transition-colors text-sm font-medium whitespace-nowrap">Add</button>
+                    </div>
+                </div>
+            </form>
+            <div class="space-y-2" id="permissionsList">
+                <div class="text-center py-8 text-gray-500">Loading permissions...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Academic Year Modal -->
+<div id="academicYearModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" id="academicYearModalContent">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-cyan-600 text-white">
+            <h3 class="text-xl font-bold">Launch Academic Year</h3>
+            <button onclick="closeAcademicYearModal()" class="text-white/80 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <form id="academicYearForm" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Academic Year Name</label>
+                <input type="text" id="ay_name" required placeholder="e.g., 2024/2025" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Start Date</label>
+                    <input type="date" id="ay_startDate" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">End Date</label>
+                    <input type="date" id="ay_endDate" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+                </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+                <input type="checkbox" id="ay_isActive" class="w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 border-slate-300" checked>
+                <label for="ay_isActive" class="text-sm font-medium text-cyan-800">Set as current active year</label>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeAcademicYearModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                <button type="submit" class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Launch Year</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== SCRIPTS ===== -->
+<script th:src="@{/js/admin/admin-dashboard.js}"></script>
 <script th:src="@{/js/audit.js}"></script>
+
+
 </body>
 </html>
