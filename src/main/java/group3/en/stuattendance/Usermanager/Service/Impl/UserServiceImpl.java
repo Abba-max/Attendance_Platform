@@ -12,6 +12,7 @@ import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
+import group3.en.stuattendance.Usermanager.Util.PasswordUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,7 @@ public class UserServiceImpl implements UserService {
     private final ClassroomRepository classroomRepository;
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
 
     @Override
     public User registerUser(UserDto dto) {
@@ -43,10 +45,10 @@ public class UserServiceImpl implements UserService {
         Classroom studentClassroom = dto.getClassroomId() != null ? 
             classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
 
-        Set<Role> roles = dto.getRoleIds() != null ? 
+        Set<Role> roles = dto.getRoleIds() != null ?
             new java.util.HashSet<>(roleRepository.findAllById(dto.getRoleIds())) : new java.util.HashSet<>();
 
-        Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ? 
+        Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ?
             new java.util.HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new java.util.HashSet<>();
 
         User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms);
@@ -67,16 +69,26 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
                 .collect(java.util.stream.Collectors.toSet()) : new java.util.HashSet<>();
 
+        // Handle password generation
+        String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
+            ? PasswordUtils.generatePassword(dto.getUsername())
+            : dto.getPassword();
+
         User user = User.builder()
                 .username(dto.getUsername())
                 .email(dto.getEmail())
-                .password(passwordEncoder.encode(dto.getPassword()))
+                .password(passwordEncoder.encode(rawPassword))
                 .institution(institution)
                 .roles(roles)
                 .isActive(dto.getIsActive())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Notify user via email
+        emailService.sendAccountCredentialsEmail(savedUser.getEmail(), savedUser.getUsername(), rawPassword);
+
+        return savedUser;
     }
 
     @Override
@@ -93,17 +105,27 @@ public class UserServiceImpl implements UserService {
         Set<Role> roles = new HashSet<>();
         roles.add(teacherRole);
 
+        // Handle password generation
+        String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
+            ? PasswordUtils.generatePassword(dto.getUsername())
+            : dto.getPassword();
+
         User user = User.builder()
                 .username(dto.getUsername())
                 .email(dto.getEmail())
-                .password(passwordEncoder.encode(dto.getPassword()))
+                .password(passwordEncoder.encode(rawPassword))
                 .institution(institution)
                 .roles(roles)
                 .staffClassrooms(staffClassrooms)
                 .isActive(dto.getIsActive())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Notify user via email
+        emailService.sendAccountCredentialsEmail(savedUser.getEmail(), savedUser.getUsername(), rawPassword);
+
+        return savedUser;
     }
 
     @Override
@@ -120,10 +142,15 @@ public class UserServiceImpl implements UserService {
         Set<Role> roles = new HashSet<>();
         roles.add(studentRole);
 
+        // Handle password generation
+        String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
+            ? PasswordUtils.generatePassword(dto.getUsername())
+            : dto.getPassword();
+
         User user = User.builder()
                 .username(dto.getUsername())
                 .email(dto.getEmail())
-                .password(passwordEncoder.encode(dto.getPassword()))
+                .password(passwordEncoder.encode(rawPassword))
                 .matricule(dto.getMatricule())
                 .institution(institution)
                 .classroom(classroom)
@@ -131,7 +158,12 @@ public class UserServiceImpl implements UserService {
                 .isActive(dto.getIsActive())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Notify user via email
+        emailService.sendAccountCredentialsEmail(savedUser.getEmail(), savedUser.getUsername(), rawPassword);
+
+        return savedUser;
     }
 
     @Override

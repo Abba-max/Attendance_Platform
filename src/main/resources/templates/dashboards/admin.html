@@ -305,14 +305,239 @@
                     </div>
                 </section>
 
-                <!-- Other Sections (Institutions, Access, Security, Audit, Settings) -->
+                <!-- Manage Institutions Section -->
                 <section id="section-institutions" class="content-section hidden">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Institutions</h2>
-                        <p class="text-gray-600">View and manage all institutions in the system.</p>
+                    <div class="mb-6 flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Manage Institutions</h2>
+                            <p class="text-gray-600">Manage institutions, cycles, departments, and classrooms</p>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-8 shadow-sm">
-                        <p class="text-gray-600">Institution management interface will be displayed here.</p>
+
+                    <!-- Institutions Grid -->
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Institution Card -->
+                        <div th:each="institution : ${institutions}"
+                            class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                            <!-- Institution Header -->
+                            <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-blue-50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-16 h-16 rounded-xl bg-[#00B0FF] flex items-center justify-center shadow-lg">
+                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-2xl font-bold text-gray-900" th:text="${institution.name}">
+                                                Institution Name</h3>
+                                            <p class="text-sm text-gray-600" th:text="${institution.location}">Location
+                                            </p>
+                                            <div class="flex items-center gap-4 mt-2">
+                                                <span class="text-sm text-gray-600">
+                                                    <span class="font-semibold"
+                                                        th:text="${#sets.size(institution.departments)}">0</span>
+                                                    Departments
+                                                </span>
+                                                <span class="text-sm text-gray-600">
+                                                    <span class="font-semibold"
+                                                        th:text="${#sets.size(institution.users)}">0</span> Users
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button
+                                            th:data-id="${institution.institutionId}"
+                                            th:data-name="${institution.name}"
+                                            th:data-location="${institution.location}"
+                                            onclick="openEditInstitutionModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-location'))"
+                                            class="px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200">
+                                            Edit
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Cycles Section -->
+                            <div class="p-6 bg-gray-50">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h4 class="text-lg font-semibold text-gray-900">Cycles</h4>
+                                    <button onclick="openCreateCycleModal()"
+                                        class="px-4 py-2 bg-[#00B0FF] text-white rounded-lg text-sm font-medium hover:bg-[#0091D5] transition-colors flex items-center gap-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>
+                                        Add Cycle
+                                    </button>
+                                </div>
+
+                                <div th:if="${cycles == null or #lists.isEmpty(cycles)}"
+                                    class="text-center py-8 text-gray-500">
+                                    No cycles created yet. Add your first cycle to get started.
+                                </div>
+
+                                <!-- Cycles Grid -->
+                                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                                    <div th:each="cycle : ${cycles}"
+                                        class="bg-white rounded-lg border border-gray-200 p-4">
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                                                    <svg class="w-5 h-5 text-[#00B0FF]" fill="none"
+                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                    </svg>
+                                                </div>
+                                                <div>
+                                                    <h5 class="font-semibold text-gray-900" th:text="${cycle.name}">
+                                                        Cycle Name</h5>
+                                                    <p class="text-xs text-gray-500" th:text="${cycle.description}">
+                                                        Description</p>
+                                                </div>
+                                            </div>
+                                            <button th:onclick="'handleDeleteCycle(' + ${cycle.cycleId} + ')'"
+                                                class="text-red-400 hover:text-red-600 transition-colors">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+
+                                        <!-- Departments in Cycle -->
+                                        <div class="mt-4 pt-4 border-t border-gray-100">
+                                            <div class="flex items-center justify-between mb-2">
+                                                <span
+                                                    class="text-xs font-bold text-gray-400 uppercase tracking-wider">Departments</span>
+                                                <button
+                                                    th:onclick="'openCreateDepartmentModal(' + ${cycle.cycleId} + ', ' + ${institution.institutionId} + ')'"
+                                                    class="text-[#00B0FF] hover:text-[#0091D5] text-xs font-bold">
+                                                    + Add Dept
+                                                </button>
+                                            </div>
+
+                                            <div th:if="${cycle.departments == null or #sets.isEmpty(cycle.departments)}"
+                                                class="text-center py-2 text-gray-400 text-xs italic">
+                                                No departments
+                                            </div>
+
+                                            <div class="space-y-2">
+                                                <div th:each="dept : ${cycle.departments}"
+                                                    class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                                    <div class="flex items-start justify-between">
+                                                        <div class="flex-1 min-w-0">
+                                                            <p class="text-sm font-semibold text-gray-800 truncate"
+                                                                th:text="${dept.name}">Department Name</p>
+                                                            <p class="text-xs text-gray-500 mt-0.5">
+                                                                Chief: <span class="font-medium text-gray-700"
+                                                                    th:text="${dept.chief} ?: 'Not assigned'">Not
+                                                                    assigned</span>
+                                                            </p>
+                                                            <p class="text-xs text-gray-400 mt-1">
+                                                                <span class="font-semibold text-gray-600"
+                                                                    th:text="${#sets.size(dept.classrooms)}">0</span>
+                                                                Classrooms
+                                                            </p>
+                                                        </div>
+                                                        <div class="flex gap-1 ml-2">
+                                                            <button
+                                                                th:onclick="'openCreateClassroomModal(' + ${dept.departmentId} + ')'"
+                                                                class="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                                title="Add Classroom">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
+                                                                </svg>
+                                                            </button>
+                                                            <button
+                                                                th:onclick="'handleDeleteDepartment(' + ${dept.departmentId} + ')'"
+                                                                class="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                                                                title="Delete">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                                    viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <!-- Classrooms in Department -->
+                                                    <div th:if="${dept.classrooms != null and !#sets.isEmpty(dept.classrooms)}"
+                                                        class="mt-3 space-y-1.5 pl-2 border-l-2 border-gray-200">
+                                                        <div th:each="classroom : ${dept.classrooms}"
+                                                            class="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
+                                                            <div class="flex items-center justify-between">
+                                                                <div class="flex items-center gap-2">
+                                                                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
+                                                                    <div>
+                                                                        <span class="text-xs font-bold text-gray-800"
+                                                                            th:text="${classroom.name}">Class
+                                                                            Name</span>
+                                                                        <span
+                                                                            class="text-[10px] text-gray-400 ml-2 uppercase tracking-wide">Level
+                                                                            <span
+                                                                                th:text="${classroom.level}">1</span></span>
+                                                                        <span class="text-[10px] text-gray-400 ml-2">
+                                                                            <span
+                                                                                th:text="${#sets.size(classroom.students)}">0</span>/<span
+                                                                                th:text="${classroom.capacity}">30</span>
+                                                                            students
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    th:onclick="'handleDeleteClassroom(' + ${classroom.classId} + ')'"
+                                                                    class="text-gray-300 hover:text-red-500 transition-colors">
+                                                                    <svg class="w-3.5 h-3.5" fill="none"
+                                                                        stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round"
+                                                                            stroke-linejoin="round" stroke-width="2"
+                                                                            d="M6 18L18 6M6 6l12 12" />
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Empty State (Should normally not happen if seeded) -->
+                        <div th:if="${institutions == null or #lists.isEmpty(institutions)}" class="col-span-full">
+                            <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center">
+                                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-2">No institutions found</h3>
+                                        <p class="text-gray-500">The system requires at least one institution to be
+                                            seeded in the database.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -535,11 +760,17 @@
                         class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
                         placeholder="e.g. john.smith@institution.com">
                 </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                    <input type="password" name="password" required
-                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
-                        placeholder="Min. 6 characters">
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div class="flex gap-3">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-xs text-blue-700 leading-relaxed">
+                            <strong>Automatic Setup:</strong> A secure temporary password will be generated and sent to
+                            the user's email address instantly.
+                        </p>
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Role</label>
@@ -658,8 +889,6 @@
         </div>
     </div>
 
-    </div>
-
     <!-- Academic Year Modal -->
     <div id="academicYearModal"
         class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
@@ -707,6 +936,129 @@
                         class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">
                         Launch Year
                     </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Institution Modals -->
+    <!-- Edit Institution Modal -->
+    <div id="editInstitutionModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" id="editInstitutionModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold">Edit Institution</h3>
+                <button onclick="closeEditInstitutionModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editInstitutionForm" th:action="@{/admin/institutions/edit/0}" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editInstId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Institution Name</label>
+                    <input type="text" name="name" id="editInstName" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Location</label>
+                    <input type="text" name="location" id="editInstLocation" required class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditInstitutionModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Cycle Modal -->
+    <div id="cycleModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" id="cycleModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold">Create New Cycle</h3>
+                <button onclick="closeCreateCycleModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form th:action="@{/admin/cycles/create}" method="post" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Cycle Name</label>
+                    <input type="text" name="name" required placeholder="e.g., Bachelor, Master, Engineering" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]-500/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]-500/20 focus:border-[#00B0FF] transition outline-none" placeholder="Brief description of this cycle"></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateCycleModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#00B0FF]-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create Cycle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Department Modal -->
+    <div id="departmentModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" id="departmentModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold">Create New Department</h3>
+                <button onclick="closeCreateDepartmentModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="departmentForm" th:action="@{/admin/departments/create}" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="cycleId" id="deptCycleId">
+                <input type="hidden" name="institutionId" id="deptInstitutionId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Name</label>
+                    <input type="text" name="name" required placeholder="e.g., Computer Science" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Chief</label>
+                    <input type="text" name="chief" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none" placeholder="Name of department chief">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateDepartmentModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Classroom Modal -->
+    <div id="classroomModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200" id="classroomModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white">
+                <h3 class="text-xl font-bold">Create New Classroom</h3>
+                <button onclick="closeCreateClassroomModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="classroomForm" th:action="@{/admin/classrooms/create}" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="departmentId" id="classroomDepartmentId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Classroom Name</label>
+                    <input type="text" name="name" required placeholder="e.g., CS-101" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Level</label>
+                        <input type="number" name="level" required min="1" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Capacity</label>
+                        <input type="number" name="capacity" required min="1" class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateClassroomModal()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create Classroom</button>
                 </div>
             </form>
         </div>

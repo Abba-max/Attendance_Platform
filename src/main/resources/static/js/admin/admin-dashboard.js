@@ -1018,7 +1018,6 @@ async function handleCreateStaff(e) {
     const payload = {
         username: formData.get('username'),
         email: formData.get('email'),
-        password: formData.get('password'),
         roleNames: roleNames,
         institutionId: 1, // Default single institution
         isActive: true
@@ -1035,7 +1034,7 @@ async function handleCreateStaff(e) {
         });
 
         if (response.ok) {
-            showNotification('Staff member created successfully!', 'success');
+            showNotification('Staff member created! Credentials sent via email.', 'success');
             closeStaffModal();
             loadUsers(); // Refresh table
         } else {
@@ -1564,6 +1563,166 @@ window.handleActivateAcademicYear = handleActivateAcademicYear;
 window.handleSuspendAcademicYear = handleSuspendAcademicYear;
 window.handleCloseAcademicYear = handleCloseAcademicYear;
 window.handleDeleteAcademicYear = handleDeleteAcademicYear;
+
+// --- Institution Management Functions ---
+
+/**
+ * Opens the Edit Institution Modal and populates it with data.
+ */
+window.openEditInstitutionModal = function (id, name, location) {
+    const modal = document.getElementById('editInstitutionModal');
+    const idInput = document.getElementById('editInstId');
+    const nameInput = document.getElementById('editInstName');
+    const locationInput = document.getElementById('editInstLocation');
+    const form = document.getElementById('editInstitutionForm');
+
+    if (modal && idInput && nameInput && locationInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        locationInput.value = location;
+        form.action = `/admin/institutions/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditInstitutionModal = function () {
+    const modal = document.getElementById('editInstitutionModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openCreateCycleModal = function () {
+    const modal = document.getElementById('cycleModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeCreateCycleModal = function () {
+    const modal = document.getElementById('cycleModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openCreateDepartmentModal = function (cycleId, institutionId) {
+    const modal = document.getElementById('departmentModal');
+    const cycleIdInput = document.getElementById('deptCycleId');
+    const institutionIdInput = document.getElementById('deptInstitutionId');
+
+    if (modal && cycleIdInput && institutionIdInput) {
+        cycleIdInput.value = cycleId;
+        institutionIdInput.value = institutionId;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeCreateDepartmentModal = function () {
+    const modal = document.getElementById('departmentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openCreateClassroomModal = function (departmentId) {
+    const modal = document.getElementById('classroomModal');
+    const deptIdInput = document.getElementById('classroomDepartmentId');
+
+    if (modal && deptIdInput) {
+        deptIdInput.value = departmentId;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeCreateClassroomModal = function () {
+    const modal = document.getElementById('classroomModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+/**
+ * Handles deletion of a cycle with confirmation.
+ */
+window.handleDeleteCycle = function (id) {
+    if (confirm('Are you sure you want to delete this cycle? This action cannot be undone.')) {
+        fetch(`/admin/cycles/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = '/admin/dashboard?section=institutions';
+            } else {
+                alert('Failed to delete cycle.');
+            }
+        });
+    }
+};
+
+/**
+ * Handles deletion of a department with confirmation.
+ */
+window.handleDeleteDepartment = function (id) {
+    if (confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
+        fetch(`/admin/departments/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = '/admin/dashboard?section=institutions';
+            } else {
+                alert('Failed to delete department.');
+            }
+        });
+    }
+};
+
+/**
+ * Handles deletion of a classroom with confirmation.
+ */
+window.handleDeleteClassroom = function (id) {
+    if (confirm('Are you sure you want to delete this classroom? This action cannot be undone.')) {
+        fetch(`/admin/classrooms/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => {
+            if (response.ok) {
+                window.location.href = '/admin/dashboard?section=institutions';
+            } else {
+                alert('Failed to delete classroom.');
+            }
+        });
+    }
+};
+
+// Check for section in URL on load for deep linking
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    if (section) {
+        // Find the navigation item with data-section corresponding to the URL param
+        const navItem = document.querySelector(`[data-section="${section}"]`);
+        if (navItem) {
+            navItem.click();
+        }
+    }
+});
+
 
 /**
  * Escape HTML to prevent XSS

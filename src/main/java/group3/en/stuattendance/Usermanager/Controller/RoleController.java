@@ -36,4 +36,10 @@ public class RoleController {
         roleService.deleteRole(id);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/{roleName}/permissions")
+    public ResponseEntity<Void> syncRolePermissions(@PathVariable String roleName, @RequestBody java.util.Set<String> permissionNames) {
+        roleService.syncRolePermissions(roleName, permissionNames);
+        return ResponseEntity.ok().build();
+    }
 }

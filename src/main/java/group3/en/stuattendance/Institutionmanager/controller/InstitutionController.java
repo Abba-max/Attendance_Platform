@@ -67,7 +67,7 @@ public class InstitutionController {
                     "Failed to create institution: " + e.getMessage());
         }
 
-        return "redirect:/admin/institutions";
+        return "redirect:/admin/dashboard?section=institutions";
     }
 
     /**
@@ -104,7 +104,7 @@ public class InstitutionController {
                     "Failed to update institution: " + e.getMessage());
         }
 
-        return "redirect:/admin/institutions";
+        return "redirect:/admin/dashboard?section=institutions";
     }
 
     /**
@@ -156,7 +156,7 @@ class CycleController {
                     "Failed to create cycle: " + e.getMessage());
         }
 
-        return "redirect:/admin/institutions";
+        return "redirect:/admin/dashboard?section=institutions";
     }
 
     /**
@@ -221,7 +221,7 @@ class DepartmentController {
                     "Failed to create department: " + e.getMessage());
         }
 
-        return "redirect:/admin/institutions";
+        return "redirect:/admin/dashboard?section=institutions";
     }
 
     /**
@@ -292,7 +292,7 @@ class ClassroomController {
                     "Failed to create classroom: " + e.getMessage());
         }
 
-        return "redirect:/admin/institutions";
+        return "redirect:/admin/dashboard?section=institutions";
     }
 
     /**

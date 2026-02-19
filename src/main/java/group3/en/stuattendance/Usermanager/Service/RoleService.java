@@ -12,4 +12,5 @@ public interface RoleService {
     Role createRole(RoleDto dto);
     Role updateRole(Integer id, RoleDto dto);
     void deleteRole(Integer id);
+    void syncRolePermissions(String roleName, java.util.Set<String> permissionNames);
 }
