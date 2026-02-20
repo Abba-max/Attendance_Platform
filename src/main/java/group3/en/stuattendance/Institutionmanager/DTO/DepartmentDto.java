@@ -19,6 +19,8 @@ public class DepartmentDto {
     @Size(max = 200, message = "Name must not exceed 200 characters")
     private String name;
 
+    private String chief;
+
     @Size(max = 500, message = "Address must not exceed 500 characters")
     private String address;
 
@@ -26,4 +28,9 @@ public class DepartmentDto {
     private String contactInfo;
 
     private Integer cycleId;
+
+    private Integer pedagogicAssistantId;
+
+    @Builder.Default
+    private java.util.Set<Integer> supervisorIds = new java.util.HashSet<>();
 }

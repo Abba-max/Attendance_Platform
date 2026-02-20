@@ -24,11 +24,14 @@ public class Auditlog {
     @Column(nullable = false, length = 100)
     private String action;
 
-    @Column(name = "user_info", length = 200)
-    private String userInfo;
+    @Column(name = "username", nullable = false, length = 200)
+    private String username;
 
-    @Column(length = 2000)
-    private String details;
+    @Column(name = "target", length = 500)
+    private String target;
+
+    @Column(name = "category", nullable = false, length = 100)
+    private String category;
 
     @Column(name = "ip_address", length = 50)
     private String ipAddress;

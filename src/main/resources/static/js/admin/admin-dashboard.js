@@ -1610,6 +1610,31 @@ window.closeCreateCycleModal = function () {
     }
 };
 
+window.openEditCycleModal = function (id, name, description) {
+    const modal = document.getElementById('editCycleModal');
+    const idInput = document.getElementById('editCycleId');
+    const nameInput = document.getElementById('editCycleName');
+    const descInput = document.getElementById('editCycleDescription');
+    const form = document.getElementById('editCycleForm');
+
+    if (modal && idInput && nameInput && descInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        descInput.value = description || '';
+        form.action = `/admin/cycles/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditCycleModal = function () {
+    const modal = document.getElementById('editCycleModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
 window.openCreateDepartmentModal = function (cycleId, institutionId) {
     const modal = document.getElementById('departmentModal');
     const cycleIdInput = document.getElementById('deptCycleId');
@@ -1631,6 +1656,44 @@ window.closeCreateDepartmentModal = function () {
     }
 };
 
+window.openEditDepartmentModal = function (id, name, chief, cycleId, institutionId, paId, supervisorIds) {
+    const modal = document.getElementById('editDepartmentModal');
+    const idInput = document.getElementById('editDeptId');
+    const nameInput = document.getElementById('editDeptName');
+    const chiefInput = document.getElementById('editDeptChief');
+    const cycleSelect = document.getElementById('editDeptCycleId');
+    const instSelect = document.getElementById('editDeptInstitutionId');
+    const paSelect = document.getElementById('editDeptPaId');
+    const form = document.getElementById('editDepartmentForm');
+
+    if (modal && idInput && nameInput && chiefInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        chiefInput.value = chief || '';
+        if (cycleSelect) cycleSelect.value = cycleId;
+        if (instSelect) instSelect.value = institutionId;
+        if (paSelect) paSelect.value = paId || '';
+
+        // Handle Supervisors Checkboxes
+        const checkboxes = document.querySelectorAll('#editDeptSupervisorsContainer input[type="checkbox"]');
+        checkboxes.forEach(cb => {
+            cb.checked = supervisorIds.includes(parseInt(cb.value));
+        });
+
+        form.action = `/admin/departments/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditDepartmentModal = function () {
+    const modal = document.getElementById('editDepartmentModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
 window.openCreateClassroomModal = function (departmentId) {
     const modal = document.getElementById('classroomModal');
     const deptIdInput = document.getElementById('classroomDepartmentId');
@@ -1644,6 +1707,35 @@ window.openCreateClassroomModal = function (departmentId) {
 
 window.closeCreateClassroomModal = function () {
     const modal = document.getElementById('classroomModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openEditClassroomModal = function (id, name, level, capacity, departmentId) {
+    const modal = document.getElementById('editClassroomModal');
+    const idInput = document.getElementById('editClassroomId');
+    const nameInput = document.getElementById('editClassroomName');
+    const levelInput = document.getElementById('editClassroomLevel');
+    const capInput = document.getElementById('editClassroomCapacity');
+    const deptSelect = document.getElementById('editClassroomDeptId');
+    const form = document.getElementById('editClassroomForm');
+
+    if (modal && idInput && nameInput && levelInput && capInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        levelInput.value = level;
+        capInput.value = capacity;
+        if (deptSelect) deptSelect.value = departmentId;
+        form.action = `/admin/classrooms/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditClassroomModal = function () {
+    const modal = document.getElementById('editClassroomModal');
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');

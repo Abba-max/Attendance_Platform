@@ -50,6 +50,21 @@ Department {
     @Builder.Default
     private Set<Classroom> classrooms = new HashSet<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pa_id")
+    @JsonIgnore
+    private User pedagogicAssistant;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "department_supervisors",
+            joinColumns = @JoinColumn(name = "department_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @JsonIgnore
+    @Builder.Default
+    private Set<User> supervisors = new HashSet<>();
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

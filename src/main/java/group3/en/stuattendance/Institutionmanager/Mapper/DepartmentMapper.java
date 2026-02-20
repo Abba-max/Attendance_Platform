@@ -13,7 +13,11 @@ public class DepartmentMapper {
         return DepartmentDto.builder()
                 .departmentId(department.getDepartmentId())
                 .name(department.getName())
+                .chief(department.getChief())
                 .cycleId(department.getCycle() != null ? department.getCycle().getCycleId() : null)
+                .pedagogicAssistantId(department.getPedagogicAssistant() != null ? department.getPedagogicAssistant().getUserId() : null)
+                .supervisorIds(department.getSupervisors() != null ? 
+                    department.getSupervisors().stream().map(u -> u.getUserId()).collect(java.util.stream.Collectors.toSet()) : new java.util.HashSet<>())
                 .build();
     }
 
@@ -22,6 +26,7 @@ public class DepartmentMapper {
         return Department.builder()
                 .departmentId(dto.getDepartmentId())
                 .name(dto.getName())
+                .chief(dto.getChief())
                 .cycle(cycle)
                 .build();
     }
