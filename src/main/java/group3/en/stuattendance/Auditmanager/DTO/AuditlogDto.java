@@ -22,22 +22,21 @@ public class AuditlogDto {
     private String ipAddress;
     private String timestamp;
 
-    // static fields are ignored by Lombok @Builder — no conflict
     private static final DateTimeFormatter FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public static AuditlogDto fromEntity(Auditlog log) {
-        if (log == null) return null;
+    public static AuditlogDto fromEntity(Auditlog auditlog) {
+        if (auditlog == null) return null;
 
         return AuditlogDto.builder()
-                .auditId(log.getAuditId())
-                .username(log.getUsername())
-                .action(log.getAction())
-                .target(log.getTarget())
-                .category(log.getCategory())
-                .ipAddress(log.getIpAddress())
-                .timestamp(log.getTimestamp() != null
-                        ? log.getTimestamp().format(FORMATTER)
+                .auditId(auditlog.getAuditId())
+                .username(auditlog.getUsername())
+                .action(auditlog.getAction())
+                .target(auditlog.getTarget())
+                .category(auditlog.getCategory())
+                .ipAddress(auditlog.getIpAddress())
+                .timestamp(auditlog.getTimestamp() != null
+                        ? auditlog.getTimestamp().format(FORMATTER)
                         : "")
                 .build();
     }
