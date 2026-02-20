@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeSidebar();
     initializeNavigation();
     initializeMobileMenu();
+    initializeProfileDropdown();
 
     // Load initial data
     // loadDashboardData(); // Disabled as DashboardController is removed
@@ -37,6 +38,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const ayForm = document.getElementById('academicYearForm');
     if (ayForm) {
         ayForm.addEventListener('submit', handleCreateAcademicYear);
+    }
+
+    // Deep linking for sections
+    const urlParams = new URLSearchParams(window.location.search);
+    const section = urlParams.get('section');
+    if (section) {
+        const navItem = document.querySelector(`[data-section="${section}"]`);
+        if (navItem) navItem.click();
     }
 });
 
@@ -1802,19 +1811,48 @@ window.handleDeleteClassroom = function (id) {
     }
 };
 
-// Check for section in URL on load for deep linking
-document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const section = urlParams.get('section');
-    if (section) {
-        // Find the navigation item with data-section corresponding to the URL param
-        const navItem = document.querySelector(`[data-section="${section}"]`);
-        if (navItem) {
-            navItem.click();
-        }
-    }
-});
 
+
+/**
+ * Initialize Profile Dropdown toggle and click-away observer
+ */
+function initializeProfileDropdown() {
+    const profileBtn = document.getElementById('profile-btn');
+    const profileMenu = document.getElementById('profile-menu');
+
+    if (!profileBtn || !profileMenu) return;
+
+    profileBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = profileMenu.classList.contains('hidden');
+
+        // Toggle current menu
+        if (isHidden) {
+            profileMenu.classList.remove('hidden');
+            setTimeout(() => {
+                profileMenu.classList.add('opacity-100', 'scale-100');
+                profileMenu.classList.remove('opacity-0', 'scale-95');
+            }, 10);
+        } else {
+            closeProfileMenu();
+        }
+    });
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!profileBtn.contains(e.target) && !profileMenu.contains(e.target)) {
+            closeProfileMenu();
+        }
+    });
+
+    function closeProfileMenu() {
+        profileMenu.classList.add('opacity-0', 'scale-95');
+        profileMenu.classList.remove('opacity-100', 'scale-100');
+        setTimeout(() => {
+            profileMenu.classList.add('hidden');
+        }, 200);
+    }
+}
 
 /**
  * Escape HTML to prevent XSS
