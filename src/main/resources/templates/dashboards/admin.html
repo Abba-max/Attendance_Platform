@@ -7,6 +7,93 @@
     <title>Attendee - Administrator Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .main-tab.active {
+            background: #00B0FF;
+            color: white;
+            box-shadow: 0 2px 8px rgba(0, 176, 255, .35);
+        }
+
+        .main-tab {
+            transition: all .2s;
+        }
+
+        .inst-card {
+            transition: box-shadow .2s, transform .2s;
+        }
+
+        .inst-card:hover {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, .1);
+            transform: translateY(-1px);
+        }
+
+        .cycle-card {
+            transition: all .2s;
+        }
+
+        .cycle-card:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, .15);
+        }
+
+        .dept-card-hover:hover {
+            border-color: #8b5cf6;
+            box-shadow: 0 4px 16px rgba(139, 92, 246, .15);
+            transform: translateY(-1px);
+        }
+
+        .class-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 16px rgba(59, 130, 246, .15);
+            transform: translateY(-1px);
+        }
+
+        .modal-overlay {
+            display: none;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .slide-in {
+            animation: slideIn .25s ease-out;
+        }
+
+        .breadcrumb-sep::before {
+            content: '›';
+            margin: 0 .4rem;
+            color: #64748b;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: .7rem;
+            font-weight: 600;
+            letter-spacing: .03em;
+        }
+
+        mark {
+            background: #fef08a;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+    </style>
 </head>
 
 <body class="bg-yellow font-sans">
@@ -15,9 +102,9 @@
         <aside id="sidebar" class="bg-white w-80 flex-shrink-0 shadow-lg transition-all duration-300">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex items-center gap-3">
-                    <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg " alt="Attendee Logo"
-                        class="w-12 h-12 object-contain rounded-lg">
-                    <span class="text-xl font-semibold text-gray-800">Attendee</span>
+                    <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg" alt="Attendee Logo"
+                        class="w-16 h-16 object-contain rounded-xl shadow-sm border-2 border-blue-50">
+                    <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
                 </div>
             </div>
 
@@ -130,11 +217,9 @@
             <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10 transition-all duration-300">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h1 class="text-2xl font-black text-slate-800 tracking-tight">Attendee <span
-                                class="text-blue-500">•</span> Admin</h1>
+                        <h1 class="text-2xl font-black text-slate-800 tracking-tight">Saint Jean Ingenieur</h1>
                         <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
-                            <span th:text="${institution != null ? institution : 'Central Institution'}">Central
-                                Institution</span>
+                            <span th:text="${institution != null ? institution : 'Central Institution'}">Admin name</span>
                             <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
                             <span class="text-emerald-600">Active Session</span>
                         </p>
@@ -260,7 +345,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             <!-- Total Users Card (Blue) -->
                             <div
-                                class="group bg-blue-50/40 backdrop-blur-md border border-blue-100/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                class="group bg-blue-50/60 backdrop-blur-md border-2 border-blue-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
                                 <div
                                     class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors">
                                 </div>
@@ -303,7 +388,7 @@
 
                             <!-- Sessions Card (Light Yellow) -->
                             <div
-                                class="group bg-amber-50/40 backdrop-blur-md border border-amber-100/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                class="group bg-amber-50/60 backdrop-blur-md border border-amber-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
                                 <div
                                     class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors">
                                 </div>
@@ -343,7 +428,7 @@
 
                             <!-- Departments Card (Blue) -->
                             <div
-                                class="group bg-blue-50/40 backdrop-blur-md border border-blue-100/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                class="group bg-blue-50/60 backdrop-blur-md border border-blue-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
                                 <div
                                     class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors">
                                 </div>
@@ -372,7 +457,7 @@
 
                             <!-- Staff Card (Light Yellow) -->
                             <div
-                                class="group bg-amber-50/40 backdrop-blur-md border border-amber-100/60 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                class="group bg-amber-50/60 backdrop-blur-md border border-amber-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
                                 <div
                                     class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors">
                                 </div>
@@ -408,283 +493,306 @@
 
                 </section>
 
-                <!-- Manage Institutions Section -->
-                <section id="section-institutions" class="content-section hidden">
-                    <div class="mb-6 flex items-center justify-between">
-                        <div>
-                            <h2 class="text-2xl font-semibold text-gray-800 mb-2">Manage Institutions</h2>
-                            <p class="text-gray-600">Manage institutions, cycles, departments, and classrooms</p>
+                <section id="section-institutions" class="content-section hidden px-4">
+                    <!-- Breadcrumb -->
+                    <div class="mb-6">
+                        <div id="breadcrumb" class="flex items-center text-sm text-slate-500 mb-2 font-medium">
+                            <span class="text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
+                                onclick="resetToAll()">Institutions</span>
+                            <span class="breadcrumb-sep mx-2 text-slate-300">/</span>
+                            <span class="text-slate-400"
+                                th:text="${!institutions.isEmpty() ? institutions[0].name : 'Central Institution'}">Central
+                                Institution</span>
+                        </div>
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <h2 class="text-2xl font-black text-slate-800 tracking-tight">Manage Hierarchy</h2>
+                                <p class="text-slate-500 text-sm">Organize cycles, departments, and classrooms for your
+                                    institution.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button onclick="openCreateCycleModal()"
+                                    class="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add New Cycle
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Institutions Grid -->
-                    <div class="grid grid-cols-1 gap-6">
-                        <!-- Institution Card -->
-                        <div th:each="institution : ${institutions}"
-                            class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                            <!-- Institution Header -->
-                            <div class="p-6 border-b border-gray-100 bg-gradient-to-r from-cyan-50 to-blue-50">
-                                <div class="flex items-start justify-between">
+                    <!-- Search + Tabs + Sort -->
+                    <div class="bg-white rounded-3xl border border-slate-100 p-4 mb-8 shadow-sm">
+                        <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+                            <div class="relative flex-1 group">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input id="manageSearchInput" type="text"
+                                    placeholder="Search cycles, departments, classrooms..."
+                                    class="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-100 bg-slate-50/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
+                                    onkeyup="applyManageSearch()">
+                            </div>
+                            <div class="flex gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                                <button onclick="switchManageTab('cycles')"
+                                    class="main-tab active px-5 py-2 rounded-xl text-sm font-bold transition-all"
+                                    id="tab-cycles">Cycles</button>
+                                <button onclick="switchManageTab('departments')"
+                                    class="main-tab px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+                                    id="tab-departments">Departments</button>
+                                <button onclick="switchManageTab('classrooms')"
+                                    class="main-tab px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+                                    id="tab-classrooms">Classrooms</button>
+                            </div>
+                            <select id="manageSortSel" onchange="applyManageSearch()"
+                                class="px-4 py-2.5 text-sm border border-slate-100 bg-slate-50/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all font-bold text-slate-700">
+                                <option value="name">Sort: Name A→Z</option>
+                                <option value="name-desc">Sort: Name Z→A</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Content Panels -->
+                    <div id="view-cycles" class="view-panel space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="cycle : ${cycles}"
+                                class="cycle-card bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${cycle.name}">
+                                <div class="flex items-start justify-between mb-4">
                                     <div class="flex items-center gap-4">
                                         <div
-                                            class="w-16 h-16 rounded-xl bg-[#00B0FF] flex items-center justify-center shadow-lg">
-                                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor"
+                                            class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-black text-slate-800 tracking-tight"
+                                                th:text="${cycle.name}">Cycle Name</h3>
+                                            <p class="text-xs text-slate-500 font-medium"
+                                                th:text="${cycle.description}">Description</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:data-id="${cycle.cycleId}" th:data-name="${cycle.name}"
+                                            th:data-description="${cycle.description}"
+                                            onclick="openEditCycleModal(this.dataset.id, this.dataset.name, this.dataset.description)"
+                                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                 viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg></button>
+                                        <button th:data-id="${cycle.cycleId}"
+                                            onclick="handleDeleteCycle(this.dataset.id)"
+                                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg></button>
+                                    </div>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Departments</span>
+                                            <span class="text-sm font-black text-slate-700"
+                                                th:text="${#sets.size(cycle.departments)}">0</span>
+                                        </div>
+                                    </div>
+                                    <button th:data-cycle-id="${cycle.cycleId}"
+                                        th:data-institution-id="${!institutions.isEmpty() ? institutions[0].institutionId : 'null'}"
+                                        onclick="openCreateDepartmentModal(this.dataset.cycleId, this.dataset.institutionId)"
+                                        class="text-blue-500 hover:text-blue-600 text-xs font-bold flex items-center gap-1 group/btn"><svg
+                                            class="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>Add Dept</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-departments" class="view-panel hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="dept : ${allDepartments}"
+                                class="dept-card bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${dept.name}">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                             </svg>
                                         </div>
                                         <div>
-                                            <h3 class="text-2xl font-bold text-gray-900" th:text="${institution.name}">
-                                                Institution Name</h3>
-                                            <p class="text-sm text-gray-600" th:text="${institution.location}">Location
-                                            </p>
-                                            <div class="flex items-center gap-4 mt-2">
-                                                <span class="text-sm text-gray-600">
-                                                    <span class="font-semibold"
-                                                        th:text="${#sets.size(institution.departments)}">0</span>
-                                                    Departments
-                                                </span>
-                                                <span class="text-sm text-gray-600">
-                                                    <span class="font-semibold"
-                                                        th:text="${#sets.size(institution.users)}">0</span> Users
-                                                </span>
-                                            </div>
+                                            <h3 class="text-lg font-black text-slate-800 tracking-tight"
+                                                th:text="${dept.name}">Department Name</h3>
+                                            <p class="text-xs text-slate-500 font-medium tracking-tight">Cycle: <span
+                                                    class="text-blue-500 font-bold"
+                                                    th:text="${dept.cycle?.name ?: 'None'}">Cycle</span></p>
                                         </div>
                                     </div>
-                                    <div class="flex gap-2">
-                                        <button th:data-id="${institution.institutionId}"
-                                            th:data-name="${institution.name}"
-                                            th:data-location="${institution.location}"
-                                            onclick="openEditInstitutionModal(this.getAttribute('data-id'), this.getAttribute('data-name'), this.getAttribute('data-location'))"
-                                            class="px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors border border-gray-200">
-                                            Edit
-                                        </button>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:data-id="${dept.departmentId}" th:data-name="${dept.name}"
+                                            th:data-chief="${dept.chief != null ? dept.chief : ''}"
+                                            th:data-cycle-id="${dept.cycle != null ? dept.cycle.cycleId : 'null'}"
+                                            th:data-institution-id="${dept.institution != null ? dept.institution.institutionId : 'null'}"
+                                            th:data-pa-id="${dept.pedagogicAssistant != null ? dept.pedagogicAssistant.userId : 'null'}"
+                                            th:data-supervisors="${dept.supervisors != null ? '[' + #strings.listJoin(dept.supervisors.![userId], ',') + ']' : '[]'}"
+                                            onclick="openEditDepartmentModal(this.dataset.id, this.dataset.name, this.dataset.chief, this.dataset.cycleId, this.dataset.institutionId, this.dataset.paId, JSON.parse(this.dataset.supervisors))"
+                                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Edit Settings"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg></button>
+                                        <button th:data-dept-id="${dept.departmentId}"
+                                            onclick="handleDeleteDepartment(this.dataset.deptId)"
+                                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg></button>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Cycles Section -->
-                            <div class="p-6 bg-gray-50">
-                                <div class="flex items-center justify-between mb-4">
-                                    <h4 class="text-lg font-semibold text-gray-900">Cycles</h4>
-                                    <button onclick="openCreateCycleModal()"
-                                        class="px-4 py-2 bg-[#00B0FF] text-white rounded-lg text-sm font-medium hover:bg-[#0091D5] transition-colors flex items-center gap-2">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="space-y-3 mb-6">
+                                    <div
+                                        class="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Chief</span>
+                                        <span class="text-xs font-black text-slate-700"
+                                            th:text="${dept.chief ?: 'Unassigned'}">Chief</span>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">P.A</span>
+                                        <span class="text-xs font-black text-blue-600"
+                                            th:text="${dept.pedagogicAssistant?.username ?: 'Unassigned'}">Assistant</span>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Classrooms</span>
+                                        <span class="text-sm font-black text-slate-700"
+                                            th:text="${#sets.size(dept.classrooms)}">0</span>
+                                    </div>
+                                    <button th:data-dept-id="${dept.departmentId}"
+                                        onclick="openCreateClassroomModal(this.dataset.deptId)"
+                                        class="text-emerald-500 hover:text-emerald-600 text-xs font-bold flex items-center gap-1 group/btn"><svg
+                                            class="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                 d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Add Cycle
-                                    </button>
-                                </div>
-
-                                <div th:if="${cycles == null or #lists.isEmpty(cycles)}"
-                                    class="text-center py-8 text-gray-500">
-                                    No cycles created yet. Add your first cycle to get started.
-                                </div>
-
-                                <!-- Cycles Grid -->
-                                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                                    <div th:each="cycle : ${cycles}"
-                                        class="bg-white rounded-lg border border-gray-200 p-4">
-                                        <div class="flex items-start justify-between mb-3">
-                                            <div class="flex items-center gap-3">
-                                                <div
-                                                    class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
-                                                    <svg class="w-5 h-5 text-[#00B0FF]" fill="none"
-                                                        stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            stroke-width="2"
-                                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                                    </svg>
-                                                </div>
-                                                <div>
-                                                    <h5 class="font-semibold text-gray-900" th:text="${cycle.name}">
-                                                        Cycle Name</h5>
-                                                    <p class="text-xs text-gray-500" th:text="${cycle.description}">
-                                                        Description</p>
-                                                    <a th:data-id="${cycle.cycleId}" th:data-name="${cycle.name}"
-                                                        th:data-description="${cycle.description}"
-                                                        onclick="openEditCycleModal(this.dataset.id, this.dataset.name, this.dataset.description)"
-                                                        class="text-[10px] text-[#00B0FF] font-bold hover:underline mt-1 inline-block cursor-pointer">Edit
-                                                        Details →</a>
-                                                </div>
-                                            </div>
-                                            <button th:data-id="${cycle.cycleId}"
-                                                onclick="handleDeleteCycle(this.dataset.id)"
-                                                class="text-red-400 hover:text-red-600 transition-colors">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                        stroke-width="2"
-                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <!-- Departments in Cycle -->
-                                        <div class="mt-4 pt-4 border-t border-gray-100">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <span
-                                                    class="text-xs font-bold text-gray-400 uppercase tracking-wider">Departments</span>
-                                                <button th:data-cycle-id="${cycle.cycleId}"
-                                                    th:data-institution-id="${institution != null ? institution.institutionId : 'null'}"
-                                                    onclick="openCreateDepartmentModal(this.dataset.cycleId, this.dataset.institutionId)"
-                                                    class="text-[#00B0FF] hover:text-[#0091D5] text-xs font-bold">
-                                                    + Add Dept
-                                                </button>
-                                            </div>
-
-                                            <div th:if="${cycle.departments == null or #sets.isEmpty(cycle.departments)}"
-                                                class="text-center py-2 text-gray-400 text-xs italic">
-                                                No departments
-                                            </div>
-
-                                            <div class="space-y-2">
-                                                <div th:each="dept : ${cycle.departments}"
-                                                    class="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                                    <div class="flex items-start justify-between">
-                                                        <div class="flex-1 min-w-0">
-                                                            <p class="text-sm font-semibold text-gray-800 truncate"
-                                                                th:text="${dept.name}">Department Name</p>
-                                                            <p class="text-xs text-gray-500 mt-0.5">
-                                                                Chief: <span class="font-medium text-gray-700"
-                                                                    th:text="${dept.chief} ?: 'Not assigned'">Not
-                                                                    assigned</span>
-                                                            </p>
-                                                            <p class="text-xs text-gray-400 mt-1">
-                                                                <span class="font-semibold text-gray-600"
-                                                                    th:text="${#sets.size(dept.classrooms)}">0</span>
-                                                                Classrooms
-                                                            </p>
-                                                        </div>
-                                                        <div class="flex gap-1 ml-2">
-                                                            <button th:data-dept-id="${dept.departmentId}"
-                                                                onclick="openCreateClassroomModal(this.dataset.deptId)"
-                                                                class="p-1 text-gray-400 hover:text-blue-500 transition-colors"
-                                                                title="Add Classroom">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                            </button>
-                                                            <button th:data-dept-id="${dept.departmentId}"
-                                                                onclick="handleDeleteDepartment(this.dataset.deptId)"
-                                                                class="p-1 text-gray-400 hover:text-red-500 transition-colors"
-                                                                title="Delete">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                </svg>
-                                                            </button>
-                                                            <a th:data-id="${dept.departmentId}"
-                                                                th:data-name="${dept.name}"
-                                                                th:data-chief="${dept.chief != null ? dept.chief : ''}"
-                                                                th:data-cycle-id="${dept.cycle != null ? dept.cycle.cycleId : 'null'}"
-                                                                th:data-institution-id="${dept.institution != null ? dept.institution.institutionId : 'null'}"
-                                                                th:data-pa-id="${dept.pedagogicAssistant != null ? dept.pedagogicAssistant.userId : 'null'}"
-                                                                th:data-supervisors="${dept.supervisors != null ? '[' + #strings.listJoin(dept.supervisors.![userId], ',') + ']' : '[]'}"
-                                                                onclick="openEditDepartmentModal(this.dataset.id, this.dataset.name, this.dataset.chief, this.dataset.cycleId, this.dataset.institutionId, this.dataset.paId, JSON.parse(this.dataset.supervisors))"
-                                                                class="p-1 text-gray-400 hover:text-[#00B0FF] transition-colors cursor-pointer"
-                                                                title="Edit Details">
-                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
-                                                                    viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                                                        stroke-width="2"
-                                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                                </svg>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-
-                                                    <!-- Classrooms in Department -->
-                                                    <div th:if="${dept.classrooms != null and !#sets.isEmpty(dept.classrooms)}"
-                                                        class="mt-3 space-y-1.5 pl-2 border-l-2 border-gray-200">
-                                                        <div th:each="classroom : ${dept.classrooms}"
-                                                            class="bg-white rounded-lg p-2 border border-gray-100 shadow-sm">
-                                                            <div class="flex items-center justify-between">
-                                                                <div class="flex items-center gap-2">
-                                                                    <div class="w-2 h-2 rounded-full bg-blue-400"></div>
-                                                                    <div>
-                                                                        <span class="text-xs font-bold text-gray-800"
-                                                                            th:text="${classroom.name}">Class
-                                                                            Name</span>
-                                                                        <span
-                                                                            class="text-[10px] text-gray-400 ml-2 uppercase tracking-wide">Level
-                                                                            <span
-                                                                                th:text="${classroom.level}">1</span></span>
-                                                                        <span class="text-[10px] text-gray-400 ml-2">
-                                                                            <span
-                                                                                th:text="${#sets.size(classroom.students)}">0</span>/<span
-                                                                                th:text="${classroom.capacity}">30</span>
-                                                                            students
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="flex gap-1">
-                                                                    <a th:data-id="${classroom.classId}"
-                                                                        th:data-name="${classroom.name}"
-                                                                        th:data-level="${classroom.level}"
-                                                                        th:data-capacity="${classroom.capacity}"
-                                                                        th:data-dept-id="${dept.departmentId}"
-                                                                        onclick="openEditClassroomModal(this.dataset.id, this.dataset.name, this.dataset.level, this.dataset.capacity, this.dataset.deptId)"
-                                                                        class="text-gray-300 hover:text-[#00B0FF] transition-colors cursor-pointer"
-                                                                        title="Edit">
-                                                                        <svg class="w-3.5 h-3.5" fill="none"
-                                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round"
-                                                                                stroke-linejoin="round" stroke-width="2"
-                                                                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                            <path stroke-linecap="round"
-                                                                                stroke-linejoin="round" stroke-width="2"
-                                                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                                        </svg>
-                                                                    </a>
-                                                                    <button th:data-id="${classroom.classId}"
-                                                                        onclick="handleDeleteClassroom(this.dataset.id)"
-                                                                        class="text-gray-300 hover:text-red-500 transition-colors"
-                                                                        title="Delete">
-                                                                        <svg class="w-3.5 h-3.5" fill="none"
-                                                                            stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path stroke-linecap="round"
-                                                                                stroke-linejoin="round" stroke-width="2"
-                                                                                d="M6 18L18 6M6 6l12 12" />
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                        </svg>Add Room</button>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Empty State (Should normally not happen if seeded) -->
-                        <div th:if="${institutions == null or #lists.isEmpty(institutions)}" class="col-span-full">
-                            <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
-                                <div class="flex flex-col items-center gap-4">
-                                    <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center">
-                                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                        </svg>
+                    <div id="view-classrooms" class="view-panel hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <th:block th:each="dept : ${allDepartments}">
+                                <div th:each="room : ${dept.classrooms}"
+                                    class="class-card bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                    th:data-name="${room.name}">
+                                    <div class="flex items-start justify-between mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 class="text-md font-black text-slate-800 tracking-tight"
+                                                    th:text="${room.name}">Room Name</h3>
+                                                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight"
+                                                    th:text="${dept.name}">Dept</p>
+                                            </div>
+                                        </div>
+                                        <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button th:data-id="${room.classId}" th:data-name="${room.name}"
+                                                th:data-level="${room.level}" th:data-capacity="${room.capacity}"
+                                                th:data-dept-id="${dept.departmentId}"
+                                                onclick="openEditClassroomModal(this.dataset.id, this.dataset.name, this.dataset.level, this.dataset.capacity, this.dataset.deptId)"
+                                                class="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                                                title="Edit"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                </svg></button>
+                                            <button th:data-id="${room.classId}"
+                                                onclick="handleDeleteClassroom(this.dataset.id)"
+                                                class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                title="Delete"><svg class="w-3.5 h-3.5" fill="none"
+                                                    stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg></button>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 class="text-xl font-bold text-gray-800 mb-2">No institutions found</h3>
-                                        <p class="text-gray-500">The system requires at least one institution to be
-                                            seeded in the database.</p>
+                                    <div class="space-y-2 mb-4">
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="font-bold text-slate-400 uppercase tracking-wider">Level</span>
+                                            <span class="font-black text-slate-700" th:text="${room.level}">1</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span
+                                                class="font-bold text-slate-400 uppercase tracking-wider">Students</span>
+                                            <span class="font-black text-slate-700"><span
+                                                    th:text="${#sets.size(room.students)}">0</span>/<span
+                                                    th:text="${room.capacity}">30</span></span>
+                                        </div>
+                                        <div
+                                            class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden shadow-inner">
+                                            <div class="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                th:style="'width: ' + (${room.capacity > 0 ? (#sets.size(room.students) * 100 / room.capacity) : 0}) + '%'">
+                                            </div>
+                                        </div>
                                     </div>
+
+                                </div>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- Empty State (Should normally not happen if seeded) -->
+                    <div th:if="${institutions == null or #lists.isEmpty(institutions)}" class="col-span-full">
+                        <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+                            <div class="flex flex-col items-center gap-4">
+                                <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center">
+                                    <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-gray-800 mb-2">No institutions found</h3>
+                                    <p class="text-gray-500">The system requires at least one institution to be
+                                        seeded in the database.</p>
                                 </div>
                             </div>
                         </div>
@@ -698,7 +806,7 @@
                             <p class="text-gray-600">Launch and track academic sessions for the institution.</p>
                         </div>
                         <button onclick="openAcademicYearModal()"
-                            class="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 transition-all font-medium shadow-sm">
+                            class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-sm">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M12 4v16m8-8H4"></path>
@@ -732,7 +840,7 @@
                                         <td colspan="4" class="px-6 py-12 text-center text-gray-500">
                                             <div class="flex flex-col items-center gap-2">
                                                 <div
-                                                    class="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin">
+                                                    class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin">
                                                 </div>
                                                 <span>Loading academic years...</span>
                                             </div>
@@ -802,7 +910,6 @@
                                     </tr>
                                 </thead>
                                 <tbody id="userTableBody" class="divide-y divide-gray-100">
-                                    <!-- Users will be loaded here -->
                                     <tr>
                                         <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                                             <div class="flex flex-col items-center gap-2">
@@ -1057,24 +1164,24 @@
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Academic Year Name</label>
                     <input type="text" id="ay_name" required placeholder="e.g., 2024/2025"
-                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Start Date</label>
                         <input type="date" id="ay_startDate" required
-                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">End Date</label>
                         <input type="date" id="ay_endDate" required
-                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 transition outline-none">
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
                     </div>
                 </div>
-                <div class="flex items-center gap-3 p-3 bg-cyan-50 rounded-lg border border-cyan-100">
+                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
                     <input type="checkbox" id="ay_isActive"
-                        class="w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 border-slate-300" checked>
-                    <label for="ay_isActive" class="text-sm font-medium text-cyan-800">Set as current active
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-slate-300" checked>
+                    <label for="ay_isActive" class="text-sm font-medium text-blue-800">Set as current active
                         year</label>
                 </div>
                 <div class="flex gap-3 pt-4">
@@ -1083,7 +1190,7 @@
                         Cancel
                     </button>
                     <button type="submit"
-                        class="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">
+                        class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">
                         Launch Year
                     </button>
                 </div>

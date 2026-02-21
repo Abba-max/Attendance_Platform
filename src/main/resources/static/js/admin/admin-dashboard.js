@@ -181,7 +181,7 @@ function renderUserTable(users) {
                         </svg>
                     </button>
                     <div class="relative group">
-                        <button class="p-2 text-gray-400 hover:text-indigo-500 transition-colors" title="Manage Roles">
+                        <button class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                             </svg>
@@ -342,7 +342,7 @@ function renderRolesGrid() {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                     </button>
-                    <div class="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
+                    <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
@@ -1809,6 +1809,80 @@ window.handleDeleteClassroom = function (id) {
             }
         });
     }
+};
+
+/**
+ * Modernized Institution Management - Tab Switching
+ */
+window.switchManageTab = function (tabName) {
+    console.log('Switching to tab:', tabName);
+    // Update tab styles
+    const tabs = document.querySelectorAll('.main-tab');
+    tabs.forEach(tab => {
+        if (tab.id === `tab-${tabName}`) {
+            tab.classList.remove('text-slate-500', 'hover:text-slate-700');
+            tab.classList.add('active', 'bg-white', 'shadow-sm', 'text-blue-600');
+        } else {
+            tab.classList.add('text-slate-500', 'hover:text-slate-700');
+            tab.classList.remove('active', 'bg-white', 'shadow-sm', 'text-blue-600');
+        }
+    });
+
+    // Show panel
+    const panels = document.querySelectorAll('.view-panel');
+    panels.forEach(panel => {
+        if (panel.id === `view-${tabName}`) {
+            panel.classList.remove('hidden');
+        } else {
+            panel.classList.add('hidden');
+        }
+    });
+};
+
+/**
+ * Modernized Institution Management - Search and Filter
+ */
+window.applyManageSearch = function () {
+    const term = document.getElementById('manageSearchInput').value.toLowerCase();
+    const sort = document.getElementById('manageSortSel').value;
+
+    // Get current active tab
+    const activeTabElem = document.querySelector('.main-tab.active');
+    if (!activeTabElem) return;
+    const activeTab = activeTabElem.id.replace('tab-', '');
+
+    let items = [];
+    if (activeTab === 'cycles') {
+        items = Array.from(document.querySelectorAll('.cycle-card'));
+    } else if (activeTab === 'departments') {
+        items = Array.from(document.querySelectorAll('.dept-card'));
+    } else if (activeTab === 'classrooms') {
+        items = Array.from(document.querySelectorAll('.class-card'));
+    }
+
+    if (items.length === 0) return;
+
+    // Filter
+    items.forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        if (name.includes(term)) {
+            item.classList.remove('hidden');
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+
+    // Sort
+    const parent = items[0].parentElement;
+    items.sort((a, b) => {
+        const nameA = a.dataset.name.toLowerCase();
+        const nameB = b.dataset.name.toLowerCase();
+        if (sort === 'name') return nameA.localeCompare(nameB);
+        if (sort === 'name-desc') return nameB.localeCompare(nameA);
+        return 0;
+    });
+
+    items.forEach(item => parent.appendChild(item));
 };
 
 
