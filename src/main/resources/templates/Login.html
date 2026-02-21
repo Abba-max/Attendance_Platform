@@ -20,7 +20,7 @@
 
     <!-- Logo & branding -->
     <div class="logo-wrap">
-        <img th:src="@{/image/logo.jpeg}" alt="Attendee Logo"  src=""/>
+        <img th:src="@{/image/logo.jpeg}" alt="Attendee Logo" />
         <span class="brand-name">ATTENDEE</span>
         <span class="tagline" id="tagline">Smart Attendance Management</span>
     </div>
@@ -34,7 +34,7 @@
     <form th:action="@{/login}" method="post">
 
         <!-- CSRF token (auto-injected by Thymeleaf + Spring Security) -->
-        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+<!--        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />-->
 
         <!-- Email / Username -->
         <div class="form-group">
