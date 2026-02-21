@@ -1,11 +1,13 @@
-package group3.en.stuattendance.Auditmanager.Service.impl;
+package group3.en.stuattendance.Auditmanager.ServiceImpl;
 
 import group3.en.stuattendance.Auditmanager.DTO.AuditlogDto;
+import group3.en.stuattendance.Auditmanager.Mapper.AuditlogMapper;
 import group3.en.stuattendance.Auditmanager.Model.Auditlog;
 import group3.en.stuattendance.Auditmanager.Repository.AuditlogRepository;
 import group3.en.stuattendance.Auditmanager.Service.AuditlogService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,14 +17,23 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class AuditlogServiceImpl implements AuditlogService {
 
+    // Manually declare the logger to avoid the @Slf4j name clash
+    // with our log() method defined in AuditlogService
+    private static final Logger logger =
+            LoggerFactory.getLogger(AuditlogServiceImpl.class);
+
     private final AuditlogRepository auditlogRepository;
+    private final AuditlogMapper auditlogMapper;
+
+    public AuditlogServiceImpl(AuditlogRepository auditlogRepository, AuditlogMapper auditlogMapper) {
+        this.auditlogRepository = auditlogRepository;
+        this.auditlogMapper = auditlogMapper;
+    }
 
     // ── Fetch & Search ────────────────────────────────────────────────────────
 
@@ -41,7 +52,7 @@ public class AuditlogServiceImpl implements AuditlogService {
 
         return auditlogRepository
                 .searchWithFilters(kw, start, end, pageable)
-                .map(AuditlogDto::fromEntity);
+                .map(auditlogMapper::toDto);
     }
 
     // ── Logging ───────────────────────────────────────────────────────────────
@@ -63,7 +74,10 @@ public class AuditlogServiceImpl implements AuditlogService {
                 .build();
 
         auditlogRepository.save(entry);
-        log.debug("Audit saved: [{}] {} -> {} on {}", category, username, action, target);
+
+        // Using 'logger' instead of 'log' to avoid clash with our log() method
+        logger.debug("Audit saved: [{}] {} -> {} on {}",
+                category, username, action, target);
     }
 
     @Override
@@ -80,10 +94,9 @@ public class AuditlogServiceImpl implements AuditlogService {
     @Override
     @Transactional(readOnly = true)
     public List<AuditlogDto> exportAll() {
-        return auditlogRepository.findAllByOrderByTimestampDesc()
-                .stream()
-                .map(AuditlogDto::fromEntity)
-                .collect(Collectors.toList());
+        return auditlogMapper.toDtoList(
+                auditlogRepository.findAllByOrderByTimestampDesc()
+        );
     }
 
     // ── Statistics ────────────────────────────────────────────────────────────
