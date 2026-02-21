@@ -40,25 +40,15 @@ public interface AuditlogService {
              String category,
              String ipAddress);
 
-    /**
-     * Convenience overload — records a log without an IP address.
-     */
+
     void log(String username,
              String action,
              String target,
              String category);
 
-    /**
-     * Fetch all logs for CSV export (no pagination).
-     *
-     * @return Flat list of all AuditlogDto entries ordered by most recent
-     */
+
     List<AuditlogDto> exportAll();
 
-    /**
-     * Count how many log entries were created today.
-     *
-     * @return Count of today's log entries
-     */
+
     long countTodayLogs();
 }

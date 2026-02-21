@@ -39,4 +39,5 @@ public class Auditlog {
     @CreatedDate
     @Column(name = "timestamp", nullable = false, updatable = false)
     private LocalDateTime timestamp;
+
 }

@@ -1,5 +1,8 @@
 package group3.en.stuattendance.Usermanager.Data;
 
+import group3.en.stuattendance.Usermanager.Model.User;
+import group3.en.stuattendance.Usermanager.Repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Usermanager.Model.Permission;
 import group3.en.stuattendance.Usermanager.Model.Role;
@@ -22,6 +25,8 @@ public class DataInitializer implements CommandLineRunner {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final InstitutionRepository institutionRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -29,6 +34,7 @@ public class DataInitializer implements CommandLineRunner {
         seedInstitutions();
         seedRoles();
         seedPermissions();
+        seedAdminUser();
     }
 
     private void seedInstitutions() {
@@ -41,7 +47,8 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedRoles() {
-        String[] roles = {"ADMIN", "TEACHER", "SUPERVISOR", "PEDAGOG", "STUDENT"};
+        // MODIFIÉ — ROLE_ devant chaque nom
+        String[] roles = {"ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPERVISOR", "ROLE_PEDAGOG", "ROLE_STUDENT"};
         for (String roleName : roles) {
             if (roleRepository.findByName(roleName).isEmpty()) {
                 roleRepository.save(Role.builder()
@@ -65,6 +72,30 @@ public class DataInitializer implements CommandLineRunner {
                         .description("System permission to " + permName.toLowerCase().replace("_", " "))
                         .build());
             }
+        }
+    }
+    private void seedAdminUser(){
+        if (userRepository.findByUsername("admin").isEmpty()){
+
+            Role adminrole = roleRepository.findByName("ROLE_ADMIN")
+                    .orElseThrow(() -> new RuntimeException("Role ROLE_ADMIN introuvable"));
+            Institution institution = institutionRepository.findById(1).orElseThrow(() -> new RuntimeException("Insttitution introuvable"));
+
+            User admin = User.builder()
+                    .username("admin")
+                    .email("admin@attendee.com")
+                    .password(passwordEncoder.encode("admin123"))
+                    .isActive(true)
+                    .roles(new HashSet<>(java.util.Collections.singleton(adminrole)))
+                    .institution(institution)
+                    .build();
+
+                    userRepository.save(admin);
+                    System.out.println(" User  created.");
+                    System.out.println(" Username : admin");
+                    System.out.println(" Password : admin123");
+        }else {
+            System.out.println(" User admin present in BDD");
         }
     }
 }
