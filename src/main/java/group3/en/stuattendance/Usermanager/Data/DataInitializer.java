@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -47,8 +48,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedRoles() {
-        // MODIFIÉ — ROLE_ devant chaque nom
-        String[] roles = {"ROLE_ADMIN", "ROLE_TEACHER", "ROLE_SUPERVISOR", "ROLE_PEDAGOG", "ROLE_STUDENT"};
+        String[] roles = {"ADMIN", "TEACHER", "SUPERVISOR", "PEDAGOG", "STUDENT"};
         for (String roleName : roles) {
             if (roleRepository.findByName(roleName).isEmpty()) {
                 roleRepository.save(Role.builder()
@@ -58,6 +58,7 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
     }
+
 
     private void seedPermissions() {
         String[] permissions = {
@@ -77,8 +78,8 @@ public class DataInitializer implements CommandLineRunner {
     private void seedAdminUser(){
         if (userRepository.findByUsername("admin").isEmpty()){
 
-            Role adminrole = roleRepository.findByName("ROLE_ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Role ROLE_ADMIN introuvable"));
+            Role adminrole = roleRepository.findByName("ADMIN")
+                    .orElseThrow(() -> new RuntimeException("Role ADMIN introuvable"));
             Institution institution = institutionRepository.findById(1).orElseThrow(() -> new RuntimeException("Insttitution introuvable"));
 
             User admin = User.builder()

@@ -861,65 +861,26 @@ function restoreLastView() {
 }
 
 /**
- * Initialize Mobile Menu
+ * Initialize Mobile Menu & Form Listeners
  */
 function initializeMobileMenu() {
-    const header = document.querySelector('header');
+    console.log('Initializing mobile menu listeners...');
 
-    if (window.innerWidth <= 768) {
-        const menuToggle = document.createElement('button');
-        menuToggle.id = 'mobile-menu-toggle';
-        menuToggle.className = 'p-2 text-gray-600 hover:bg-gray-100 rounded-lg md:hidden';
-        menuToggle.innerHTML = `
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-        `;
-
-        const container = header.querySelector('div');
-        if (container) {
-            container.insertBefore(menuToggle, container.querySelector('div:last-child'));
-        }
-
-        menuToggle.addEventListener('click', function () {
+    // Mobile specific resize handling
+    window.addEventListener('resize', function () {
+        if (window.innerWidth > 1024) {
             const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('mobile-open');
-
-            let overlay = document.getElementById('sidebar-overlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'sidebar-overlay';
-                overlay.className = 'fixed inset-0 bg-black bg-opacity-50 z-40';
-                overlay.style.display = 'none';
-                document.body.appendChild(overlay);
-
-                overlay.addEventListener('click', function () {
-                    sidebar.classList.remove('mobile-open');
-                    this.style.display = 'none';
-                });
-            }
-
-            overlay.style.display = sidebar.classList.contains('mobile-open') ? 'block' : 'none';
-        });
-    }
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar) sidebar.classList.remove('mobile-open');
+            if (overlay) overlay.classList.remove('active');
+        }
+    });
 
     // Set up staff form submission
     const staffForm = document.getElementById('staffForm');
     if (staffForm) {
         staffForm.addEventListener('submit', handleCreateStaff);
     }
-
-    window.addEventListener('resize', function () {
-        if (window.innerWidth > 768) {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.remove('mobile-open');
-
-            const overlay = document.getElementById('sidebar-overlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        }
-    });
 }
 
 /**
@@ -1812,6 +1773,18 @@ window.handleDeleteClassroom = function (id) {
 };
 
 /**
+ * Mobile Menu Controls
+ */
+window.toggleMobileMenu = function () {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && overlay) {
+        const isOpen = sidebar.classList.toggle('mobile-open');
+        overlay.classList.toggle('active', isOpen);
+    }
+};
+
+/**
  * Modernized Institution Management - Tab Switching
  */
 window.switchManageTab = function (tabName) {
@@ -1820,11 +1793,11 @@ window.switchManageTab = function (tabName) {
     const tabs = document.querySelectorAll('.main-tab');
     tabs.forEach(tab => {
         if (tab.id === `tab-${tabName}`) {
+            tab.classList.add('active');
             tab.classList.remove('text-slate-500', 'hover:text-slate-700');
-            tab.classList.add('active', 'bg-white', 'shadow-sm', 'text-blue-600');
         } else {
+            tab.classList.remove('active');
             tab.classList.add('text-slate-500', 'hover:text-slate-700');
-            tab.classList.remove('active', 'bg-white', 'shadow-sm', 'text-blue-600');
         }
     });
 
@@ -1893,8 +1866,12 @@ window.applyManageSearch = function () {
 function initializeProfileDropdown() {
     const profileBtn = document.getElementById('profile-btn');
     const profileMenu = document.getElementById('profile-menu');
+    const avatarInput = document.getElementById('avatarInput');
 
     if (!profileBtn || !profileMenu) return;
+
+    // Load existing avatar
+    loadAvatar();
 
     profileBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1911,6 +1888,34 @@ function initializeProfileDropdown() {
             closeProfileMenu();
         }
     });
+
+    // Handle Avatar Upload
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                showNotification('Please select an image file', 'error');
+                return;
+            }
+
+            // Convert to Base64
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const base64Image = event.target.result;
+
+                // Save to localStorage
+                localStorage.setItem('userAvatar', base64Image);
+
+                // Update UI
+                updateAvatarUI(base64Image);
+                showNotification('Profile picture updated successfully', 'success');
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 
     // Close when clicking outside
     document.addEventListener('click', (e) => {
@@ -1929,6 +1934,32 @@ function initializeProfileDropdown() {
 }
 
 /**
+ * Load avatar from localStorage and update UI
+ */
+function loadAvatar() {
+    const savedAvatar = localStorage.getItem('userAvatar');
+    if (savedAvatar) {
+        updateAvatarUI(savedAvatar);
+    }
+}
+
+/**
+ * Update Avatar UI elements
+ */
+function updateAvatarUI(base64Image) {
+    const userAvatar = document.getElementById('userAvatar');
+    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+    const avatarContainer = document.getElementById('avatarContainer');
+
+    if (userAvatar && avatarPlaceholder && avatarContainer) {
+        userAvatar.src = base64Image;
+        userAvatar.classList.remove('hidden');
+        avatarPlaceholder.classList.add('hidden');
+        avatarContainer.classList.remove('bg-blue-500'); // Remove placeholder background
+    }
+}
+
+/**
  * Escape HTML to prevent XSS
  */
 function escapeHtml(text) {
@@ -1939,4 +1970,51 @@ function escapeHtml(text) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+/**
+ * Toggle between light and dark theme
+ */
+function toggleTheme() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    updateThemeIcons(isDark);
+    console.log('Theme toggled:', isDark ? 'dark' : 'light');
+}
+
+/**
+ * Load theme preference from localStorage or system settings
+ */
+function loadThemePreference() {
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    const isDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+
+    if (isDark) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+
+    updateThemeIcons(isDark);
+    console.log('Theme loaded:', isDark ? 'dark' : 'light');
+}
+
+/**
+ * Update theme toggle icons based on current theme
+ */
+function updateThemeIcons(isDark) {
+    const sunIcon = document.getElementById('theme-toggle-light-icon');
+    const moonIcon = document.getElementById('theme-toggle-dark-icon');
+
+    if (sunIcon && moonIcon) {
+        if (isDark) {
+            sunIcon.classList.remove('hidden');
+            moonIcon.classList.add('hidden');
+        } else {
+            sunIcon.classList.add('hidden');
+            moonIcon.classList.remove('hidden');
+        }
+    }
 }

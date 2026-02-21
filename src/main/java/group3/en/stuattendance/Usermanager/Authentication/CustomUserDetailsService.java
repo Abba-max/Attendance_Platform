@@ -33,9 +33,10 @@ public class CustomUserDetailsService implements UserDetailsService {
 
         // 2. Convertir les rôles RBAC (Set<Role>) en GrantedAuthority
         // user.getRoles() est un Set<Role> — on extrait le nom de chaque rôle
+        // IMPORTANT: Spring Security s'attend à ce que les rôles commencent par "ROLE_"
         List<SimpleGrantedAuthority> authorities = user.getRoles()
                 .stream()
-                .map(role -> new SimpleGrantedAuthority(role.getName()))
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
                 .collect(Collectors.toList());
 
         // 3. Retourner un UserDetails Spring Security

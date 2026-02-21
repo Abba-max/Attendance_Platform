@@ -6,105 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendee - Administrator Dashboard</title>
     <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-dashboard.css}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .main-tab.active {
-            background: #00B0FF;
-            color: white;
-            box-shadow: 0 2px 8px rgba(0, 176, 255, .35);
-        }
-
-        .main-tab {
-            transition: all .2s;
-        }
-
-        .inst-card {
-            transition: box-shadow .2s, transform .2s;
-        }
-
-        .inst-card:hover {
-            box-shadow: 0 8px 30px rgba(0, 0, 0, .1);
-            transform: translateY(-1px);
-        }
-
-        .cycle-card {
-            transition: all .2s;
-        }
-
-        .cycle-card:hover {
-            border-color: #8b5cf6;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, .15);
-        }
-
-        .dept-card-hover:hover {
-            border-color: #8b5cf6;
-            box-shadow: 0 4px 16px rgba(139, 92, 246, .15);
-            transform: translateY(-1px);
-        }
-
-        .class-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 16px rgba(59, 130, 246, .15);
-            transform: translateY(-1px);
-        }
-
-        .modal-overlay {
-            display: none;
-        }
-
-        .modal-overlay.open {
-            display: flex;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        .slide-in {
-            animation: slideIn .25s ease-out;
-        }
-
-        .breadcrumb-sep::before {
-            content: '›';
-            margin: 0 .4rem;
-            color: #64748b;
-        }
-
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 2px 8px;
-            border-radius: 9999px;
-            font-size: .7rem;
-            font-weight: 600;
-            letter-spacing: .03em;
-        }
-
-        mark {
-            background: #fef08a;
-            border-radius: 2px;
-            padding: 0 1px;
-        }
-    </style>
 </head>
 
 <body class="bg-yellow font-sans">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-screen overflow-hidden relative">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
+
         <!-- Sidebar -->
-        <aside id="sidebar" class="bg-white w-80 flex-shrink-0 shadow-lg transition-all duration-300">
+        <aside id="sidebar"
+            class="sidebar fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60]">
             <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center gap-3">
-                    <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg" alt="Attendee Logo"
-                        class="w-16 h-16 object-contain rounded-xl shadow-sm border-2 border-blue-50">
-                    <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg" alt="Attendee Logo"
+                            class="w-16 h-16 object-contain rounded-xl shadow-sm border-2 border-blue-50">
+                        <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
+                    </div>
+                    <!-- Sidebar Close Button (Mobile Only) -->
+                    <button onclick="toggleMobileMenu()" class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 rounded-xl transition-all border border-slate-200 shadow-sm" aria-label="Close menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
@@ -215,17 +141,48 @@
         <main class="flex-1 overflow-y-auto">
             <!-- Header -->
             <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10 transition-all duration-300">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h1 class="text-2xl font-black text-slate-800 tracking-tight">Saint Jean Ingenieur</h1>
-                        <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
-                            <span th:text="${institution != null ? institution : 'Central Institution'}">Admin name</span>
-                            <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                            <span class="text-emerald-600">Active Session</span>
-                        </p>
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4">
+                        <!-- Mobile Menu Toggle -->
+                        <button onclick="toggleMobileMenu()"
+                            class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+
+                        <div>
+                            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Saint Jean Ingenieur</h1>
+                            <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
+                                <span th:text="${institution != null ? institution : 'Central Institution'}">Admin
+                                    name</span>
+                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                <span class="text-emerald-600">Active Session</span>
+                            </p>
+                        </div>
                     </div>
 
                     <div class="flex items-center gap-3">
+                        <!-- Theme Toggle -->
+                        <button id="theme-toggle" onclick="toggleTheme()"
+                            class="w-10 h-10 flex border border-slate-200 items-center justify-center text-slate-500 hover:text-[#00B0FF] hover:bg-blue-50 hover:border-blue-100 rounded-xl transition-all duration-200">
+                            <!-- Sun Icon (visible in light mode) -->
+                            <svg id="theme-toggle-light-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 3v1m0 16v1m9-9h1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z">
+                                </path>
+                            </svg>
+                            <!-- Moon Icon (visible in dark mode) -->
+                            <svg id="theme-toggle-dark-icon" class="w-5 h-5 hidden" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                                </path>
+                            </svg>
+                        </button>
+
                         <!-- Notifications -->
                         <div class="relative group">
                             <button
@@ -256,11 +213,14 @@
 
                         <!-- Profile Dropdown -->
                         <div class="relative group" id="profile-dropdown">
+                            <input type="file" id="avatarInput" accept="image/*" class="hidden">
                             <button id="profile-btn"
                                 class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 hover:shadow-sm rounded-2xl transition-all duration-300 group">
-                                <div
-                                    class="w-9 h-9  color-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div id="avatarContainer"
+                                    class="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-all duration-300 overflow-hidden">
+                                    <img id="userAvatar" src="" class="w-full h-full object-cover hidden">
+                                    <svg id="avatarPlaceholder" class="w-5 h-5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
                                         </path>
@@ -285,6 +245,17 @@
                                     <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Account Control
                                     </p>
                                 </div>
+                                <a href="#" onclick="document.getElementById('avatarInput').click(); return false;"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Change Photo
+                                </a>
                                 <a href="#"
                                     class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1147,8 +1118,7 @@
     </div>
 
     <!-- Academic Year Modal -->
-    <div id="academicYearModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="academicYearModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="academicYearModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-cyan-600 text-white">
@@ -1200,8 +1170,7 @@
 
     <!-- Institution Modals -->
     <!-- Edit Institution Modal -->
-    <div id="editInstitutionModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="editInstitutionModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="editInstitutionModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
@@ -1238,8 +1207,7 @@
     </div>
 
     <!-- Create Cycle Modal -->
-    <div id="cycleModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="cycleModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="cycleModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
@@ -1274,12 +1242,11 @@
         </div>
     </div>
     <!-- Edit Cycle Modal -->
-    <div id="editCycleModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="editCycleModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="editCycleModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
-                <h3 class="text-xl font-bold">Edit Cycle</h3>
+                <h3 class="text-xl font-bold text-white">Edit Cycle</h3>
                 <button onclick="closeEditCycleModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -1312,12 +1279,11 @@
     </div>
 
     <!-- Create Department Modal -->
-    <div id="departmentModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="departmentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="departmentModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
-                <h3 class="text-xl font-bold">Create New Department</h3>
+                <h3 class="text-xl font-bold text-white">Create New Department</h3>
                 <button onclick="closeCreateDepartmentModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -1371,12 +1337,11 @@
     </div>
 
     <!-- Edit Department Modal -->
-    <div id="editDepartmentModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="editDepartmentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="editDepartmentModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
-                <h3 class="text-xl font-bold">Edit Department</h3>
+                <h3 class="text-xl font-bold text-white">Edit Department</h3>
                 <button onclick="closeEditDepartmentModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -1444,12 +1409,11 @@
     </div>
 
     <!-- Create Classroom Modal -->
-    <div id="classroomModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="classroomModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="classroomModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white">
-                <h3 class="text-xl font-bold">Create New Classroom</h3>
+                <h3 class="text-xl font-bold text-white">Create New Classroom</h3>
                 <button onclick="closeCreateClassroomModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -1488,12 +1452,11 @@
     </div>
 
     <!-- Edit Classroom Modal -->
-    <div id="editClassroomModal"
-        class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="editClassroomModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
             id="editClassroomModalContent">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-600 text-white">
-                <h3 class="text-xl font-bold">Edit Classroom</h3>
+                <h3 class="text-xl  text-white">Edit Classroom</h3>
                 <button onclick="closeEditClassroomModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">

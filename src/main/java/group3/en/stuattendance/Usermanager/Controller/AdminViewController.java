@@ -40,8 +40,12 @@ public class AdminViewController {
         model.addAttribute("roles", roleRepository.findAll());
         model.addAttribute("allPermissions", permissionService.getAllPermissions());
         
+        // Fetch currently authenticated user's name
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = (auth != null) ? auth.getName() : "Administrator";
+        
         // Add missing attributes for the overview section
-        model.addAttribute("adminName", "Administrator");
+        model.addAttribute("adminName", currentUsername);
         model.addAttribute("notifications", 0);
         
         java.util.List<group3.en.stuattendance.Usermanager.Model.User> allStaff = userService.getAllStaff();
