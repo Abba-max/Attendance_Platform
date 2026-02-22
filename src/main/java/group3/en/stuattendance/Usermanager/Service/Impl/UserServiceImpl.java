@@ -310,4 +310,72 @@ public class UserServiceImpl implements UserService {
             userRepository.save(user);
         });
     }
+
+    @Override
+    public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file) {
+        group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
+        
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()));
+             com.opencsv.CSVReader csvReader = new com.opencsv.CSVReader(reader)) {
+            
+            List<String[]> rows = csvReader.readAll();
+            result.setTotalRows(rows.size());
+
+            // Get default institution (using ID 1 as per current logic)
+            Institution institution = institutionRepository.findById(1).orElse(null);
+
+            for (int i = 0; i < rows.size(); i++) {
+                String[] row = rows.get(i);
+                int rowNum = i + 1;
+
+                if (row.length < 3) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: username, email, role"));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                    continue;
+                }
+
+                String username = row[0].trim();
+                String email = row[1].trim();
+                String roleName = row[2].trim().toUpperCase();
+
+                try {
+                    // Check if user already exists
+                    if (userRepository.findByUsername(username).isPresent() || userRepository.findByEmail(email).isPresent()) {
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "User with this username or email already exists"));
+                         result.setFailureCount(result.getFailureCount() + 1);
+                         continue;
+                    }
+
+                    // Validate role
+                    if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR")) {
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "Invalid role: " + roleName + ". Must be PEDAGOG or SUPERVISOR"));
+                         result.setFailureCount(result.getFailureCount() + 1);
+                         continue;
+                    }
+
+                    // Prepare DTO
+                    StaffCreateDto dto = StaffCreateDto.builder()
+                            .username(username)
+                            .email(email)
+                            .roleNames(java.util.Collections.singleton(roleName))
+                            .institutionId(institution != null ? institution.getInstitutionId() : null)
+                            .isActive(true)
+                            .build();
+
+                    // Process registration
+                    registerStaff(dto);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+
+                } catch (Exception e) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "System error: " + e.getMessage()));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CSV file: " + e.getMessage());
+        }
+
+        return result;
+    }
 }

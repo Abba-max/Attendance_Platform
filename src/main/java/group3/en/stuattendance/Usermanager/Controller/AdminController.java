@@ -65,4 +65,10 @@ public class AdminController {
         userService.resetPassword(id, newPassword);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/staff/bulk-import")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto> bulkImportStaff(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(userService.bulkImportStaff(file));
+    }
 }

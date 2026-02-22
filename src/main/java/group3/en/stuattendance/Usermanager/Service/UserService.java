@@ -36,4 +36,7 @@ public interface UserService {
     
     // Auth related
     void resetPassword(Integer userId, String newPassword);
+
+    // Bulk Operations
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file);
 }

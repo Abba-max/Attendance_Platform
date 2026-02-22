@@ -2018,3 +2018,147 @@ function updateThemeIcons(isDark) {
         }
     }
 }
+
+/**
+ * Bulk Import Logic
+ */
+
+function openBulkImportModal() {
+    const modal = document.getElementById('bulkImportModal');
+    const content = document.getElementById('bulkImportModalContent');
+    if (modal && content) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Reset steps
+        document.getElementById('bulkImportStep1').classList.remove('hidden');
+        document.getElementById('bulkImportStep2').classList.add('hidden');
+
+        // Reset file input
+        document.getElementById('csvFileInput').value = '';
+        document.getElementById('selectedFileName').textContent = 'Choose CSV file';
+        document.getElementById('startImportBtn').disabled = true;
+
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    }
+}
+
+function closeBulkImportModal() {
+    const modal = document.getElementById('bulkImportModal');
+    const content = document.getElementById('bulkImportModalContent');
+    if (modal && content) {
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 300);
+    }
+}
+
+function handleFileSelection(event) {
+    const file = event.target.files[0];
+    const fileNameElement = document.getElementById('selectedFileName');
+    const startBtn = document.getElementById('startImportBtn');
+
+    if (file) {
+        if (!file.name.endsWith('.csv')) {
+            showNotification('Please select a valid CSV file', 'error');
+            event.target.value = '';
+            fileNameElement.textContent = 'Choose CSV file';
+            startBtn.disabled = true;
+            return;
+        }
+        fileNameElement.textContent = file.name;
+        startBtn.disabled = false;
+    }
+}
+
+async function startImport() {
+    const fileInput = document.getElementById('csvFileInput');
+    const file = fileInput.files[0];
+    const loader = document.getElementById('importLoader');
+    const startBtn = document.getElementById('startImportBtn');
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        loader.classList.remove('hidden');
+        startBtn.disabled = true;
+
+        const response = await fetch('/api/admin/staff/bulk-import', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showResults(result);
+            // We need loadUsers to refresh the table. Check if it's defined.
+            if (typeof loadUsers === 'function') {
+                loadUsers();
+            }
+        } else {
+            throw new Error('Failed to process bulk import');
+        }
+    } catch (error) {
+        console.error('Bulk Import Error:', error);
+        showNotification(error.message, 'error');
+        startBtn.disabled = false;
+        loader.classList.add('hidden');
+    }
+}
+
+function showResults(result) {
+    document.getElementById('bulkImportStep1').classList.add('hidden');
+    document.getElementById('bulkImportStep2').classList.remove('hidden');
+
+    document.getElementById('res_total').textContent = result.totalRows;
+    document.getElementById('res_success').textContent = result.successCount;
+    document.getElementById('res_failed').textContent = result.failureCount;
+
+    const errorContainer = document.getElementById('errorListContainer');
+    const errorTable = document.getElementById('importErrorTable');
+
+    if (result.failureCount > 0) {
+        errorContainer.classList.remove('hidden');
+        errorTable.innerHTML = result.errors.map(err => `
+            <tr>
+                <td class="px-3 py-2 font-black text-slate-700">${err.rowNumber}</td>
+                <td class="px-3 py-2 text-slate-600">${escapeHtml(err.identifier)}</td>
+                <td class="px-3 py-2 text-rose-500 font-medium">${escapeHtml(err.errorMessage)}</td>
+            </tr>
+        `).join('');
+    } else {
+        errorContainer.classList.add('hidden');
+    }
+}
+
+function downloadCsvTemplate() {
+    const headers = "username,email,role\n";
+    const example = "john_doe,john@example.com,PEDAGOG\njane_smith,jane@example.com,SUPERVISOR";
+    const blob = new Blob([headers + example], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'staff_import_template.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Global Exports
+window.openBulkImportModal = openBulkImportModal;
+window.closeBulkImportModal = closeBulkImportModal;
+window.handleFileSelection = handleFileSelection;
+window.startImport = startImport;
+window.downloadCsvTemplate = downloadCsvTemplate;
+
+console.log('Bulk Importer module loaded');
