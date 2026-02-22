@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Institutionmanager.Service.Impl;
 
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Institutionmanager.Repository.InstitutionRepository;
 import group3.en.stuattendance.Institutionmanager.Service.InstitutionService;
@@ -17,6 +18,7 @@ public class InstitutionServiceImpl implements InstitutionService {
     private InstitutionRepository institutionRepository;
 
     @Override
+    @Auditable(action = "INSTITUTION_SAVE", category = "INSTITUTION_MANAGEMENT", severity = "INFO")
     public Institution save(Institution institution) {
         return institutionRepository.save(institution);
     }
@@ -33,6 +35,7 @@ public class InstitutionServiceImpl implements InstitutionService {
     }
 
     @Override
+    @Auditable(action = "INSTITUTION_DELETE", category = "INSTITUTION_MANAGEMENT", severity = "WARNING")
     public void deleteById(Integer id) {
         institutionRepository.deleteById(id);
     }

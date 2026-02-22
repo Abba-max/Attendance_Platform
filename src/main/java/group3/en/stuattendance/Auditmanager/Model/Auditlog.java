@@ -36,6 +36,12 @@ public class Auditlog {
     @Column(name = "ip_address", length = 50)
     private String ipAddress;
 
+    @Column(name = "severity", length = 20)
+    private String severity; // INFO, WARNING, ERROR
+
+    @Column(name = "user_role", length = 50)
+    private String userRole;
+
     @CreatedDate
     @Column(name = "timestamp", nullable = false, updatable = false)
     private LocalDateTime timestamp;

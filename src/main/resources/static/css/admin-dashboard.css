@@ -175,6 +175,27 @@ textarea::placeholder {
     color: #ffffff !important;
 }
 
+/* Filter Chips */
+.cycle-chip,
+.dept-chip {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cycle-chip.active,
+.dept-chip.active {
+    background: var(--accent-blue) !important;
+    color: #ffffff !important;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px var(--accent-blue-soft);
+}
+
+.cycle-chip:not(.active):hover,
+.dept-chip:not(.active):hover {
+    border-color: var(--accent-blue) !important;
+    background-color: var(--accent-blue-soft) !important;
+    color: var(--accent-blue) !important;
+}
+
 /* Scrollbar refinement */
 .custom-scrollbar::-webkit-scrollbar {
     width: 6px;

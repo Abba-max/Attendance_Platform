@@ -41,6 +41,7 @@ public class AuditlogController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getLogs(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String severity,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
             @RequestParam(required = false)
@@ -48,7 +49,7 @@ public class AuditlogController {
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Page<AuditlogDto> result = auditlogService.getLogs(keyword, start, end, page, size);
+        Page<AuditlogDto> result = auditlogService.getLogs(keyword, severity, start, end, page, size);
 
         // Response structure expected by audit.js:
         // { logs, currentPage, totalPages, totalElements, pageSize }

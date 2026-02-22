@@ -19,6 +19,7 @@ public interface AuditlogService {
      * @return        Page of AuditlogDto ready for the frontend table
      */
     Page<AuditlogDto> getLogs(String keyword,
+                              String severity,
                               LocalDateTime start,
                               LocalDateTime end,
                               int page,
@@ -32,19 +33,25 @@ public interface AuditlogService {
      * @param action    The action type (e.g. CREATE, UPDATE, DELETE, LOGIN)
      * @param target    The affected resource (e.g. "User #5", "Institution #2")
      * @param category  High-level category (e.g. USER_MANAGEMENT, SECURITY, SYSTEM)
+     * @param severity  Level of importance (INFO, WARNING, ERROR)
+     * @param userRole  Role of the actor at the time of action
      * @param ipAddress IP address of the request
      */
     void log(String username,
              String action,
              String target,
              String category,
+             String severity,
+             String userRole,
              String ipAddress);
 
 
     void log(String username,
              String action,
              String target,
-             String category);
+             String category,
+             String severity,
+             String userRole);
 
 
     List<AuditlogDto> exportAll();

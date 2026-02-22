@@ -13,6 +13,10 @@ let allUsers = []; // Cache for filtering
 let allRoles = [];
 let allPermissions = [];
 
+// Hierarchy Filter State
+let currentCycleFilter = 'all';
+let currentDeptFilter = 'all';
+
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Dashboard initializing... v20260216-2'); // Version check
 
@@ -827,6 +831,11 @@ function initializeNavigation() {
                 // Special handling for Roles section
                 if (targetSection === 'roles') {
                     loadRoleAndPermissionData();
+                }
+
+                // Special handling for Audit logs section
+                if (targetSection === 'audit' && window.auditApp && typeof window.auditApp.loadAuditLogs === 'function') {
+                    window.auditApp.loadAuditLogs(0);
                 }
 
                 const mainContent = document.querySelector('main');
@@ -1789,6 +1798,11 @@ window.toggleMobileMenu = function () {
  */
 window.switchManageTab = function (tabName) {
     console.log('Switching to tab:', tabName);
+
+    // Reset hierarchy filters when switching tabs
+    currentCycleFilter = 'all';
+    currentDeptFilter = 'all';
+
     // Update tab styles
     const tabs = document.querySelectorAll('.main-tab');
     tabs.forEach(tab => {
@@ -1801,6 +1815,41 @@ window.switchManageTab = function (tabName) {
         }
     });
 
+    // Show/Hide filter containers based on tab
+    const subFilters = document.getElementById('manageSubFilters');
+    const cycleContainer = document.getElementById('cycleFilterContainer');
+    const deptContainer = document.getElementById('deptFilterContainer');
+
+    if (subFilters) {
+        if (tabName === 'cycles') {
+            subFilters.classList.add('hidden');
+        } else {
+            subFilters.classList.remove('hidden');
+            // Reset all chips to default state
+            document.querySelectorAll('.cycle-chip, .dept-chip').forEach(chip => {
+                const id = chip.dataset.cycleId || chip.dataset.deptId;
+                if (id === 'all') {
+                    chip.classList.add('active');
+                    chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                } else {
+                    chip.classList.remove('active');
+                    chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                }
+                // Departments chips are hidden until we decide which belong to cycle or if we show all
+                if (chip.classList.contains('dept-chip')) {
+                    // We'll show dept chips only if classrooms tab is active
+                    chip.parentElement.classList.toggle('hidden', tabName !== 'classrooms');
+                }
+            });
+
+            if (tabName === 'departments') {
+                deptContainer.classList.add('hidden');
+            } else if (tabName === 'classrooms') {
+                deptContainer.classList.remove('hidden');
+            }
+        }
+    }
+
     // Show panel
     const panels = document.querySelectorAll('.view-panel');
     panels.forEach(panel => {
@@ -1810,6 +1859,9 @@ window.switchManageTab = function (tabName) {
             panel.classList.add('hidden');
         }
     });
+
+    // Re-apply filtering
+    applyManageSearch();
 };
 
 /**
@@ -1838,7 +1890,21 @@ window.applyManageSearch = function () {
     // Filter
     items.forEach(item => {
         const name = item.dataset.name.toLowerCase();
-        if (name.includes(term)) {
+        const cycleId = item.dataset.cycleId;
+        const deptId = item.dataset.deptId;
+
+        const matchesTerm = name.includes(term);
+        let matchesHierarchy = true;
+
+        if (activeTab === 'departments') {
+            matchesHierarchy = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
+        } else if (activeTab === 'classrooms') {
+            const matchesCycle = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
+            const matchesDept = (currentDeptFilter === 'all' || deptId === currentDeptFilter);
+            matchesHierarchy = matchesCycle && matchesDept;
+        }
+
+        if (matchesTerm && matchesHierarchy) {
             item.classList.remove('hidden');
         } else {
             item.classList.add('hidden');
@@ -1856,6 +1922,74 @@ window.applyManageSearch = function () {
     });
 
     items.forEach(item => parent.appendChild(item));
+};
+
+/**
+ * Sets a hierarchy filter and updates UI chips
+ */
+window.setManageFilter = function (type, id) {
+    if (type === 'cycle') {
+        currentCycleFilter = String(id);
+        // If we change cycle, reset dept filter to 'all' for consistency 
+        // because the previous selected dept might not belong to the new cycle.
+        currentDeptFilter = 'all';
+
+        // Update Cycle Chips
+        document.querySelectorAll('.cycle-chip').forEach(chip => {
+            const chipId = String(chip.dataset.cycleId);
+            if (chipId === currentCycleFilter) {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            }
+        });
+
+        // Update Dept Chip visibility if choosing a cycle
+        document.querySelectorAll('.dept-chip').forEach(chip => {
+            const chipId = String(chip.dataset.deptId);
+            const chipCycleId = String(chip.dataset.cycleId);
+
+            // Reset Dept active state
+            if (chipId === 'all') {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            }
+
+            // Toggle visibility of dept chip based on cycle
+            if (chipId === 'all') {
+                chip.classList.remove('hidden');
+            } else {
+                if (currentCycleFilter === 'all' || chipCycleId === currentCycleFilter) {
+                    chip.classList.remove('hidden');
+                } else {
+                    chip.classList.add('hidden');
+                }
+            }
+        });
+
+    } else if (type === 'dept') {
+        currentDeptFilter = String(id);
+
+        // Update Dept Chips
+        document.querySelectorAll('.dept-chip').forEach(chip => {
+            const chipId = String(chip.dataset.deptId);
+            if (chipId === currentDeptFilter) {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            }
+        });
+    }
+
+    // Apply combined filters
+    applyManageSearch();
 };
 
 

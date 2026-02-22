@@ -25,6 +25,8 @@ public class AuditlogMapper {
                 .target(auditlog.getTarget())
                 .category(auditlog.getCategory())
                 .ipAddress(auditlog.getIpAddress())
+                .severity(auditlog.getSeverity())
+                .userRole(auditlog.getUserRole())
                 .timestamp(auditlog.getTimestamp() != null
                         ? auditlog.getTimestamp().format(FORMATTER)
                         : "")
@@ -44,6 +46,8 @@ public class AuditlogMapper {
                 .target(dto.getTarget())
                 .category(dto.getCategory())
                 .ipAddress(dto.getIpAddress())
+                .severity(dto.getSeverity())
+                .userRole(dto.getUserRole())
                 .build();
     }
 

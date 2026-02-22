@@ -40,6 +40,7 @@ public class AuditlogServiceImpl implements AuditlogService {
     @Override
     @Transactional(readOnly = true)
     public Page<AuditlogDto> getLogs(String keyword,
+                                     String severity,
                                      LocalDateTime start,
                                      LocalDateTime end,
                                      int page,
@@ -47,11 +48,12 @@ public class AuditlogServiceImpl implements AuditlogService {
 
         // Normalize blank strings to null so JPQL IS NULL checks work correctly
         String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String sev = (severity != null && !severity.isBlank()) ? severity.trim() : null;
 
         Pageable pageable = PageRequest.of(page, size);
 
         return auditlogRepository
-                .searchWithFilters(kw, start, end, pageable)
+                .searchWithFilters(kw, sev, start, end, pageable)
                 .map(auditlogMapper::toDto);
     }
 
@@ -63,6 +65,8 @@ public class AuditlogServiceImpl implements AuditlogService {
                     String action,
                     String target,
                     String category,
+                    String severity,
+                    String userRole,
                     String ipAddress) {
 
         Auditlog entry = Auditlog.builder()
@@ -70,14 +74,16 @@ public class AuditlogServiceImpl implements AuditlogService {
                 .action(action)
                 .target(target)
                 .category(category)
+                .severity(severity)
+                .userRole(userRole)
                 .ipAddress(ipAddress)
                 .build();
 
         auditlogRepository.save(entry);
 
         // Using 'logger' instead of 'log' to avoid clash with our log() method
-        logger.debug("Audit saved: [{}] {} -> {} on {}",
-                category, username, action, target);
+        logger.debug("Audit saved: [{}] ({}) {} -> {} on {}",
+                category, severity, username, action, target);
     }
 
     @Override
@@ -85,8 +91,10 @@ public class AuditlogServiceImpl implements AuditlogService {
     public void log(String username,
                     String action,
                     String target,
-                    String category) {
-        log(username, action, target, category, "N/A");
+                    String category,
+                    String severity,
+                    String userRole) {
+        log(username, action, target, category, severity, userRole, "N/A");
     }
 
     // ── Export ────────────────────────────────────────────────────────────────

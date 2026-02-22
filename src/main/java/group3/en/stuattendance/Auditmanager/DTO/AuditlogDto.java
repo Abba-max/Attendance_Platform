@@ -20,6 +20,8 @@ public class AuditlogDto {
     private String target;
     private String category;
     private String ipAddress;
+    private String severity;
+    private String userRole;
     private String timestamp;
 
     private static final DateTimeFormatter FORMATTER =

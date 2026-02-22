@@ -503,7 +503,7 @@
                     </div>
 
                     <!-- Search + Tabs + Sort -->
-                    <div class="bg-white rounded-3xl border border-slate-100 p-4 mb-8 shadow-sm">
+                    <div class="bg-white rounded-3xl border border-slate-100 p-4 mb-2 shadow-sm">
                         <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
                             <div class="relative flex-1 group">
                                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
@@ -532,6 +532,35 @@
                                 <option value="name">Sort: Name A→Z</option>
                                 <option value="name-desc">Sort: Name Z→A</option>
                             </select>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchical Filter Chips -->
+                    <div id="manageSubFilters" class="mb-8 space-y-3 hidden">
+                        <!-- Cycle Filters -->
+                        <div id="cycleFilterContainer" class="flex flex-wrap gap-2 items-center">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Cycle:</span>
+                            <button onclick="setManageFilter('cycle', 'all')" 
+                                class="cycle-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
+                                data-cycle-id="all">All Cycles</button>
+                            <button th:each="c : ${cycles}" 
+                                th:onclick="'setManageFilter(\'cycle\', \'' + ${c.cycleId} + '\')'"
+                                class="cycle-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
+                                th:data-cycle-id="${c.cycleId}"
+                                th:text="${c.name}">Cycle</button>
+                        </div>
+                        <!-- Department Filters -->
+                        <div id="deptFilterContainer" class="flex flex-wrap gap-2 items-center hidden">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Dept:</span>
+                            <button onclick="setManageFilter('dept', 'all')" 
+                                class="dept-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
+                                data-dept-id="all">All Depts</button>
+                            <button th:each="d : ${allDepartments}" 
+                                th:onclick="'setManageFilter(\'dept\', \'' + ${d.departmentId} + '\')'"
+                                class="dept-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
+                                th:data-dept-id="${d.departmentId}"
+                                th:data-cycle-id="${d.cycle?.cycleId}"
+                                th:text="${d.name}">Dept</button>
                         </div>
                     </div>
 
@@ -604,7 +633,8 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div th:each="dept : ${allDepartments}"
                                 class="dept-card bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
-                                th:data-name="${dept.name}">
+                                th:data-name="${dept.name}"
+                                th:data-cycle-id="${dept.cycle?.cycleId}">
                                 <div class="flex items-start justify-between mb-4">
                                     <div class="flex items-center gap-4">
                                         <div
@@ -689,7 +719,9 @@
                             <th:block th:each="dept : ${allDepartments}">
                                 <div th:each="room : ${dept.classrooms}"
                                     class="class-card bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
-                                    th:data-name="${room.name}">
+                                    th:data-name="${room.name}"
+                                    th:data-dept-id="${dept.departmentId}"
+                                    th:data-cycle-id="${dept.cycle?.cycleId}">
                                     <div class="flex items-start justify-between mb-4">
                                         <div class="flex items-center gap-3">
                                             <div
@@ -955,12 +987,106 @@
                 </section>
 
                 <section id="section-audit" class="content-section hidden">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Audit Logs</h2>
-                        <p class="text-gray-600">View system audit logs and activity history.</p>
+                    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Audit Logs</h2>
+                            <p class="text-gray-600">Complete record of system activities and security events.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="exportAuditLogs()"
+                                class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-slate-900 transition-all font-medium shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="bg-white rounded-2xl p-8 shadow-sm">
-                        <p class="text-gray-600">Audit logs interface will be displayed here.</p>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1 relative">
+                                <input type="text" id="auditSearchInput" placeholder="Search by user, action, target..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="auditSeverityFilter"
+                                    class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium text-gray-600">
+                                    <option value="">All Severities</option>
+                                    <option value="INFO">Info</option>
+                                    <option value="WARNING">Warning</option>
+                                    <option value="ERROR">Error</option>
+                                </select>
+                                <button onclick="loadAuditLogs(0)"
+                                    class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left">
+                                <thead
+                                    class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4">Timestamp</th>
+                                        <th class="px-6 py-4">User & Role</th>
+                                        <th class="px-6 py-4">Action</th>
+                                        <th class="px-6 py-4">Target</th>
+                                        <th class="px-6 py-4">Category & Severity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTableBody" class="divide-y divide-slate-100">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <div
+                                                    class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin">
+                                                </div>
+                                                <span>Loading data...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div
+                            class="bg-slate-50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                Showing <span id="auditEntriesStart" class="text-slate-600">0</span> to <span
+                                    id="auditEntriesEnd" class="text-slate-600">0</span> of <span id="auditTotalEntries"
+                                    class="text-slate-600">0</span> logs
+                            </div>
+                            <div class="flex items-center gap-2" id="auditPaginationControls">
+                                <button id="auditPrevBtn"
+                                    class="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                                <div id="auditPageNumbers" class="flex gap-1 text-sm font-bold"></div>
+                                <button id="auditNextBtn"
+                                    class="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -1519,6 +1645,7 @@
     </div>
 
     <script th:src="@{/js/admin/admin-dashboard.js}"></script>
+    <script th:src="@{/js/admin/audit.js}"></script>
     <script>
         // Inline setup for dynamic role injection in modal if needed before main JScutes
     </script>

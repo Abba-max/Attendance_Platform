@@ -19,11 +19,14 @@ public interface AuditlogRepository extends JpaRepository<Auditlog, Integer> {
             "(:keyword IS NULL OR :keyword = '' OR " +
             " LOWER(a.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             " LOWER(a.action)   LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            " LOWER(a.target)   LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            " LOWER(a.target)   LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            " LOWER(a.userRole) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:severity IS NULL OR :severity = '' OR a.severity = :severity) " +
             "AND (:start IS NULL OR a.timestamp >= :start) " +
             "AND (:end   IS NULL OR a.timestamp <= :end) " +
             "ORDER BY a.timestamp DESC")
     Page<Auditlog> searchWithFilters(@Param("keyword") String keyword,
+                                     @Param("severity") String severity,
                                      @Param("start")   LocalDateTime start,
                                      @Param("end")     LocalDateTime end,
                                      Pageable pageable);

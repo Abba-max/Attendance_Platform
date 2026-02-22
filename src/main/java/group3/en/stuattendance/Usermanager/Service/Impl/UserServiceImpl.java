@@ -12,6 +12,7 @@ import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import group3.en.stuattendance.Usermanager.Util.PasswordUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -38,6 +39,7 @@ public class UserServiceImpl implements UserService {
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
 
     @Override
+    @Auditable(action = "USER_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
     public User registerUser(UserDto dto) {
         Institution institution = dto.getInstitutionId() != null ? 
             institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
@@ -59,6 +61,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "STAFF_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
     public User registerStaff(StaffCreateDto dto) {
         Institution institution = dto.getInstitutionId() != null ?
             institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
@@ -195,6 +198,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "USER_UPDATE", category = "USER_MANAGEMENT", severity = "INFO")
     public User updateUser(Integer userId, UserDto dto) {
         User existingUser = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
@@ -226,11 +230,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "USER_DELETE", category = "USER_MANAGEMENT", severity = "WARNING")
     public void deleteUser(Integer userId) {
         userRepository.deleteById(userId);
     }
 
     @Override
+    @Auditable(action = "USER_DEACTIVATE", category = "USER_MANAGEMENT", severity = "WARNING")
     public void deactivateUser(Integer userId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setIsActive(false);
@@ -239,6 +245,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "USER_ACTIVATE", category = "USER_MANAGEMENT", severity = "INFO")
     public void activateUser(Integer userId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setIsActive(true);
@@ -304,6 +311,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "PASSWORD_RESET", category = "SECURITY", severity = "WARNING")
     public void resetPassword(Integer userId, String newPassword) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setPassword(passwordEncoder.encode(newPassword));
@@ -312,6 +320,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Auditable(action = "STAFF_BULK_IMPORT", category = "USER_MANAGEMENT", severity = "INFO")
     public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file) {
         group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
         
