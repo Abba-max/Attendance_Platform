@@ -23,6 +23,17 @@ public class ClassroomController {
     @Autowired
     private DepartmentService departmentService;
 
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Mapper.ClassroomMapper classroomMapper;
+
+    @GetMapping("/by-department/{deptId}")
+    @ResponseBody
+    public java.util.List<group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto> getClassroomsByDepartment(@PathVariable Integer deptId) {
+        return classroomService.findByDepartmentId(deptId).stream()
+                .map(classroomMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     /**
      * Create new classroom
      */

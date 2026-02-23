@@ -34,6 +34,11 @@ public class ClassroomServiceImpl implements ClassroomService {
 
 
     @Override
+    public List<Classroom> findByDepartmentId(Integer deptId) {
+        return classroomRepository.findByDepartment_DepartmentId(deptId);
+    }
+
+    @Override
     public void deleteById(Integer id) {
         classroomRepository.deleteById(id);
     }

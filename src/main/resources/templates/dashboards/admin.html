@@ -26,8 +26,8 @@
             <div class="p-6 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <img th:src="@{/image/logo.jpeg}" src="/image/logo.jpeg" alt="Attendee Logo"
-                            class="w-16 h-16 object-contain rounded-xl shadow-sm border-2 border-blue-50">
+                        <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo"
+                            class="w-20 h-20 object-contain rounded-xl shadow-sm border-2 border-blue-50">
                         <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
                     </div>
                     <!-- Sidebar Close Button (Mobile Only) -->
@@ -103,18 +103,7 @@
                             <span class="font-medium">Roles & Permissions</span>
                         </a>
                     </li>
-                    <li>
-                        <a href="#"
-                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
-                            data-section="security">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z">
-                                </path>
-                            </svg>
-                            <span class="font-medium">Security & Statistics</span>
-                        </a>
-                    </li>
+
                     <li>
                         <a href="#"
                             class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
@@ -125,20 +114,6 @@
                                 </path>
                             </svg>
                             <span class="font-medium">Audit Logs</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#"
-                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
-                            data-section="settings">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
-                                </path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            <span class="font-medium">System Settings</span>
                         </a>
                     </li>
                 </ul>
@@ -539,27 +514,27 @@
                     <div id="manageSubFilters" class="mb-8 space-y-3 hidden">
                         <!-- Cycle Filters -->
                         <div id="cycleFilterContainer" class="flex flex-wrap gap-2 items-center">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Cycle:</span>
-                            <button onclick="setManageFilter('cycle', 'all')" 
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Cycle:</span>
+                            <button onclick="setManageFilter('cycle', 'all')"
                                 class="cycle-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
                                 data-cycle-id="all">All Cycles</button>
-                            <button th:each="c : ${cycles}" 
+                            <button th:each="c : ${cycles}"
                                 th:onclick="'setManageFilter(\'cycle\', \'' + ${c.cycleId} + '\')'"
                                 class="cycle-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
-                                th:data-cycle-id="${c.cycleId}"
-                                th:text="${c.name}">Cycle</button>
+                                th:data-cycle-id="${c.cycleId}" th:text="${c.name}">Cycle</button>
                         </div>
                         <!-- Department Filters -->
                         <div id="deptFilterContainer" class="flex flex-wrap gap-2 items-center hidden">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Dept:</span>
-                            <button onclick="setManageFilter('dept', 'all')" 
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Dept:</span>
+                            <button onclick="setManageFilter('dept', 'all')"
                                 class="dept-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
                                 data-dept-id="all">All Depts</button>
-                            <button th:each="d : ${allDepartments}" 
+                            <button th:each="d : ${allDepartments}"
                                 th:onclick="'setManageFilter(\'dept\', \'' + ${d.departmentId} + '\')'"
                                 class="dept-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
-                                th:data-dept-id="${d.departmentId}"
-                                th:data-cycle-id="${d.cycle?.cycleId}"
+                                th:data-dept-id="${d.departmentId}" th:data-cycle-id="${d.cycle?.cycleId}"
                                 th:text="${d.name}">Dept</button>
                         </div>
                     </div>
@@ -633,8 +608,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div th:each="dept : ${allDepartments}"
                                 class="dept-card bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
-                                th:data-name="${dept.name}"
-                                th:data-cycle-id="${dept.cycle?.cycleId}">
+                                th:data-name="${dept.name}" th:data-cycle-id="${dept.cycle?.cycleId}">
                                 <div class="flex items-start justify-between mb-4">
                                     <div class="flex items-center gap-4">
                                         <div
@@ -719,8 +693,7 @@
                             <th:block th:each="dept : ${allDepartments}">
                                 <div th:each="room : ${dept.classrooms}"
                                     class="class-card bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
-                                    th:data-name="${room.name}"
-                                    th:data-dept-id="${dept.departmentId}"
+                                    th:data-name="${room.name}" th:data-dept-id="${dept.departmentId}"
                                     th:data-cycle-id="${dept.cycle?.cycleId}">
                                     <div class="flex items-start justify-between mb-4">
                                         <div class="flex items-center gap-3">
@@ -810,50 +783,86 @@
                     </div>
                 </section>
 
-                <section id="section-academic-year" class="content-section hidden">
+                <section id="section-academic-year" class="content-section hidden px-4">
                     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Academic Year Management</h2>
-                            <p class="text-gray-600">Launch and track academic sessions for the institution.</p>
+                        <div class="space-y-1">
+                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Academic Year Scheduling</h2>
+                            <p class="text-slate-500 text-sm font-medium">Manage hierarchical start/end dates for
+                                cycles, departments, and classes.</p>
                         </div>
-                        <button onclick="openAcademicYearModal()"
-                            class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-medium shadow-sm">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="openAddScheduleModal()"
+                            class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] hover:bg-[#0091D5] text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 group">
+                            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4"></path>
+                                    d="M12 4v16m8-8H4" />
                             </svg>
-                            <span>Launch New Year</span>
+                            Add New Schedule
                         </button>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                    <!-- Scheduling Grid -->
+                    <div
+                        class="group bg-white border border-slate-200 shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden transition-all duration-500">
+                        <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-blue-100 text-[#00B0FF] rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800 tracking-tight">Active Schedules</h3>
+                                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                                        Hierarchical Date Overrides</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="loadScheduleGrid()"
+                                    class="p-2 text-slate-400 hover:text-[#00B0FF] hover:bg-blue-50 rounded-xl transition-all"
+                                    title="Refresh">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left">
-                                <thead class="bg-gray-50 border-b border-gray-100">
+                                <thead class="bg-slate-50/50 border-b border-slate-100">
                                     <tr>
                                         <th
-                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">
                                             Academic Year</th>
                                         <th
-                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                                            Dates</th>
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">
+                                            Scope / Target</th>
                                         <th
-                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            Start Date</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            End Date</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
                                             Status</th>
                                         <th
-                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">
                                             Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody id="academicYearTableBody" class="divide-y divide-gray-100">
-                                    <!-- Populated by JS -->
-                                    <tr>
-                                        <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                                            <div class="flex flex-col items-center gap-2">
+                                <tbody id="scheduleGridBody" class="divide-y divide-slate-100">
+                                    <tr id="scheduleGridLoading">
+                                        <td colspan="6" class="px-4 py-16 text-center text-slate-500">
+                                            <div class="flex flex-col items-center gap-3">
                                                 <div
-                                                    class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin">
+                                                    class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin">
                                                 </div>
-                                                <span>Loading academic years...</span>
+                                                <span class="text-sm font-bold tracking-tight">Fetching
+                                                    schedules...</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -862,6 +871,187 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Add Schedule Modal -->
+                <div id="addScheduleModal"
+                    class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300"
+                        id="addScheduleModalContent">
+                        <div
+                            class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-black text-white tracking-tight">Add Scoped Schedule</h3>
+                                    <p class="text-white/70 text-[10px] font-bold uppercase tracking-wider">Configure
+                                        Academic Period</p>
+                                </div>
+                            </div>
+                            <button onclick="closeAddScheduleModal()"
+                                class="text-white/80 hover:text-white transition-all bg-white/10 p-2 rounded-xl hover:bg-white/20">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-6 space-y-5">
+                            <div class="grid grid-cols-1 gap-5">
+                                <!-- Academic Year Input -->
+                                <div class="space-y-1.5">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic
+                                        Year</label>
+                                    <div class="relative group">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00B0FF] transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <input type="text" id="schedAcademicYearName" placeholder="e.g., 2025-2026"
+                                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] focus:bg-white transition-all outline-none">
+                                    </div>
+                                </div>
+
+                                <!-- Scope Type -->
+                                <div class="space-y-1.5">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Scope
+                                        Level</label>
+                                    <select id="schedScopeType" onchange="handleSchedScopeChange()"
+                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] focus:bg-white transition-all outline-none appearance-none">
+                                        <option value="default">Global (Institution-wide)</option>
+                                        <option value="cycle_direct">Specific Cycle(s)</option>
+                                        <option value="cycle">Relational: Departments by Cycle</option>
+                                        <option value="department">Relational: Classrooms by Department</option>
+                                    </select>
+                                </div>
+
+                                <!-- Relational Selection Flow -->
+
+                                <!-- Step for Direct Cycle Scope -->
+                                <div id="schedCycleDirectStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-3">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                        Cycle(s)</label>
+                                    <div id="schedCycleCheckboxes" class="grid grid-cols-2 gap-3">
+                                        <th:block th:each="cycle : ${cycles}">
+                                            <div
+                                                class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                                                <input type="checkbox" name="schedDirectCycleIds"
+                                                    th:value="${cycle.cycleId}" th:id="'scd_' + ${cycle.cycleId}"
+                                                    class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                                                <label th:for="'scd_' + ${cycle.cycleId}"
+                                                    class="text-xs font-bold text-slate-700 cursor-pointer truncate"
+                                                    th:text="${cycle.name}"></label>
+                                            </div>
+                                        </th:block>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Cycle Scope: Select Cycle -->
+                                <div id="schedCycleStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Cycle</label>
+                                        <select id="schedCycleSelector" onchange="handleCycleSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Cycle --</option>
+                                            <th:block th:each="cycle : ${cycles}">
+                                                <option th:value="${cycle.cycleId}" th:text="${cycle.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedDeptListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Departments</label>
+                                        <div id="schedDeptCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Department Scope: Select Dept -->
+                                <div id="schedDeptStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Department</label>
+                                        <select id="schedDeptSelector" onchange="handleDeptSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Department --</option>
+                                            <th:block th:each="dept : ${allDepartments}">
+                                                <option th:value="${dept.departmentId}" th:text="${dept.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedClassListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Classrooms</label>
+                                        <div id="schedClassCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Date Range -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Start
+                                            Date</label>
+                                        <input type="date" id="schedStartDate"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">End
+                                            Date</label>
+                                        <input type="date" id="schedEndDate"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p id="schedErrorMsg"
+                                class="text-rose-500 text-xs font-bold hidden flex items-center gap-2 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span id="schedErrorText">Details required</span>
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-100 bg-slate-50/50">
+                            <button onclick="closeAddScheduleModal()"
+                                class="px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-2xl transition-all">Discard</button>
+                            <button onclick="saveSchedule()"
+                                class="px-8 py-3 bg-[#00B0FF] hover:bg-[#0091D5] text-white text-sm font-black rounded-2xl shadow-lg shadow-blue-500/25 transition-all active:scale-95">
+                                Confirm & Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
 
                 <section id="section-access" class="content-section hidden">
                     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -976,15 +1166,6 @@
                     </div>
                 </section>
 
-                <section id="section-security" class="content-section hidden">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">Security & Statistics</h2>
-                        <p class="text-gray-600">Monitor security alerts and system statistics.</p>
-                    </div>
-                    <div class="bg-white rounded-2xl p-8 shadow-sm">
-                        <p class="text-gray-600">Security and statistics interface will be displayed here.</p>
-                    </div>
-                </section>
 
                 <section id="section-audit" class="content-section hidden">
                     <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1087,16 +1268,6 @@
                                 </button>
                             </div>
                         </div>
-                    </div>
-                </section>
-
-                <section id="section-settings" class="content-section hidden">
-                    <div class="mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-2">System Settings</h2>
-                        <p class="text-gray-600">Configure system settings and preferences.</p>
-                    </div>
-                    <div class="bg-white rounded-2xl p-8 shadow-sm">
-                        <p class="text-gray-600">System settings interface will be displayed here.</p>
                     </div>
                 </section>
             </div>

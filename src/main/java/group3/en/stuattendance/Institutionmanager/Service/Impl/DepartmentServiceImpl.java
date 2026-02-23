@@ -69,6 +69,11 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    public List<Department> findByCycleId(Integer cycleId) {
+        return departmentRepository.findByCycle_CycleId(cycleId);
+    }
+
+    @Override
     public void deleteById(Integer id) {
         departmentRepository.deleteById(id);
     }

@@ -1,9 +1,18 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
+import group3.en.stuattendance.Institutionmanager.DTO.AcademicYearDto;
+import group3.en.stuattendance.Institutionmanager.DTO.AcademicYearScheduleDto;
 import group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto;
+import group3.en.stuattendance.Institutionmanager.Service.ClassroomService;
+import group3.en.stuattendance.Institutionmanager.Service.AcademicYearScheduleService;
+import group3.en.stuattendance.Institutionmanager.Service.AcademicYearService;
 import group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto;
+import group3.en.stuattendance.Institutionmanager.Service.*;
 import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto;
+import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
+import group3.en.stuattendance.Usermanager.Service.PermissionService;
+import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,18 +20,24 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
 @RequiredArgsConstructor
 public class AdminViewController {
 
-    private final group3.en.stuattendance.Usermanager.Repository.RoleRepository roleRepository;
-    private final group3.en.stuattendance.Usermanager.Service.UserService userService;
-    private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
-    private final group3.en.stuattendance.Institutionmanager.Service.InstitutionService institutionService;
-    private final group3.en.stuattendance.Institutionmanager.Service.CycleService cycleService;
-    private final group3.en.stuattendance.Institutionmanager.Service.DepartmentService departmentService;
+    private final RoleRepository roleRepository;
+    private final UserService userService;
+    private final PermissionService permissionService;
+    private final InstitutionService institutionService;
+    private final CycleService cycleService;
+    private final DepartmentService departmentService;
+    private final ClassroomService classroomService;
+    private final AcademicYearService academicYearService;
+    private final AcademicYearScheduleService academicYearScheduleService;
 
     @GetMapping("")
     public String adminRoot() {
@@ -35,7 +50,7 @@ public class AdminViewController {
         model.addAttribute("institutions", institutionService.getAllInstitutions());
         model.addAttribute("cycles", cycleService.getAllCycles());
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
-        model.addAttribute("classrooms", new ArrayList<>());
+        model.addAttribute("classrooms", classroomService.getAllClassrooms());
         model.addAttribute("courses", new ArrayList<>());
         model.addAttribute("roles", roleRepository.findAll());
         model.addAttribute("allPermissions", permissionService.getAllPermissions());
@@ -93,6 +108,17 @@ public class AdminViewController {
         model.addAttribute("staffDto", new group3.en.stuattendance.Usermanager.DTO.StaffCreateDto());
         model.addAttribute("classroomDto", new ClassroomDto());
         model.addAttribute("courseDto", new CourseDto());
+
+        // Academic Years + their scoped schedules
+        List<AcademicYearDto> academicYears = academicYearService.getAllAcademicYears();
+        model.addAttribute("academicYears", academicYears);
+
+        // Build a map: yearId -> list of schedules
+        Map<Long, List<AcademicYearScheduleDto>> schedulesByYear = new LinkedHashMap<>();
+        for (AcademicYearDto year : academicYears) {
+            schedulesByYear.put(year.getId(), academicYearScheduleService.getSchedulesByAcademicYear(year.getId()));
+        }
+        model.addAttribute("schedulesByYear", schedulesByYear);
         
         return "dashboards/admin";
     }

@@ -8,5 +8,6 @@ public interface ClassroomService {
     Classroom findById(Integer id);
     List<Classroom> getAllClassrooms();
 
+    List<Classroom> findByDepartmentId(Integer deptId);
     void deleteById(Integer id);
 }

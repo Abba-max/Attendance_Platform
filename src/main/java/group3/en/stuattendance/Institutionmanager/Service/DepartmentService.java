@@ -8,5 +8,6 @@ public interface DepartmentService {
     Department findById(Integer id);
     List<Department> getAllDepartments();
     void assignStaffToDepartment(Integer departmentId, Integer pedagogicAssistantId, java.util.Set<Integer> supervisorIds);
+    List<Department> findByCycleId(Integer cycleId);
     void deleteById(Integer id);
 }

@@ -2296,3 +2296,368 @@ window.startImport = startImport;
 window.downloadCsvTemplate = downloadCsvTemplate;
 
 console.log('Bulk Importer module loaded');
+
+// ─────────────────────────────────────────────
+//  SCHEDULING GRID — Hierarchical Scoped Dates
+// ─────────────────────────────────────────────
+
+const SCHED_API = '/api/admin/academic-years';
+let _allAcademicYears = []; // cache used by the modal select
+
+/**
+ * Load all schedules across all academic years and render them in the grid.
+ */
+async function loadScheduleGrid() {
+    const body = document.getElementById('scheduleGridBody');
+    if (!body) return;
+
+    body.innerHTML = `
+        <tr id="scheduleGridLoading">
+            <td colspan="6" class="px-4 py-10 text-center text-slate-500">
+                <div class="flex flex-col items-center gap-2">
+                    <div class="w-7 h-7 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading schedules...</span>
+                </div>
+            </td>
+        </tr>`;
+
+    try {
+        // Fetch the full academic years list (already loaded by loadAcademicYears but we need IDs)
+        const yearsResp = await fetch(SCHED_API);
+        if (!yearsResp.ok) throw new Error('Failed to fetch academic years');
+        const years = await yearsResp.json();
+        _allAcademicYears = years || [];
+
+        // Fetch schedules for each academic year in parallel
+        const schedPromises = years.map(y =>
+            fetch(`${SCHED_API}/${y.id}/schedules`).then(r => r.ok ? r.json() : [])
+        );
+        const schedArrays = await Promise.all(schedPromises);
+        const allSchedules = schedArrays.flat();
+
+        renderScheduleGrid(allSchedules);
+    } catch (err) {
+        console.error('Error loading schedule grid:', err);
+        body.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-10 text-center text-red-500">
+                    Failed to load schedules. <button onclick="loadScheduleGrid()" class="underline font-semibold">Retry</button>
+                </td>
+            </tr>`;
+    }
+}
+
+/**
+ * Render schedule rows into the grid table.
+ */
+function renderScheduleGrid(schedules) {
+    const body = document.getElementById('scheduleGridBody');
+    if (!body) return;
+
+    if (!schedules || schedules.length === 0) {
+        body.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-10 text-center text-slate-400">
+                    <div class="flex flex-col items-center gap-2">
+                        <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="font-medium">No scoped schedules yet</span>
+                        <span class="text-sm">Click "Add Schedule" to create one</span>
+                    </div>
+                </td>
+            </tr>`;
+        return;
+    }
+
+    const statusColors = {
+        ACTIVE: 'bg-emerald-100 text-emerald-700',
+        SUSPENDED: 'bg-amber-100 text-amber-700',
+        CLOSED: 'bg-slate-100 text-slate-500',
+    };
+
+    body.innerHTML = schedules.map(s => {
+        const badge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold ${statusColors[s.status] || 'bg-slate-100 text-slate-500'}">${s.status}</span>`;
+        const actions = buildScheduleActions(s);
+        return `
+            <tr class="hover:bg-slate-50/70 transition-colors" data-schedule-id="${s.id}">
+                <td class="px-4 py-3 text-sm font-medium text-slate-800">${escapeHtml(s.academicYearName || '')}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${escapeHtml(s.scopeLabel || 'Default')}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${s.startDate || '—'}</td>
+                <td class="px-4 py-3 text-sm text-slate-600">${s.endDate || '—'}</td>
+                <td class="px-4 py-3 text-center">${badge}</td>
+                <td class="px-4 py-3 text-right">${actions}</td>
+            </tr>`;
+    }).join('');
+}
+
+/**
+ * Build the action buttons for a schedule row.
+ */
+function buildScheduleActions(s) {
+    const id = s.id;
+    const status = s.status;
+    let btns = [];
+
+    if (status !== 'ACTIVE') {
+        btns.push(`<button onclick="scheduleAction(${id},'activate')" class="px-2.5 py-1 text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition-all" title="Activate">Activate</button>`);
+    }
+    if (status === 'ACTIVE') {
+        btns.push(`<button onclick="scheduleAction(${id},'suspend')" class="px-2.5 py-1 text-xs font-semibold bg-amber-400 hover:bg-amber-500 text-white rounded-lg transition-all" title="Suspend">Suspend</button>`);
+        btns.push(`<button onclick="scheduleAction(${id},'close')" class="px-2.5 py-1 text-xs font-semibold bg-slate-400 hover:bg-slate-500 text-white rounded-lg transition-all" title="Close">Close</button>`);
+    }
+    if (status !== 'ACTIVE') {
+        btns.push(`<button onclick="scheduleAction(${id},'delete')" class="p-1.5 text-slate-400 hover:text-red-500 transition-colors" title="Delete">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>`);
+    }
+    return `<div class="flex items-center justify-end gap-1">${btns.join('')}</div>`;
+}
+
+/**
+ * Execute a lifecycle action or delete on a schedule.
+ */
+async function scheduleAction(id, action) {
+    if (action === 'delete' && !confirm('Delete this schedule? This cannot be undone.')) return;
+
+    try {
+        let url, method;
+        if (action === 'delete') {
+            url = `${SCHED_API}/schedules/${id}`;
+            method = 'DELETE';
+        } else {
+            url = `${SCHED_API}/schedules/${id}/${action}`;
+            method = 'PUT';
+        }
+
+        const resp = await fetch(url, { method });
+        if (!resp.ok) {
+            const err = await resp.text();
+            throw new Error(err || `Failed to ${action} schedule`);
+        }
+        showNotification(`Schedule ${action}d successfully`, 'success');
+        loadScheduleGrid();
+    } catch (err) {
+        console.error(`Error ${action}ing schedule:`, err);
+        showNotification(err.message || `Error: ${action} failed`, 'error');
+    }
+}
+
+/**
+ * Open the "Add Schedule" modal.
+ */
+function openAddScheduleModal() {
+    const modal = document.getElementById('addScheduleModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.getElementById('schedErrorMsg').classList.add('hidden');
+        document.getElementById('schedAcademicYearName').value = '';
+        document.getElementById('schedScopeType').value = 'default';
+        document.getElementById('schedStartDate').value = '';
+        document.getElementById('schedEndDate').value = '';
+
+        // Reset checkboxes
+        document.querySelectorAll('input[name="schedDirectCycleIds"]').forEach(el => el.checked = false);
+
+        handleSchedScopeChange(); // Reset steps
+    }
+}
+
+/**
+ * Close the "Add Schedule" modal.
+ */
+function closeAddScheduleModal() {
+    const modal = document.getElementById('addScheduleModal');
+    if (modal) modal.style.display = 'none';
+}
+
+/**
+ * Toggle relational steps based on scope type.
+ */
+function handleSchedScopeChange() {
+    const scope = document.getElementById('schedScopeType').value;
+    document.getElementById('schedCycleDirectStep').classList.toggle('hidden', scope !== 'cycle_direct');
+    document.getElementById('schedCycleStep').classList.toggle('hidden', scope !== 'cycle');
+    document.getElementById('schedDeptStep').classList.toggle('hidden', scope !== 'department');
+
+    // Reset selections when scope changes
+    if (scope !== 'cycle') {
+        document.getElementById('schedCycleSelector').value = '';
+        document.getElementById('schedDeptListWrapper').classList.add('hidden');
+        document.getElementById('schedDeptCheckboxes').innerHTML = '';
+    }
+    if (scope !== 'department') {
+        document.getElementById('schedDeptSelector').value = '';
+        document.getElementById('schedClassListWrapper').classList.add('hidden');
+        document.getElementById('schedClassCheckboxes').innerHTML = '';
+    }
+}
+
+/**
+ * Fetch and show departments for the selected cycle.
+ */
+async function handleCycleSelectionChange() {
+    const cycleId = document.getElementById('schedCycleSelector').value;
+    const wrapper = document.getElementById('schedDeptListWrapper');
+    const container = document.getElementById('schedDeptCheckboxes');
+
+    if (!cycleId) {
+        wrapper.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/admin/departments/by-cycle/${cycleId}`);
+        if (!resp.ok) throw new Error("Failed to fetch departments");
+        const depts = await resp.json();
+
+        container.innerHTML = depts.map(d => `
+            <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                <input type="checkbox" name="schedDeptIds" value="${d.departmentId}" id="sd_${d.departmentId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                <label for="sd_${d.departmentId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${d.name}</label>
+            </div>
+        `).join('');
+
+        wrapper.classList.remove('hidden');
+    } catch (err) {
+        console.error(err);
+        showNotification("Error loading departments", "error");
+    }
+}
+
+/**
+ * Fetch and show classrooms for the selected department.
+ */
+async function handleDeptSelectionChange() {
+    const deptId = document.getElementById('schedDeptSelector').value;
+    const wrapper = document.getElementById('schedClassListWrapper');
+    const container = document.getElementById('schedClassCheckboxes');
+
+    if (!deptId) {
+        wrapper.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`/admin/classrooms/by-department/${deptId}`);
+        if (!resp.ok) throw new Error("Failed to fetch classrooms");
+        const classes = await resp.json();
+
+        container.innerHTML = classes.map(c => `
+            <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                <input type="checkbox" name="schedClassIds" value="${c.classId}" id="sc_${c.classId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                <label for="sc_${c.classId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${c.name}</label>
+            </div>
+        `).join('');
+
+        wrapper.classList.remove('hidden');
+    } catch (err) {
+        console.error(err);
+        showNotification("Error loading classrooms", "error");
+    }
+}
+
+/**
+ * Submit the Add Schedule form with support for relational batching.
+ */
+async function saveSchedule() {
+    const yearName = document.getElementById('schedAcademicYearName')?.value.trim();
+    const scope = document.getElementById('schedScopeType')?.value;
+    const startDate = document.getElementById('schedStartDate')?.value;
+    const endDate = document.getElementById('schedEndDate')?.value;
+    const errEl = document.getElementById('schedErrorMsg');
+    const errTxt = document.getElementById('schedErrorText');
+
+    if (!yearName || !startDate || !endDate) {
+        errTxt.textContent = 'Academic Year and dates are required.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+    if (startDate >= endDate) {
+        errTxt.textContent = 'Start date must be before end date.';
+        errEl.classList.remove('hidden');
+        return;
+    }
+
+    const basePayload = {
+        academicYearName: yearName,
+        startDate,
+        endDate,
+    };
+
+    let payloads = [];
+    if (scope === 'cycle_direct') {
+        const checkedCycles = Array.from(document.querySelectorAll('input[name="schedDirectCycleIds"]:checked')).map(el => parseInt(el.value));
+        if (checkedCycles.length === 0) {
+            errTxt.textContent = 'Please select at least one cycle.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        checkedCycles.forEach(id => payloads.push({ ...basePayload, cycleId: id }));
+    } else if (scope === 'cycle') {
+        const checkedDepts = Array.from(document.querySelectorAll('input[name="schedDeptIds"]:checked')).map(el => parseInt(el.value));
+        if (checkedDepts.length === 0) {
+            errTxt.textContent = 'Please select at least one department.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        checkedDepts.forEach(id => payloads.push({ ...basePayload, departmentId: id }));
+    } else if (scope === 'department') {
+        const checkedClasses = Array.from(document.querySelectorAll('input[name="schedClassIds"]:checked')).map(el => parseInt(el.value));
+        if (checkedClasses.length === 0) {
+            errTxt.textContent = 'Please select at least one classroom.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        checkedClasses.forEach(id => payloads.push({ ...basePayload, classroomId: id }));
+    } else {
+        payloads.push(basePayload); // Default Global
+    }
+
+    try {
+        errEl.classList.add('hidden');
+        const savePromises = payloads.map(p =>
+            fetch(`${SCHED_API}/batch`, { // Using /batch if handled or loop POST
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(p),
+            }).then(async r => {
+                if (!r.ok) {
+                    const txt = await r.text();
+                    throw new Error(txt || 'Failed to create schedule');
+                }
+                return r.json();
+            })
+        );
+
+        await Promise.all(savePromises);
+
+        showNotification(`${payloads.length} schedule(s) configured successfully`, 'success');
+        closeAddScheduleModal();
+        loadScheduleGrid();
+    } catch (err) {
+        console.error('Error saving schedule:', err);
+        errTxt.textContent = err.message || 'Failed to create schedule';
+        errEl.classList.remove('hidden');
+    }
+}
+
+// Hook into navigation: auto-load schedules when academic-year section becomes active
+document.addEventListener('DOMContentLoaded', function () {
+    const ayNavItem = document.querySelector('[data-section="academic-year"]');
+    if (ayNavItem) {
+        ayNavItem.addEventListener('click', function () {
+            setTimeout(loadScheduleGrid, 200); // slight delay to ensure section is visible
+        });
+    }
+});
+
+// Global exports for inline HTML handlers
+window.openAddScheduleModal = openAddScheduleModal;
+window.closeAddScheduleModal = closeAddScheduleModal;
+window.handleSchedScopeChange = handleSchedScopeChange;
+window.saveSchedule = saveSchedule;
+window.scheduleAction = scheduleAction;
+window.loadScheduleGrid = loadScheduleGrid;
+
+console.log('Scheduling Grid module loaded');

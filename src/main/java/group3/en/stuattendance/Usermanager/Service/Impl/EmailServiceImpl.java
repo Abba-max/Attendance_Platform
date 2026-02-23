@@ -30,6 +30,9 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
+
     @Override
     @Async
     public void sendAccountCredentialsEmail(String to, String username, String password) {
@@ -48,6 +51,7 @@ public class EmailServiceImpl implements EmailService {
             Context context = new Context();
             context.setVariable("username", username);
             context.setVariable("password", password);
+            context.setVariable("loginUrl", baseUrl + "/login");
 
             // Process the template
             String html = templateEngine.process("mail/account-credentials", context);
@@ -72,7 +76,7 @@ public class EmailServiceImpl implements EmailService {
             message.addHeader("Auto-Submitted", "auto-generated");
 
             // Add Logo as inline resource
-            helper.addInline("logo", new ClassPathResource("static/image/logo.jpeg"));
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
 
             // Send the email
             mailSender.send(message);
@@ -80,7 +84,7 @@ public class EmailServiceImpl implements EmailService {
             
         } catch (MessagingException e) {
             log.error("Failed to send account credentials email to: {}", to, e);
-            // We don't rethrow because it's @Async and we don't want to crash background threads
+           
         } catch (Exception e) {
             log.error("Unexpected error while sending email to: {}", to, e);
         }
