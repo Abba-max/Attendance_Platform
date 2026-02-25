@@ -29,8 +29,8 @@ public interface AcademicYearScheduleService {
     AcademicYearScheduleDto resolveActiveScheduleForDepartment(Integer departmentId);
 
     /**
-     * Resolve the active schedule for a specific Classroom.
-     * Priority: Classroom schedule > Department schedule > Cycle schedule > Default schedule.
+     * Resolve the active schedule for a specific Speciality.
+     * Priority: Speciality schedule > Department schedule > Cycle schedule > Default schedule.
      */
-    AcademicYearScheduleDto resolveActiveScheduleForClassroom(Integer classroomId);
+    AcademicYearScheduleDto resolveActiveScheduleForSpeciality(Integer specialityId);
 }

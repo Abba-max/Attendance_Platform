@@ -36,8 +36,8 @@ public class AcademicYearSchedule {
     private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "class_id")
-    private Classroom classroom;
+    @JoinColumn(name = "speciality_id")
+    private Speciality speciality;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

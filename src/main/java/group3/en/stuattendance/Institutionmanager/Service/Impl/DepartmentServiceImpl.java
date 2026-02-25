@@ -40,16 +40,20 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public void assignStaffToDepartment(Integer departmentId, Integer pedagogicAssistantId, Set<Integer> supervisorIds) {
+    public void assignStaffToDepartment(Integer departmentId, Set<Integer> pedagogicAssistantIds, Set<Integer> supervisorIds) {
         Department department = findById(departmentId);
 
-        // Assign PA
-        if (pedagogicAssistantId != null) {
-            User pa = userRepository.findById(pedagogicAssistantId)
-                    .orElseThrow(() -> new RuntimeException("Pedagogic Assistant not found with id: " + pedagogicAssistantId));
-            department.setPedagogicAssistant(pa);
+        // Assign PAs
+        if (pedagogicAssistantIds != null) {
+            Set<User> assistants = new HashSet<>();
+            for (Integer paId : pedagogicAssistantIds) {
+                User pa = userRepository.findById(paId)
+                        .orElseThrow(() -> new RuntimeException("Pedagogic Assistant not found with id: " + paId));
+                assistants.add(pa);
+            }
+            department.setPedagogicAssistants(assistants);
         } else {
-            department.setPedagogicAssistant(null);
+            department.getPedagogicAssistants().clear();
         }
 
         // Assign Supervisors

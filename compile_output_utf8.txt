@@ -1,0 +1,78 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< group3.en:stuattendance >-----------------------
+[INFO] Building stuattendance 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ stuattendance ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 16 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ stuattendance ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 127 source files with javac [debug release 17] to target\classes
+[INFO] Annotation processing is enabled because one or more processors were found
+  on the class path. A future release of javac may disable annotation processing
+  unless at least one processor is specified by name (-processor), or a search
+  path is specified (--processor-path, --processor-module-path), or annotation
+  processing is enabled explicitly (-proc:only, -proc:full).
+  Use -Xlint:-options to suppress this message.
+  Use -proc:none to disable annotation processing.
+[INFO] -------------------------------------------------------------
+[WARNING] COMPILATION WARNING : 
+[INFO] -------------------------------------------------------------
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Model/Institution.java:[37,23] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Model/Institution.java:[41,29] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Notificationmanager/Model/Notification.java:[40,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Justificationmanager/Model/Justification.java:[49,33] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Timetablemanager/Model/Session.java:[67,35] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Timetablemanager/Model/Course.java:[39,26] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Timetablemanager/Model/Course.java:[43,35] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Usermanager/DTO/BulkImportResultDto.java:[19,28] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Attendancemanager/Model/AttendanceRecord.java:[54,32] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[INFO] 9 warnings 
+[INFO] -------------------------------------------------------------
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/ServiceImpl/AcademicYearScheduleServiceImpl.java:[178,34] cannot find symbol
+  symbol:   method getDepartment()
+  location: variable classroom of type group3.en.stuattendance.Institutionmanager.Model.Classroom
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/ServiceImpl/AcademicYearScheduleServiceImpl.java:[179,63] cannot find symbol
+  symbol:   method getDepartment()
+  location: variable classroom of type group3.en.stuattendance.Institutionmanager.Model.Classroom
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Mapper/DepartmentMapper.java:[21,36] cannot find symbol
+  symbol:   method getAddress()
+  location: variable department of type group3.en.stuattendance.Institutionmanager.Model.Department
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Mapper/DepartmentMapper.java:[22,40] cannot find symbol
+  symbol:   method getContactInfo()
+  location: variable department of type group3.en.stuattendance.Institutionmanager.Model.Department
+[INFO] 4 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  39.830 s
+[INFO] Finished at: 2026-02-24T21:22:08+01:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project stuattendance: Compilation failure: Compilation failure: 
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/ServiceImpl/AcademicYearScheduleServiceImpl.java:[178,34] cannot find symbol
+[ERROR]   symbol:   method getDepartment()
+[ERROR]   location: variable classroom of type group3.en.stuattendance.Institutionmanager.Model.Classroom
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/ServiceImpl/AcademicYearScheduleServiceImpl.java:[179,63] cannot find symbol
+[ERROR]   symbol:   method getDepartment()
+[ERROR]   location: variable classroom of type group3.en.stuattendance.Institutionmanager.Model.Classroom
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Mapper/DepartmentMapper.java:[21,36] cannot find symbol
+[ERROR]   symbol:   method getAddress()
+[ERROR]   location: variable department of type group3.en.stuattendance.Institutionmanager.Model.Department
+[ERROR] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Mapper/DepartmentMapper.java:[22,40] cannot find symbol
+[ERROR]   symbol:   method getContactInfo()
+[ERROR]   location: variable department of type group3.en.stuattendance.Institutionmanager.Model.Department
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

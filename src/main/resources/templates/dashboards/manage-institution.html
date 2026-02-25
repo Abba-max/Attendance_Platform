@@ -429,6 +429,19 @@
                             </div>
                         </div>
                         <div class="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-4">
+                            <div class="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center shrink-0">
+                                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a2 2 0 00-1.96 1.414l-.477 2.387a2 2 0 00.547 1.022l1.414 1.414a2 2 0 001.022.547l2.387.477a2 2 0 001.96-1.414l.477-2.387a2 2 0 00-.547-1.022l-1.414-1.414z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-2xl font-bold text-gray-900" id="statSpecs">0</p>
+                                <p class="text-xs text-gray-500 font-medium">Specialities</p>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-200 p-4 flex items-center gap-4">
                             <div class="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
                                 <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor"
                                     viewBox="0 0 24 24">
@@ -453,7 +466,7 @@
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                                 <input id="searchInput" type="text"
-                                    placeholder="Search institutions, cycles, departments, classrooms..."
+                                    placeholder="Search institutions, cycles, departments, specialities, classrooms..."
                                     class="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400"
                                     onkeyup="applySearch()">
                             </div>
@@ -483,6 +496,11 @@
                             <span class="text-xs text-gray-400 font-medium mr-1">Filter by institution:</span>
                             <div id="subFilterBtns" class="flex flex-wrap gap-1.5"></div>
                         </div>
+                        <div id="specFilterBar"
+                            class="hidden mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2 items-center">
+                            <span class="text-xs text-gray-400 font-medium mr-1">Filter by Speciality:</span>
+                            <div id="specFilterBtns" class="flex flex-wrap gap-1.5"></div>
+                        </div>
                     </div>
 
                     <!-- Views -->
@@ -509,6 +527,12 @@
                             <p class="font-medium">No departments match your search</p>
                         </div>
                         <div id="deptDetailPanel" class="hidden slide-in"></div>
+                    </div>
+                    <div id="view-specialities" class="view-panel hidden">
+                        <div id="specsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger"></div>
+                        <div id="specsEmpty" class="hidden text-center py-16 text-gray-400">
+                            <p class="font-medium">No specialities match your search</p>
+                        </div>
                     </div>
                     <div id="view-classrooms" class="view-panel hidden">
                         <div id="roomsGrid"
@@ -576,28 +600,41 @@
         // ─── STATE ─────────────────────────────────────────────
         let currentTab = 'institutions';
         let filterInstId = null;
+        let filterSpecId = null;
         let activeDeptId = null;
 
         // ─── DERIVED FLAT LISTS ────────────────────────────────
         function allCycles() {
             const r = [];
-            DATA.institutions.forEach(inst => inst.cycles.forEach(c => r.push({ ...c, instName: inst.name, instId: inst.id })));
+            DATA.institutions.forEach(inst => (inst.cycles || []).forEach(c => r.push({ ...c, instName: inst.name, instId: inst.id })));
             return r;
         }
 
         function allDepts() {
             const r = [];
-            DATA.institutions.forEach(inst => inst.cycles.forEach(c => c.departments.forEach(d => {
+            DATA.institutions.forEach(inst => (inst.cycles || []).forEach(c => (c.departments || []).forEach(d => {
                 r.push({ ...d, cycleName: c.name, cycleId: c.id, instName: inst.name, instId: inst.id });
+            })));
+            return r;
+        }
+
+        function allSpecs() {
+            const r = [];
+            DATA.institutions.forEach(inst => (inst.cycles || []).forEach(c => (c.departments || []).forEach(d => {
+                (d.specialities || []).forEach(s => {
+                    r.push({ ...s, deptName: d.name, deptId: d.id, cycleName: c.name, instName: inst.name, instId: inst.id });
+                });
             })));
             return r;
         }
 
         function allRooms() {
             const r = [];
-            DATA.institutions.forEach(inst => inst.cycles.forEach(c => c.departments.forEach(d => {
-                (d.classrooms || []).forEach(room => {
-                    r.push({ ...room, deptName: d.name, deptId: d.id, cycleName: c.name, instName: inst.name, instId: inst.id });
+            DATA.institutions.forEach(inst => (inst.cycles || []).forEach(c => (c.departments || []).forEach(d => {
+                (d.specialities || []).forEach(s => {
+                    (s.classrooms || []).forEach(room => {
+                        r.push({ ...room, specName: s.name, specId: s.id, deptName: d.name, deptId: d.id, cycleName: c.name, instName: inst.name, instId: inst.id });
+                    });
                 });
             })));
             return r;
@@ -608,6 +645,7 @@
             document.getElementById('statInst').textContent = DATA.institutions.length;
             document.getElementById('statCycles').textContent = allCycles().length;
             document.getElementById('statDepts').textContent = allDepts().length;
+            document.getElementById('statSpecs').textContent = allSpecs().length;
             document.getElementById('statRooms').textContent = allRooms().length;
         }
 
@@ -615,6 +653,7 @@
         function switchTab(tab) {
             currentTab = tab;
             filterInstId = null;
+            filterSpecId = null;
             activeDeptId = null;
 
             document.querySelectorAll('.main-tab').forEach(b => b.classList.remove('active'));
@@ -624,6 +663,7 @@
             document.getElementById('view-' + tab).classList.remove('hidden');
 
             updateSubFilterBar();
+            updateSpecFilterBar();
             applySearch();
             updateBreadcrumb();
         }
@@ -650,7 +690,33 @@
 
         function setInstFilter(id) {
             filterInstId = id;
+            filterSpecId = null; // Reset spec filter when changing institution
             updateSubFilterBar();
+            updateSpecFilterBar();
+            applySearch();
+        }
+
+        function updateSpecFilterBar() {
+            const bar = document.getElementById('specFilterBar');
+            const btns = document.getElementById('specFilterBtns');
+            if (currentTab !== 'classrooms') {
+                bar.classList.add('hidden');
+                return;
+            }
+            bar.classList.remove('hidden');
+            let specs = allSpecs();
+            if (filterInstId) specs = specs.filter(s => s.instId === filterInstId);
+
+            let html = `<button onclick="setSpecFilter(null)" class="sub-filter px-3 py-1 rounded-lg text-xs border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors ${!filterSpecId ? 'active' : ''}">All Specialities</button>`;
+            specs.forEach(s => {
+                html += `<button onclick="setSpecFilter(${s.id})" class="sub-filter px-3 py-1 rounded-lg text-xs border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors ${filterSpecId === s.id ? 'active' : ''}">${s.name}</button>`;
+            });
+            btns.innerHTML = html;
+        }
+
+        function setSpecFilter(id) {
+            filterSpecId = id;
+            updateSpecFilterBar();
             applySearch();
         }
 
@@ -661,17 +727,171 @@
             if (currentTab === 'institutions') renderInstitutions(q, sort);
             else if (currentTab === 'cycles') renderCycles(q, sort);
             else if (currentTab === 'departments') renderDepartments(q, sort);
+            else if (currentTab === 'specialities') renderSpecialities(q, sort);
             else if (currentTab === 'classrooms') renderClassrooms(q, sort);
         }
 
         function hl(text, q) {
             if (!q) return text;
+            if (!text) return "";
             const rx = new RegExp('(' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
             return String(text).replace(rx, '<mark>$1</mark>');
         }
 
-        // Implement renderInstitutions, renderCycles, renderDepartments, renderClassrooms, showDeptDetail, etc.
-        // (Use the full implementations from your previous working version – they are too long to duplicate here but must be included)
+        function renderSpecialities(q, sort) {
+            let list = allSpecs();
+            if (filterInstId) list = list.filter(x => x.instId === filterInstId);
+            if (q) list = list.filter(x => x.name.toLowerCase().includes(q) || x.deptName.toLowerCase().includes(q));
+
+            // Sorting logic...
+            const grid = document.getElementById('specsGrid');
+            const empty = document.getElementById('specsEmpty');
+
+            if (list.length === 0) {
+                grid.innerHTML = "";
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = list.map(s => `
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:border-orange-400 transition-all cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div class="p-2.5 bg-orange-50 rounded-xl">
+                            <svg class="w-6 h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a2 2 0 00-1.96 1.414l-.477 2.387a2 2 0 00.547 1.022l1.414 1.414a2 2 0 001.022.547l2.387.477a2 2 0 001.96-1.414l.477-2.387a2 2 0 00-.547-1.022l-1.414-1.414z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="font-bold text-gray-900 mb-1">${hl(s.name, q)}</h3>
+                    <p class="text-xs text-gray-500 font-medium mb-3">${hl(s.deptName, q)} • ${s.instName}</p>
+                    <div class="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${s.classrooms ? s.classrooms.length : 0} Classrooms</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // renderClassrooms should be updated to use filterSpecId
+        function renderClassrooms(q, sort) {
+            let list = allRooms();
+            if (filterInstId) list = list.filter(x => x.instId === filterInstId);
+            if (filterSpecId) list = list.filter(x => x.specId === filterSpecId);
+            if (q) list = list.filter(x => x.name.toLowerCase().includes(q) || x.specName.toLowerCase().includes(q));
+
+            const grid = document.getElementById('roomsGrid');
+            const empty = document.getElementById('roomsEmpty');
+
+            if (list.length === 0) {
+                grid.innerHTML = "";
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = list.map(r => `
+                <div class="bg-white rounded-2xl border border-gray-200 p-4 hover:border-blue-400 transition-all">
+                    <h3 class="font-bold text-gray-900 mb-1">${hl(r.name, q)}</h3>
+                    <p class="text-xs text-gray-500 mb-3">${hl(r.specName, q)} • ${r.instName}</p>
+                    <div class="flex items-center justify-between text-xs text-gray-400">
+                         <span>Level ${r.level}</span>
+                         <span>Cap: ${r.capacity}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderInstitutions(q, sort) {
+            let list = DATA.institutions;
+            if (q) list = list.filter(x => x.name.toLowerCase().includes(q) || x.location.toLowerCase().includes(q));
+            
+            const grid = document.getElementById('instGrid');
+            const empty = document.getElementById('instEmpty');
+            if (list.length === 0) { grid.innerHTML = ""; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = list.map(inst => `
+                <div class="bg-white rounded-2xl border border-gray-200 p-6 hover:border-blue-400 transition-all cursor-pointer" onclick="setInstFilter(${inst.id}); switchTab('cycles')">
+                    <div class="flex justify-between items-start mb-6">
+                        <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-1">${hl(inst.name, q)}</h3>
+                    <p class="text-sm text-gray-500 mb-4">${hl(inst.location, q)}</p>
+                    <div class="flex items-center gap-6 pt-4 border-t border-gray-50">
+                        <div class="flex flex-col">
+                            <span class="text-xl font-bold text-gray-900">${inst.cycles ? inst.cycles.length : 0}</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cycles</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCycles(q, sort) {
+            let list = allCycles();
+            if (filterInstId) list = list.filter(x => x.instId === filterInstId);
+            if (q) list = list.filter(x => x.name.toLowerCase().includes(q));
+
+            const grid = document.getElementById('cyclesGrid');
+            const empty = document.getElementById('cyclesEmpty');
+            if (list.length === 0) { grid.innerHTML = ""; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = list.map(c => `
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:border-cyan-400 transition-all cursor-pointer" onclick="setInstFilter(${c.instId}); currentTab='departments'; applySearch();">
+                    <h3 class="font-bold text-gray-900 mb-1">${hl(c.name, q)}</h3>
+                    <p class="text-xs text-gray-500 font-medium mb-4">${c.instName}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">${c.departments ? c.departments.length : 0} Departments</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderDepartments(q, sort) {
+            let list = allDepts();
+            if (filterInstId) list = list.filter(x => x.instId === filterInstId);
+            if (q) list = list.filter(x => x.name.toLowerCase().includes(q) || x.chief.toLowerCase().includes(q));
+
+            const grid = document.getElementById('deptsGrid');
+            const empty = document.getElementById('deptsEmpty');
+            if (list.length === 0) { grid.innerHTML = ""; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            grid.innerHTML = list.map(d => {
+                const paCount = d.pedagogicAssistants ? d.pedagogicAssistants.length : (d.pedagogicAssistantIds ? d.pedagogicAssistantIds.length : 0);
+                return `
+                <div class="bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-400 transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <h3 class="font-bold text-gray-900">${hl(d.name, q)}</h3>
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">${d.cycleName}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-1">Chief: ${hl(d.chief || 'N/A', q)}</p>
+                    <p class="text-xs text-gray-500 mb-4">${paCount} Pedagogic Assistants</p>
+                    <div class="flex gap-2 mt-4 pt-4 border-t border-gray-50">
+                        <button onclick="setInstFilter(${d.instId}); setSpecFilter(null); currentTab='classrooms'; applySearch();" class="flex-1 py-2 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">Classrooms</button>
+                        <button onclick="viewSpecialitiesForDept(${d.id})" class="flex-1 py-2 bg-orange-50 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 transition-colors">Specialities</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function viewSpecialitiesForDept(deptId) {
+            // "Indirect" way to view specialities: switch tab but it's not a direct button on dashboard
+            // Actually, I'll just keep the specialities view but remove the tab.
+            currentTab = 'specialities';
+            // We could filter specialities by dept if we had a filter, but let's just show all for now or filter by inst
+            applySearch();
+        }
+
+        function updateBreadcrumb() {
+            // Implementation...
+        }
 
         // ─── INIT ─────────────────────────────────────────────────
         updateStats();

@@ -36,6 +36,7 @@ public class AdminViewController {
     private final CycleService cycleService;
     private final DepartmentService departmentService;
     private final ClassroomService classroomService;
+    private final SpecialityService specialityService;
     private final AcademicYearService academicYearService;
     private final AcademicYearScheduleService academicYearScheduleService;
 
@@ -50,6 +51,7 @@ public class AdminViewController {
         model.addAttribute("institutions", institutionService.getAllInstitutions());
         model.addAttribute("cycles", cycleService.getAllCycles());
         model.addAttribute("allDepartments", departmentService.getAllDepartments());
+        model.addAttribute("allSpecialities", specialityService.getAllSpecialities());
         model.addAttribute("classrooms", classroomService.getAllClassrooms());
         model.addAttribute("courses", new ArrayList<>());
         model.addAttribute("roles", roleRepository.findAll());
@@ -89,6 +91,7 @@ public class AdminViewController {
             
         stats.put("studentCount", studentCount);
         stats.put("departmentCount", departmentService.getAllDepartments().size());
+        stats.put("specialityCount", specialityService.getAllSpecialities().size());
         stats.put("staffCount", staffCount);
         stats.put("adminCount", adminCount);
         

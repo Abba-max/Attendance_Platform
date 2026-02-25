@@ -21,8 +21,8 @@ public class AcademicYearScheduleDto {
     private String cycleName;
     private Integer departmentId;
     private String departmentName;
-    private Integer classroomId;
-    private String classroomName;
+    private Integer specialityId;
+    private String specialityName;
 
     private LocalDate startDate;
     private LocalDate endDate;

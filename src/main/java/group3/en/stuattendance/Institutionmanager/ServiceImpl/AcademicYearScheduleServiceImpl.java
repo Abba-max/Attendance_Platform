@@ -175,8 +175,8 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
                 .map(scheduleMapper::toDto)
                 .orElseGet(() -> {
                     // 2) Fallback to Department hierarchy
-                    if (classroom.getDepartment() != null) {
-                        return findActiveInHierarchy(classroom.getDepartment());
+                    if (classroom.getSpeciality() != null && classroom.getSpeciality().getDepartment() != null) {
+                        return findActiveInHierarchy(classroom.getSpeciality().getDepartment());
                     }
                     return resolveDefault();
                 });

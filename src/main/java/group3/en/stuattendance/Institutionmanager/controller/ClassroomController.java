@@ -4,6 +4,7 @@ import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Model.Department;
 import group3.en.stuattendance.Institutionmanager.Service.ClassroomService;
 import group3.en.stuattendance.Institutionmanager.Service.DepartmentService;
+import group3.en.stuattendance.Institutionmanager.Service.SpecialityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,17 +22,15 @@ public class ClassroomController {
     private ClassroomService classroomService;
 
     @Autowired
-    private DepartmentService departmentService;
+    private SpecialityService specialityService;
 
     @Autowired
     private group3.en.stuattendance.Institutionmanager.Mapper.ClassroomMapper classroomMapper;
 
-    @GetMapping("/by-department/{deptId}")
+    @GetMapping("/by-speciality/{specialityId}")
     @ResponseBody
-    public java.util.List<group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto> getClassroomsByDepartment(@PathVariable Integer deptId) {
-        return classroomService.findByDepartmentId(deptId).stream()
-                .map(classroomMapper::toDto)
-                .collect(java.util.stream.Collectors.toList());
+    public java.util.List<group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto> getClassroomsBySpeciality(@PathVariable Integer specialityId) {
+        return classroomService.findBySpecialityId(specialityId);
     }
 
     /**
@@ -42,17 +41,17 @@ public class ClassroomController {
             @RequestParam String name,
             @RequestParam Integer level,
             @RequestParam Integer capacity,
-            @RequestParam Integer departmentId,
+            @RequestParam Integer specialityId,
             RedirectAttributes redirectAttributes) {
 
         try {
-            Department department = departmentService.findById(departmentId);
+            group3.en.stuattendance.Institutionmanager.Model.Speciality speciality = specialityService.findByIdEntity(specialityId);
 
             Classroom classroom = Classroom.builder()
                     .name(name)
                     .level(level)
                     .capacity(capacity)
-                    .department(department)
+                    .speciality(speciality)
                     .build();
 
             classroomService.save(classroom);
@@ -76,7 +75,7 @@ public class ClassroomController {
             @RequestParam String name,
             @RequestParam Integer level,
             @RequestParam Integer capacity,
-            @RequestParam Integer departmentId,
+            @RequestParam Integer specialityId,
             RedirectAttributes redirectAttributes) {
 
         try {
@@ -84,7 +83,7 @@ public class ClassroomController {
             classroom.setName(name);
             classroom.setLevel(level);
             classroom.setCapacity(capacity);
-            classroom.setDepartment(departmentService.findById(departmentId));
+            classroom.setSpeciality(specialityService.findByIdEntity(specialityId));
             
             classroomService.save(classroom);
 

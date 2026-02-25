@@ -1627,22 +1627,41 @@ window.openCreateDepartmentModal = function (cycleId, institutionId) {
     }
 };
 
+window.openCreateDepartmentModal = function (cycleId, institutionId) {
+    const modal = document.getElementById('departmentModal');
+    const cycleInput = document.getElementById('deptCycleId');
+    const instInput = document.getElementById('deptInstitutionId');
+
+    if (modal) {
+        if (cycleInput) cycleInput.value = cycleId;
+        if (instInput) instInput.value = institutionId;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Reset multi-selects
+        resetMultiSelect('paCreateDropdown');
+        resetMultiSelect('supCreateDropdown');
+    }
+};
+
 window.closeCreateDepartmentModal = function () {
     const modal = document.getElementById('departmentModal');
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        // Reset multi-selects
+        resetMultiSelect('paCreateDropdown');
+        resetMultiSelect('supCreateDropdown');
     }
 };
 
-window.openEditDepartmentModal = function (id, name, chief, cycleId, institutionId, paId, supervisorIds) {
+window.openEditDepartmentModal = function (id, name, chief, cycleId, institutionId, paIds, supervisorIds) {
     const modal = document.getElementById('editDepartmentModal');
     const idInput = document.getElementById('editDeptId');
     const nameInput = document.getElementById('editDeptName');
     const chiefInput = document.getElementById('editDeptChief');
     const cycleSelect = document.getElementById('editDeptCycleId');
     const instSelect = document.getElementById('editDeptInstitutionId');
-    const paSelect = document.getElementById('editDeptPaId');
     const form = document.getElementById('editDepartmentForm');
 
     if (modal && idInput && nameInput && chiefInput && form) {
@@ -1651,13 +1670,12 @@ window.openEditDepartmentModal = function (id, name, chief, cycleId, institution
         chiefInput.value = chief || '';
         if (cycleSelect) cycleSelect.value = cycleId;
         if (instSelect) instSelect.value = institutionId;
-        if (paSelect) paSelect.value = paId || '';
 
-        // Handle Supervisors Checkboxes
-        const checkboxes = document.querySelectorAll('#editDeptSupervisorsContainer input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = supervisorIds.includes(parseInt(cb.value));
-        });
+        // Populate PA Multi-select
+        syncMultiSelect('paEditDropdown', paIds);
+
+        // Populate Supervisor Multi-select
+        syncMultiSelect('supEditDropdown', supervisorIds);
 
         form.action = `/admin/departments/edit/${id}`;
         modal.classList.remove('hidden');
@@ -1674,11 +1692,23 @@ window.closeEditDepartmentModal = function () {
 };
 
 window.openCreateClassroomModal = function (departmentId) {
+    // This is now deprecated in favor of openCreateClassroomModalFromSpec
+    // but we keep it for compatibility if called from elsewhere
     const modal = document.getElementById('classroomModal');
-    const deptIdInput = document.getElementById('classroomDepartmentId');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
 
-    if (modal && deptIdInput) {
-        deptIdInput.value = departmentId;
+window.openCreateClassroomModalFromSpec = function (specialityId) {
+    const modal = document.getElementById('classroomModal');
+    const specIdInput = document.getElementById('classroomSpecialityId');
+    const specSelect = document.getElementById('classroomSpecialitySelect');
+
+    if (modal && specIdInput) {
+        specIdInput.value = specialityId;
+        if (specSelect) specSelect.value = specialityId;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
@@ -1692,13 +1722,13 @@ window.closeCreateClassroomModal = function () {
     }
 };
 
-window.openEditClassroomModal = function (id, name, level, capacity, departmentId) {
+window.openEditClassroomModal = function (id, name, level, capacity, specialityId) {
     const modal = document.getElementById('editClassroomModal');
     const idInput = document.getElementById('editClassroomId');
     const nameInput = document.getElementById('editClassroomName');
     const levelInput = document.getElementById('editClassroomLevel');
     const capInput = document.getElementById('editClassroomCapacity');
-    const deptSelect = document.getElementById('editClassroomDeptId');
+    const specSelect = document.getElementById('editClassroomSpecId');
     const form = document.getElementById('editClassroomForm');
 
     if (modal && idInput && nameInput && levelInput && capInput && form) {
@@ -1706,7 +1736,7 @@ window.openEditClassroomModal = function (id, name, level, capacity, departmentI
         nameInput.value = name;
         levelInput.value = level;
         capInput.value = capacity;
-        if (deptSelect) deptSelect.value = departmentId;
+        if (specSelect) specSelect.value = specialityId;
         form.action = `/admin/classrooms/edit/${id}`;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -1720,6 +1750,194 @@ window.closeEditClassroomModal = function () {
         modal.classList.remove('flex');
     }
 };
+
+// --- Speciality Modal Functions ---
+
+window.openCreateSpecialityModal = function (departmentId) {
+    const modal = document.getElementById('specialityModal');
+    const deptSelect = document.getElementById('specialityDeptId');
+    const form = document.getElementById('specialityForm');
+
+    if (modal) {
+        if (form) form.reset();
+        if (deptSelect && departmentId) {
+            deptSelect.value = departmentId;
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeCreateSpecialityModal = function () {
+    const modal = document.getElementById('specialityModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openEditSpecialityModal = function (id, name, description, departmentId) {
+    const modal = document.getElementById('editSpecialityModal');
+    const idInput = document.getElementById('editSpecialityId');
+    const nameInput = document.getElementById('editSpecialityName');
+    const descInput = document.getElementById('editSpecialityDescription');
+    const deptSelect = document.getElementById('editSpecialityDeptId');
+    const form = document.getElementById('editSpecialityForm');
+
+    if (modal && idInput && nameInput && descInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        descInput.value = description;
+        if (deptSelect) deptSelect.value = departmentId;
+        form.action = `/admin/specialities/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditSpecialityModal = function () {
+    const modal = document.getElementById('editSpecialityModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.handleDeleteSpeciality = function (id) {
+    if (confirm('Are you sure you want to delete this speciality? This action cannot be undone.')) {
+        fetch(`/admin/specialities/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => response.text()).then(result => {
+            if (result === 'success') {
+                window.location.reload();
+            } else {
+                alert('Failed to delete speciality.');
+            }
+        }).catch(err => {
+            console.error('Delete error:', err);
+            alert('Error deleting speciality.');
+        });
+    }
+};
+
+/* --- Custom Multi-select Dropdown Logic --- */
+
+window.toggleMultiSelect = function (id) {
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+    const content = dropdown.querySelector('.dropdown-content');
+
+    // Close other dropdowns
+    document.querySelectorAll('.multi-select-dropdown .dropdown-content').forEach(other => {
+        if (other !== content) other.classList.add('hidden');
+    });
+
+    content.classList.toggle('hidden');
+};
+
+window.filterMultiSelect = function (input) {
+    const term = input.value.toLowerCase();
+    const dropdown = input.closest('.multi-select-dropdown');
+    const options = dropdown.querySelectorAll('.dropdown-content > div:not(.p-2)');
+
+    options.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.classList.toggle('hidden', !text.includes(term));
+    });
+};
+
+window.toggleOption = function (element, dropdownId, value) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    const indicator = element.querySelector('.checkbox-indicator');
+    const svg = indicator.querySelector('svg');
+
+    checkbox.checked = !checkbox.checked;
+
+    if (checkbox.checked) {
+        indicator.classList.add('bg-blue-500', 'border-blue-500');
+        indicator.classList.remove('border-slate-200');
+        svg.classList.remove('hidden');
+    } else {
+        indicator.classList.remove('bg-blue-500', 'border-blue-500');
+        indicator.classList.add('border-slate-200');
+        svg.classList.add('hidden');
+    }
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+window.updateMultiSelectDisplay = function (dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    const selectedText = dropdown.querySelector('.selected-text');
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+
+    if (checkboxes.length === 0) {
+        selectedText.textContent = dropdownId.toLowerCase().includes('pa') ? 'Select PAs...' : 'Select Supervisors...';
+        selectedText.classList.add('text-slate-500');
+        selectedText.classList.remove('text-blue-600', 'font-semibold');
+    } else {
+        selectedText.textContent = `${checkboxes.length} Selected`;
+        selectedText.classList.remove('text-slate-500');
+        selectedText.classList.add('text-blue-600', 'font-semibold');
+    }
+};
+
+window.syncMultiSelect = function (dropdownId, selectedIds) {
+    if (!selectedIds) selectedIds = [];
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = selectedIds.includes(parseInt(cb.value));
+        const element = cb.closest('div.cursor-pointer');
+        const indicator = element.querySelector('.checkbox-indicator');
+        const svg = indicator.querySelector('svg');
+
+        if (cb.checked) {
+            indicator.classList.add('bg-blue-500', 'border-blue-500');
+            indicator.classList.remove('border-slate-200');
+            svg.classList.remove('hidden');
+        } else {
+            indicator.classList.remove('bg-blue-500', 'border-blue-500');
+            indicator.classList.add('border-slate-200');
+            svg.classList.add('hidden');
+        }
+    });
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+window.resetMultiSelect = function (dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+        const element = cb.closest('div.cursor-pointer');
+        const indicator = element.querySelector('.checkbox-indicator');
+        const svg = indicator.querySelector('svg');
+
+        indicator.classList.remove('bg-blue-500', 'border-blue-500');
+        indicator.classList.add('border-slate-200');
+        svg.classList.add('hidden');
+    });
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+// Global click-away to close dropdowns
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.multi-select-dropdown')) {
+        document.querySelectorAll('.multi-select-dropdown .dropdown-content').forEach(d => d.classList.add('hidden'));
+    }
+});
 
 /**
  * Handles deletion of a cycle with confirmation.
@@ -1826,8 +2044,8 @@ window.switchManageTab = function (tabName) {
         } else {
             subFilters.classList.remove('hidden');
             // Reset all chips to default state
-            document.querySelectorAll('.cycle-chip, .dept-chip').forEach(chip => {
-                const id = chip.dataset.cycleId || chip.dataset.deptId;
+            document.querySelectorAll('.cycle-chip, .dept-chip, .spec-chip').forEach(chip => {
+                const id = chip.dataset.cycleId || chip.dataset.deptId || chip.dataset.specId;
                 if (id === 'all') {
                     chip.classList.add('active');
                     chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
@@ -1835,17 +2053,25 @@ window.switchManageTab = function (tabName) {
                     chip.classList.remove('active');
                     chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
                 }
-                // Departments chips are hidden until we decide which belong to cycle or if we show all
+
+                // Toggle visibility based on tab
                 if (chip.classList.contains('dept-chip')) {
-                    // We'll show dept chips only if classrooms tab is active
+                    chip.parentElement.classList.toggle('hidden', tabName !== 'specialities' && tabName !== 'classrooms');
+                }
+                if (chip.classList.contains('spec-chip')) {
                     chip.parentElement.classList.toggle('hidden', tabName !== 'classrooms');
                 }
             });
 
             if (tabName === 'departments') {
                 deptContainer.classList.add('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.add('hidden');
+            } else if (tabName === 'specialities') {
+                deptContainer.classList.remove('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.add('hidden');
             } else if (tabName === 'classrooms') {
                 deptContainer.classList.remove('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.remove('hidden');
             }
         }
     }
@@ -1881,6 +2107,8 @@ window.applyManageSearch = function () {
         items = Array.from(document.querySelectorAll('.cycle-card'));
     } else if (activeTab === 'departments') {
         items = Array.from(document.querySelectorAll('.dept-card'));
+    } else if (activeTab === 'specialities') {
+        items = Array.from(document.querySelectorAll('.spec-card'));
     } else if (activeTab === 'classrooms') {
         items = Array.from(document.querySelectorAll('.class-card'));
     }
@@ -1898,10 +2126,13 @@ window.applyManageSearch = function () {
 
         if (activeTab === 'departments') {
             matchesHierarchy = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
+        } else if (activeTab === 'specialities') {
+            matchesHierarchy = (currentDeptFilter === 'all' || deptId === currentDeptFilter);
         } else if (activeTab === 'classrooms') {
             const matchesCycle = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
             const matchesDept = (currentDeptFilter === 'all' || deptId === currentDeptFilter);
-            matchesHierarchy = matchesCycle && matchesDept;
+            const matchesSpec = (typeof currentSpecFilter !== 'undefined' && (currentSpecFilter === 'all' || item.dataset.specId === currentSpecFilter)) || true;
+            matchesHierarchy = matchesCycle && matchesDept && matchesSpec;
         }
 
         if (matchesTerm && matchesHierarchy) {
@@ -1974,11 +2205,46 @@ window.setManageFilter = function (type, id) {
 
     } else if (type === 'dept') {
         currentDeptFilter = String(id);
+        currentSpecFilter = 'all';
 
         // Update Dept Chips
         document.querySelectorAll('.dept-chip').forEach(chip => {
             const chipId = String(chip.dataset.deptId);
             if (chipId === currentDeptFilter) {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            }
+        });
+
+        // Update Spec Chip visibility based on Dept
+        document.querySelectorAll('.spec-chip').forEach(chip => {
+            const chipId = String(chip.dataset.specId);
+            const chipDeptId = String(chip.dataset.deptId);
+
+            if (chipId === 'all') {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                chip.classList.remove('hidden');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                if (currentDeptFilter === 'all' || chipDeptId === currentDeptFilter) {
+                    chip.classList.remove('hidden');
+                } else {
+                    chip.classList.add('hidden');
+                }
+            }
+        });
+    } else if (type === 'spec') {
+        currentSpecFilter = String(id);
+
+        // Update Spec Chips
+        document.querySelectorAll('.spec-chip').forEach(chip => {
+            const chipId = String(chip.dataset.specId);
+            if (chipId === currentSpecFilter) {
                 chip.classList.add('active');
                 chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
             } else {
