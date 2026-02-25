@@ -44,6 +44,12 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
@@ -57,6 +63,25 @@ public class User {
     )
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
+
+    // Manual Permission Overrides
+    @ManyToMany
+    @JoinTable(
+        name = "user_additional_permissions",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> additionalPermissions = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_denied_permissions",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> deniedPermissions = new HashSet<>();
 
     // Institutional Hierarchy
     @ManyToOne(fetch = FetchType.LAZY)

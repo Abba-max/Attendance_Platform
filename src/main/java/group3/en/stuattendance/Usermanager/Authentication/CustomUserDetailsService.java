@@ -10,7 +10,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,13 +33,26 @@ public class CustomUserDetailsService implements UserDetailsService {
                         "Utilisateur introuvable : " + username
                 ));
 
-        // 2. Convertir les rôles RBAC (Set<Role>) en GrantedAuthority
-        // user.getRoles() est un Set<Role> — on extrait le nom de chaque rôle
-        // IMPORTANT: Spring Security s'attend à ce que les rôles commencent par "ROLE_"
-        List<SimpleGrantedAuthority> authorities = user.getRoles()
-                .stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName()))
-                .collect(Collectors.toList());
+        // 2. Convert RBAC (Roles + Permissions) into GrantedAuthority
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+        
+        // Roles + Role's Permissions
+        user.getRoles().forEach(role -> {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName()));
+            role.getPermissions().forEach(perm -> {
+                authorities.add(new SimpleGrantedAuthority(perm.getName()));
+            });
+        });
+
+        // Manual Additional Permissions
+        user.getAdditionalPermissions().forEach(perm -> {
+            authorities.add(new SimpleGrantedAuthority(perm.getName()));
+        });
+
+        // Manual Denied Permissions (Remove them)
+        user.getDeniedPermissions().forEach(perm -> {
+            authorities.remove(new SimpleGrantedAuthority(perm.getName()));
+        });
 
         // 3. Retourner un UserDetails Spring Security
         return new org.springframework.security.core.userdetails.User(

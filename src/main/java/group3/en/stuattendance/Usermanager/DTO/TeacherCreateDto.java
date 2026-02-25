@@ -13,6 +13,8 @@ import java.util.Set;
 @AllArgsConstructor
 public class TeacherCreateDto {
     private String username;
+    private String firstName;
+    private String lastName;
     private String email;
     private String password;
     private Integer institutionId;

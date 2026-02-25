@@ -17,9 +17,11 @@ import java.util.Set;
 @AllArgsConstructor
 public class StaffCreateDto {
 
-    @NotBlank(message = "Username is required")
     @Size(min = 3, max = 100, message = "Username must be between 3 and 100 characters")
     private String username;
+
+    private String firstName;
+    private String lastName;
 
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")

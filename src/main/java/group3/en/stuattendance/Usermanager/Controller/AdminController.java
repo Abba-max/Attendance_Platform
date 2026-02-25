@@ -18,8 +18,7 @@ public class AdminController {
 
     private final UserService userService;
     private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
-
-
+    private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @PutMapping("/users/{id}/roles")
     public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {
@@ -38,20 +37,19 @@ public class AdminController {
     }
 
     @PostMapping("/staff")
-    public ResponseEntity<User> registerStaff(
+    public ResponseEntity<UserDto> registerStaff(
         @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
-        return ResponseEntity.ok(userService.registerStaff(dto));
+        return ResponseEntity.ok(userMapper.toDto(userService.registerStaff(dto)));
     }
 
     @GetMapping("/staff")
-    public ResponseEntity<List<User>> getAllStaff() {
-        return ResponseEntity.ok(userService.getAllStaff());
+    public ResponseEntity<List<UserDto>> getAllStaff() {
+        return ResponseEntity.ok(userService.getAllStaffDtos());
     }
 
-
     @GetMapping("/users")
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUserDtos());
     }
 
     @DeleteMapping("/users/{id}")
@@ -60,9 +58,44 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/users/{id}/status")
+    public ResponseEntity<Void> toggleStatus(@PathVariable Integer id, @RequestParam Boolean active) {
+        if (active) {
+            userService.activateUser(id);
+        } else {
+            userService.deactivateUser(id);
+        }
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/users/{id}/reset-password")
     public ResponseEntity<Void> resetPassword(@PathVariable Integer id, @RequestBody String newPassword) {
         userService.resetPassword(id, newPassword);
+        return ResponseEntity.ok().build();
+    }
+
+    // Per-User Permission Overrides
+    @PostMapping("/users/{id}/permissions/grant/{permissionId}")
+    public ResponseEntity<Void> grantPermission(@PathVariable Integer id, @PathVariable Integer permissionId) {
+        userService.grantPermission(id, permissionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/users/{id}/permissions/revoke/{permissionId}")
+    public ResponseEntity<Void> revokePermission(@PathVariable Integer id, @PathVariable Integer permissionId) {
+        userService.revokePermission(id, permissionId);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/users/{id}/permissions/clear")
+    public ResponseEntity<Void> clearPermissions(@PathVariable Integer id) {
+        userService.clearPermissionOverrides(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/users/{id}/permissions/clear/{permissionId}")
+    public ResponseEntity<Void> clearSinglePermission(@PathVariable Integer id, @PathVariable Integer permissionId) {
+        userService.clearPermissionOverride(id, permissionId);
         return ResponseEntity.ok().build();
     }
 

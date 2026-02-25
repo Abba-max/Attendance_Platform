@@ -95,7 +95,7 @@ public class SpecialityController {
         return ResponseEntity.ok(specialityService.getAllSpecialities());
     }
 
-    @GetMapping("/department/{departmentId}")
+    @GetMapping("/by-department/{departmentId}")
     @ResponseBody
     public ResponseEntity<List<SpecialityDto>> getSpecialitiesByDepartment(@PathVariable Integer departmentId) {
         return ResponseEntity.ok(specialityService.getSpecialitiesByDepartmentId(departmentId));

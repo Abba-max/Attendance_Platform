@@ -543,9 +543,9 @@
                         <!-- Speciality Filters -->
                         <div id="specFilterContainer" class="flex flex-wrap gap-2 items-center hidden">
                             <span
-                                class="text-[10px] text-white font-white text-slate-400 uppercase tracking-widest mr-2">Spec:</span>
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Spec:</span>
                             <button onclick="setManageFilter('spec', 'all')"
-                                class="spec-chip active px-4 py-1.5 rounded-full text-white text-xs font-white border-2 border-transparent transition-all"
+                                class="spec-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
                                 data-spec-id="all">All Specs</button>
                             <button th:each="s : ${allSpecialities}"
                                 th:onclick="'setManageFilter(\'spec\', \'' + ${s.specialityId} + '\')'"
@@ -1004,7 +1004,8 @@
                                         <option value="default">Global (Institution-wide)</option>
                                         <option value="cycle_direct">Specific Cycle(s)</option>
                                         <option value="cycle">Relational: Departments by Cycle</option>
-                                        <option value="department">Relational: Classrooms by Department</option>
+                                        <option value="department">Relational: Specialities by Department</option>
+                                        <option value="speciality">Relational: Classrooms by Speciality</option>
                                     </select>
                                 </div>
 
@@ -1072,11 +1073,37 @@
                                             </th:block>
                                         </select>
                                     </div>
-                                    <div id="schedClassListWrapper" class="hidden space-y-2">
+                                    <div id="schedSpecListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Specialities</label>
+                                        <div id="schedSpecCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Speciality Scope: Select Speciality -->
+                                <div id="schedSpecStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Speciality</label>
+                                        <select id="schedSpecSelector" onchange="handleSpecSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Speciality --</option>
+                                            <th:block th:each="spec : ${allSpecialities}">
+                                                <option th:value="${spec.specialityId}" th:text="${spec.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedClassBySpecListWrapper" class="hidden space-y-2">
                                         <label
                                             class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
                                             Classrooms</label>
-                                        <div id="schedClassCheckboxes"
+                                        <div id="schedClassBySpecCheckboxes"
                                             class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
                                             <!-- Populated by JS -->
                                         </div>
@@ -1165,6 +1192,29 @@
                                 </svg>
                             </button>
                         </div>
+                    </div>
+
+                    <div class="mb-4 flex flex-wrap gap-2">
+                        <button onclick="setRoleFilter('ALL')"
+                            class="role-filter-btn active px-4 py-2 rounded-xl text-sm font-bold bg-[#00B0FF] text-white transition-all shadow-sm">
+                            All
+                        </button>
+                        <button onclick="setRoleFilter('TEACHER')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Teachers
+                        </button>
+                        <button onclick="setRoleFilter('SUPERVISOR')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Pedagogic Assistants
+                        </button>
+                        <button onclick="setRoleFilter('PEDAGOG')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Pedagogs
+                        </button>
+                        <button onclick="setRoleFilter('ADMIN')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Admins
+                        </button>
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -1360,11 +1410,19 @@
                 </button>
             </div>
             <form id="staffForm" class="p-6 space-y-4 w-auto h-auto ">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
-                    <input type="text" name="username" required
-                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
-                        placeholder="e.g. jsmith">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
+                        <input type="text" name="firstName" required
+                            class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                            placeholder="e.g. John">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
+                        <input type="text" name="lastName" required
+                            class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                            placeholder="e.g. Smith">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>

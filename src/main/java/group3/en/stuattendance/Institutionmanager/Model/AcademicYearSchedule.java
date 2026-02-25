@@ -39,6 +39,10 @@ public class AcademicYearSchedule {
     @JoinColumn(name = "speciality_id")
     private Speciality speciality;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_id")
+    private Classroom classroom;
+
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 

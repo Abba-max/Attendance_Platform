@@ -12,7 +12,9 @@ public class AcademicYearScheduleMapper {
         if (entity == null) return null;
 
         String scopeLabel = "Default (Institution-wide)";
-        if (entity.getSpeciality() != null) {
+        if (entity.getClassroom() != null) {
+            scopeLabel = entity.getClassroom().getName() + " (Class)";
+        } else if (entity.getSpeciality() != null) {
             scopeLabel = entity.getSpeciality().getName() + " (Spec)";
         } else if (entity.getDepartment() != null) {
             scopeLabel = entity.getDepartment().getName() + " (Dept)";
@@ -30,6 +32,8 @@ public class AcademicYearScheduleMapper {
                 .departmentName(entity.getDepartment() != null ? entity.getDepartment().getName() : null)
                 .specialityId(entity.getSpeciality() != null ? entity.getSpeciality().getSpecialityId() : null)
                 .specialityName(entity.getSpeciality() != null ? entity.getSpeciality().getName() : null)
+                .classroomId(entity.getClassroom() != null ? entity.getClassroom().getClassId() : null)
+                .classroomName(entity.getClassroom() != null ? entity.getClassroom().getName() : null)
                 .startDate(entity.getStartDate())
                 .endDate(entity.getEndDate())
                 .status(entity.getStatus().name())

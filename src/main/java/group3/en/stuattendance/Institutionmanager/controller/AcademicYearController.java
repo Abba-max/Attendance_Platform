@@ -112,6 +112,13 @@ public class AcademicYearController {
         return resolved != null ? ResponseEntity.ok(resolved) : ResponseEntity.noContent().build();
     }
 
+    /** Resolve the active schedule for a given speciality (hierarchical lookup). */
+    @GetMapping("/resolve/speciality/{specialityId}")
+    public ResponseEntity<AcademicYearScheduleDto> resolveForSpeciality(@PathVariable Integer specialityId) {
+        AcademicYearScheduleDto resolved = scheduleService.resolveActiveScheduleForSpeciality(specialityId);
+        return resolved != null ? ResponseEntity.ok(resolved) : ResponseEntity.noContent().build();
+    }
+
     /** Resolve the active schedule for a given classroom (hierarchical lookup). */
     @GetMapping("/resolve/classroom/{classroomId}")
     public ResponseEntity<AcademicYearScheduleDto> resolveForClassroom(@PathVariable Integer classroomId) {

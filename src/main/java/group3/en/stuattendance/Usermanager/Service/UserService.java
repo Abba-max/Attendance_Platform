@@ -13,9 +13,11 @@ public interface UserService {
     User registerStudent(group3.en.stuattendance.Usermanager.DTO.StudentCreateDto dto);
     Optional<User> getUserById(Integer userId);
     List<User> getAllStaff();
+    List<UserDto> getAllStaffDtos();
     Optional<User> getUserByUsername(String username);
     Optional<User> getUserByEmail(String email);
     List<User> getAllUsers();
+    List<UserDto> getAllUserDtos();
     User updateUser(Integer userId, UserDto dto);
     void deleteUser(Integer userId);
     void deactivateUser(Integer userId);
@@ -24,6 +26,10 @@ public interface UserService {
     // Role and Permissions
     void assignRole(Integer userId, Integer roleId);
     void removeRole(Integer userId, Integer roleId);
+    void grantPermission(Integer userId, Integer permissionId);
+    void revokePermission(Integer userId, Integer permissionId);
+    void clearPermissionOverride(Integer userId, Integer permissionId);
+    void clearPermissionOverrides(Integer userId);
 
     // Student Specific
     Optional<User> getUserByMatricule(String matricule);

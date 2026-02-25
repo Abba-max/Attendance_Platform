@@ -10,16 +10,18 @@ public class PasswordUtils {
     private static final SecureRandom random = new SecureRandom();
 
     /**
-     * @param username The username is the base for the password .
+     * @param firstName The first name is the base for the password .
      * @return A permutated string with a random digit.
      */
-    public static String generatePassword(String username) {
-        if (username == null || username.isEmpty()) {
+    public static String generatePassword(String firstName) {
+        if (firstName == null || firstName.isEmpty()) {
             return "Pass123!@";
         }
 
+        firstName = firstName.toLowerCase();
+
         List<Character> chars = new ArrayList<>();
-        for (char c : username.toCharArray()) {
+        for (char c : firstName.toCharArray()) {
             chars.add(c);
         }
         Collections.shuffle(chars, random);
