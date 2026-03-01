@@ -504,7 +504,7 @@ public class UserServiceImpl implements UserService {
                 String lastName = row[1].trim();
                 String email = row[2].trim();
                 String matricule = row[3].trim();
-                String username = (row.length > 4 && !row[4].trim().isEmpty()) ? row[4].trim() : email;
+                // Username is always email now
 
                 try {
                     if (userRepository.findByEmail(email).isPresent()) {
@@ -517,7 +517,7 @@ public class UserServiceImpl implements UserService {
                             .firstName(firstName)
                             .lastName(lastName)
                             .email(email)
-                            .username(username)
+                            .username(email) // Align with single registration logic (Username = Email)
                             .matricule(matricule)
                             .classroomId(classroomId)
                             .institutionId(institution != null ? institution.getInstitutionId() : null)

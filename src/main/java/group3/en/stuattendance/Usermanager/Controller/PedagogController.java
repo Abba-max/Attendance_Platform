@@ -31,4 +31,10 @@ public class PedagogController {
             @RequestParam("classroomId") Integer classroomId) {
         return ResponseEntity.ok(userService.bulkImportStudents(file, classroomId));
     }
+
+    @PostMapping("/courses/bulk-import")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto> bulkImportCourses(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
+        return ResponseEntity.ok(courseService.bulkImportCourses(file));
+    }
 }
