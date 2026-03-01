@@ -42,9 +42,11 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
-    @GetMapping("/speciality/{specialityId}")
-    public ResponseEntity<List<CourseDto>> getCoursesBySpeciality(@PathVariable Integer specialityId) {
-        return ResponseEntity.ok(courseService.getCoursesBySpeciality(specialityId));
+    @GetMapping("/speciality/{specialityId}/semester/{semester}")
+    public ResponseEntity<List<CourseDto>> getCoursesBySpecialityAndSemester(
+            @PathVariable Integer specialityId,
+            @PathVariable Integer semester) {
+        return ResponseEntity.ok(courseService.getCoursesBySpecialityAndSemester(specialityId, semester));
     }
 
     @PutMapping("/{courseId}/speciality/{specialityId}")
@@ -59,6 +61,11 @@ public class CourseController {
             @PathVariable Integer courseId,
             @PathVariable Integer teacherId) {
         return ResponseEntity.ok(courseService.assignTeacherToCourse(courseId, teacherId));
+    }
+
+    @GetMapping("/{courseId}/teachers")
+    public ResponseEntity<List<group3.en.stuattendance.Usermanager.DTO.UserDto>> getTeachersByCourse(@PathVariable Integer courseId) {
+        return ResponseEntity.ok(courseService.getTeachersByCourse(courseId));
     }
 
     @GetMapping("/teacher/{teacherId}")

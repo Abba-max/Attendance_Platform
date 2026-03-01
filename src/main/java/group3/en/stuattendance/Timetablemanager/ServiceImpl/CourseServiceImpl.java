@@ -24,6 +24,7 @@ public class CourseServiceImpl implements CourseService {
     private final SpecialityRepository specialityRepository;
     private final UserRepository userRepository;
     private final CourseMapper courseMapper;
+    private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @Override
     public CourseDto createCourse(CourseDto courseDto) {
@@ -96,8 +97,8 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseDto> getCoursesBySpeciality(Integer specialityId) {
-        return courseRepository.findBySpecialitySpecialityId(specialityId)
+    public List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester) {
+        return courseRepository.findBySpecialitySpecialityIdAndSemester(specialityId, semester)
                 .stream()
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
@@ -144,6 +145,16 @@ public class CourseServiceImpl implements CourseService {
         course.getTeachers().removeIf(t -> t.getUserId().equals(teacherId));
         Course saved = courseRepository.save(course);
         return courseMapper.toDto(saved);
+    }
+
+    @Override
+    public List<group3.en.stuattendance.Usermanager.DTO.UserDto> getTeachersByCourse(Integer courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+        
+        return course.getTeachers().stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override

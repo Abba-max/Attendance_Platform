@@ -47,14 +47,15 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                     .orElseThrow(() -> new EntityNotFoundException("Academic Year not found with id: " + dto.getAcademicYearId()));
         }
 
-        // Check if a timetable already exists for this classroom, academic year, and week
+        // Check if a timetable already exists for this classroom, academic year, week, and semester
         Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeek(dto.getClassroomId(), academicYear.getId(), dto.getWeek())
+                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(dto.getClassroomId(), academicYear.getId(), dto.getWeek(), dto.getSemester())
                 .orElse(new Timetablecontent());
 
         timetablecontent.setClassroom(classroom);
         timetablecontent.setAcademicYear(academicYear);
         timetablecontent.setWeek(dto.getWeek());
+        timetablecontent.setSemester(dto.getSemester());
 
         // Clear existing entries and map new ones
         if (timetablecontent.getEntries() == null) {
@@ -110,16 +111,16 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     }
 
     @Override
-    public TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week) {
+    public TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
         Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeek(classroomId, academicYearId, week)
-                .orElseThrow(() -> new EntityNotFoundException("Timetable not found for classroom " + classroomId + ", year " + academicYearId + " and week " + week));
+                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester)
+                .orElseThrow(() -> new EntityNotFoundException("Timetable not found for classroom " + classroomId + ", year " + academicYearId + ", week " + week + " and semester " + semester));
         return timetablecontentMapper.toDto(timetablecontent);
     }
 
     @Override
-    public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week) {
-        timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeek(classroomId, academicYearId, week)
+    public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
+        timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester)
                 .ifPresent(timetablecontentRepository::delete);
     }
 

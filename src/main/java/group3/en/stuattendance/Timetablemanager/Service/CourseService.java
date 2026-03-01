@@ -15,11 +15,13 @@ public interface CourseService {
 
     List<CourseDto> getAllCourses();
 
-    List<CourseDto> getCoursesBySpeciality(Integer specialityId);
+    List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester);
 
     CourseDto assignCourseToSpeciality(Integer courseId, Integer specialityId);
 
     CourseDto assignTeacherToCourse(Integer courseId, Integer teacherId);
+
+    List<group3.en.stuattendance.Usermanager.DTO.UserDto> getTeachersByCourse(Integer courseId);
 
     CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId);
 

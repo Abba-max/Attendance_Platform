@@ -41,6 +41,8 @@ public class Timetablecontent {
 
     private Integer week;
 
+    private Integer semester;
+
     @OneToMany(mappedBy = "timetablecontent", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<TimetableEntry> entries = new ArrayList<>();

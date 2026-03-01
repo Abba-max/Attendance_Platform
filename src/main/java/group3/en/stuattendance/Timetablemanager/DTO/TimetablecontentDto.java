@@ -21,5 +21,6 @@ public class TimetablecontentDto {
     private Long academicYearId;
     private String academicYearName;
     private Integer week;
+    private Integer semester;
     private List<TimetableEntryDto> entries;
 }

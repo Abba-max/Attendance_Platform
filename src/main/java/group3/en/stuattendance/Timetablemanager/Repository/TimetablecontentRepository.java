@@ -9,9 +9,7 @@ import java.util.Optional;
 @Repository
 public interface TimetablecontentRepository extends JpaRepository<Timetablecontent, Integer> {
 
-    Optional<Timetablecontent> findByClassroomClassIdAndWeek(Integer classroomId, Integer week);
+    Optional<Timetablecontent> findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
-    Optional<Timetablecontent> findByClassroomClassIdAndAcademicYearIdAndWeek(Integer classroomId, Long academicYearId, Integer week);
-
-    boolean existsByClassroomClassIdAndWeek(Integer classroomId, Integer week);
+    boolean existsByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 }

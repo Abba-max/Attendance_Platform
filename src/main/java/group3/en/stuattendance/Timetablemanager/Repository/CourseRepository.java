@@ -12,7 +12,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
     Optional<Course> findByCourseName(String courseName);
 
-    List<Course> findBySpecialitySpecialityId(Integer specialityId);
+    List<Course> findBySpecialitySpecialityIdAndSemester(Integer specialityId, Integer semester);
 
     List<Course> findByTeacherUserId(Integer teacherId);
 

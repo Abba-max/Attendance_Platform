@@ -7,9 +7,9 @@ public interface TimetablecontentService {
 
     TimetablecontentDto saveWeeklyTimetable(TimetablecontentDto dto);
 
-    TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week);
+    TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
-    void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week);
+    void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
     List<TimetablecontentDto> getAllTimetablecontents();
 }
