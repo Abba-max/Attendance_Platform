@@ -20,8 +20,10 @@ public class CourseMapper {
                 .level(course.getLevel())
                 .specialityId(course.getSpeciality() != null ? course.getSpeciality().getSpecialityId() : null)
                 .specialityName(course.getSpeciality() != null ? course.getSpeciality().getName() : null)
-                .teacherId(course.getTeacher() != null ? course.getTeacher().getUserId() : null)
-                .teacherName(course.getTeacher() != null ? course.getTeacher().getUsername() : null)
+                .teacherIds(course.getTeachers() != null ? 
+                    course.getTeachers().stream().map(group3.en.stuattendance.Usermanager.Model.User::getUserId).collect(java.util.stream.Collectors.toList()) : null)
+                .teacherNames(course.getTeachers() != null ? 
+                    course.getTeachers().stream().map(u -> (u.getFirstName() != null ? u.getFirstName() + " " + u.getLastName() : u.getUsername())).collect(java.util.stream.Collectors.toList()) : null)
                 .build();
     }
 

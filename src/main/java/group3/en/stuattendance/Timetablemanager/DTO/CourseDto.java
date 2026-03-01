@@ -21,6 +21,6 @@ public class CourseDto {
     private Integer level;
     private Integer specialityId;
     private String specialityName;
-    private Integer teacherId;
-    private String teacherName;
+    private java.util.List<Integer> teacherIds;
+    private java.util.List<String> teacherNames;
 }
