@@ -160,11 +160,11 @@ public class UserServiceImpl implements UserService {
 
         // Handle password generation
         String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
-            ? PasswordUtils.generatePassword(dto.getUsername())
+          ? PasswordUtils.generatePassword(dto.getFirstName())
             : dto.getPassword();
 
         User user = User.builder()
-                .username(dto.getUsername())
+                .username(dto.getEmail()) // Username = Email
                 .email(dto.getEmail())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
