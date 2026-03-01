@@ -1,8 +1,12 @@
 package group3.en.stuattendance.Timetablemanager.Mapper;
 
 import group3.en.stuattendance.Timetablemanager.DTO.TimetablecontentDto;
+import group3.en.stuattendance.Timetablemanager.DTO.TimetableEntryDto;
 import group3.en.stuattendance.Timetablemanager.Model.Timetablecontent;
+import group3.en.stuattendance.Timetablemanager.Model.TimetableEntry;
 import org.springframework.stereotype.Component;
+
+import java.util.stream.Collectors;
 
 @Component
 public class TimetablecontentMapper {
@@ -11,14 +15,28 @@ public class TimetablecontentMapper {
         if (entity == null) return null;
         return TimetablecontentDto.builder()
                 .timetableId(entity.getTimetableId())
+                .classroomId(entity.getClassroom() != null ? entity.getClassroom().getClassId() : null)
+                .classroomName(entity.getClassroom() != null ? entity.getClassroom().getName() : null)
+                .academicYearId(entity.getAcademicYear() != null ? entity.getAcademicYear().getId() : null)
+                .academicYearName(entity.getAcademicYear() != null ? entity.getAcademicYear().getAcademicYear() : null)
+                .week(entity.getWeek())
+                .entries(entity.getEntries() != null ? entity.getEntries().stream()
+                        .map(this::toEntryDto)
+                        .collect(Collectors.toList()) : null)
+                .build();
+    }
+
+    public TimetableEntryDto toEntryDto(TimetableEntry entity) {
+        if (entity == null) return null;
+        return TimetableEntryDto.builder()
+                .entryId(entity.getEntryId())
+                .day(entity.getDay())
+                .startTime(entity.getStartTime())
+                .endTime(entity.getEndTime())
                 .courseId(entity.getCourse() != null ? entity.getCourse().getCourseId() : null)
                 .courseName(entity.getCourse() != null ? entity.getCourse().getCourseName() : null)
-                .sessionId(entity.getSession() != null ? entity.getSession().getSessionId() : null)
-                .sessionDate(entity.getSession() != null ? entity.getSession().getDate() : null)
-                .sessionStartTime(entity.getSession() != null ? entity.getSession().getStartTime() : null)
-                .sessionEndTime(entity.getSession() != null ? entity.getSession().getEndTime() : null)
-                .day(entity.getDay())
-                .week(entity.getWeek())
+                .teacherId(entity.getTeacher() != null ? entity.getTeacher().getUserId() : null)
+                .teacherName(entity.getTeacher() != null ? entity.getTeacher().getUsername() : null)
                 .build();
     }
 
@@ -26,8 +44,17 @@ public class TimetablecontentMapper {
         if (dto == null) return null;
         return Timetablecontent.builder()
                 .timetableId(dto.getTimetableId())
-                .day(dto.getDay())
                 .week(dto.getWeek())
+                .build();
+    }
+
+    public TimetableEntry toEntity(TimetableEntryDto dto) {
+        if (dto == null) return null;
+        return TimetableEntry.builder()
+                .entryId(dto.getEntryId())
+                .day(dto.getDay())
+                .startTime(dto.getStartTime())
+                .endTime(dto.getEndTime())
                 .build();
     }
 }

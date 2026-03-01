@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class StudentCreateDto {
     private String username;
     private String email;
+    private String firstName;
+    private String lastName;
     private String password;
     private String matricule;
     private Integer institutionId;

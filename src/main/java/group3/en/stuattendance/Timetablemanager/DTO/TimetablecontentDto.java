@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -15,12 +16,10 @@ import java.time.LocalTime;
 public class TimetablecontentDto {
 
     private Integer timetableId;
-    private Integer courseId;
-    private String courseName;
-    private Integer sessionId;
-    private LocalDate sessionDate;
-    private LocalTime sessionStartTime;
-    private LocalTime sessionEndTime;
-    private String day;
+    private Integer classroomId;
+    private String classroomName;
+    private Long academicYearId;
+    private String academicYearName;
     private Integer week;
+    private List<TimetableEntryDto> entries;
 }
