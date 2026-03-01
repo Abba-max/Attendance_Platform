@@ -28,6 +28,18 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public CourseDto createCourse(CourseDto courseDto) {
         Course course = courseMapper.toEntity(courseDto);
+        
+        if (courseDto.getSpecialityId() != null) {
+            Speciality speciality = specialityRepository.findById(courseDto.getSpecialityId())
+                    .orElseThrow(() -> new EntityNotFoundException("Speciality not found with id: " + courseDto.getSpecialityId()));
+            course.setSpeciality(speciality);
+        }
+
+        if (courseDto.getTeacherIds() != null && !courseDto.getTeacherIds().isEmpty()) {
+            List<User> teachers = userRepository.findAllById(courseDto.getTeacherIds());
+            course.setTeachers(new java.util.HashSet<>(teachers));
+        }
+
         Course saved = courseRepository.save(course);
         return courseMapper.toDto(saved);
     }
@@ -44,6 +56,17 @@ public class CourseServiceImpl implements CourseService {
         existing.setDescription(courseDto.getDescription());
         existing.setSemester(courseDto.getSemester());
         existing.setLevel(courseDto.getLevel());
+
+        if (courseDto.getSpecialityId() != null) {
+            Speciality speciality = specialityRepository.findById(courseDto.getSpecialityId())
+                    .orElseThrow(() -> new EntityNotFoundException("Speciality not found"));
+            existing.setSpeciality(speciality);
+        }
+
+        if (courseDto.getTeacherIds() != null) {
+            List<User> teachers = userRepository.findAllById(courseDto.getTeacherIds());
+            existing.setTeachers(new java.util.HashSet<>(teachers));
+        }
 
         Course updated = courseRepository.save(existing);
         return courseMapper.toDto(updated);
@@ -101,15 +124,32 @@ public class CourseServiceImpl implements CourseService {
         User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
 
-        course.setTeacher(teacher);
+        // Optional: Check if user has TEACHER role
+        boolean isTeacher = teacher.getRoles().stream()
+                .anyMatch(r -> r.getName().equalsIgnoreCase("ROLE_TEACHER") || r.getName().equalsIgnoreCase("TEACHER"));
+        if (!isTeacher) {
+            throw new IllegalArgumentException("User with ID " + teacherId + " does not have the TEACHER role.");
+        }
+
+        course.getTeachers().add(teacher);
+        Course saved = courseRepository.save(course);
+        return courseMapper.toDto(saved);
+    }
+
+    @Override
+    public CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Course not found"));
+        
+        course.getTeachers().removeIf(t -> t.getUserId().equals(teacherId));
         Course saved = courseRepository.save(course);
         return courseMapper.toDto(saved);
     }
 
     @Override
     public List<CourseDto> getCoursesByTeacher(Integer teacherId) {
-        return courseRepository.findByTeacherUserId(teacherId)
-                .stream()
+        return courseRepository.findAll().stream()
+                .filter(c -> c.getTeachers().stream().anyMatch(t -> t.getUserId().equals(teacherId)))
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
     }

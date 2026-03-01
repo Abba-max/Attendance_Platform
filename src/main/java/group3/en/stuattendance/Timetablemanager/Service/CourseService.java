@@ -21,5 +21,7 @@ public interface CourseService {
 
     CourseDto assignTeacherToCourse(Integer courseId, Integer teacherId);
 
+    CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId);
+
     List<CourseDto> getCoursesByTeacher(Integer teacherId);
 }
