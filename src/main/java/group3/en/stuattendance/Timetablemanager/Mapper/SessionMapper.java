@@ -2,9 +2,6 @@ package group3.en.stuattendance.Timetablemanager.Mapper;
 
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
-import group3.en.stuattendance.Timetablemanager.Model.Course;
-import group3.en.stuattendance.Usermanager.Model.User;
-import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,12 +19,16 @@ public class SessionMapper {
                 .locationGeographicalCoordinates(session.getLocationGeographicalCoordinates())
                 .qrCode(session.getQrCode())
                 .courseId(session.getCourse() != null ? session.getCourse().getCourseId() : null)
+                .courseName(session.getCourse() != null ? session.getCourse().getCourseName() : null)
                 .teacherId(session.getTeacher() != null ? session.getTeacher().getUserId() : null)
+                .teacherName(session.getTeacher() != null ? session.getTeacher().getUsername() : null)
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
+                .classroomName(session.getClassroom() != null ? session.getClassroom().getClassName() : null)
+                .isActive(session.isActive())
                 .build();
     }
 
-    public Session toEntity(SessionDto dto, Course course, User teacher, Classroom classroom) {
+    public Session toEntity(SessionDto dto) {
         if (dto == null) return null;
         return Session.builder()
                 .sessionId(dto.getSessionId())
@@ -38,9 +39,6 @@ public class SessionMapper {
                 .week(dto.getWeek())
                 .locationGeographicalCoordinates(dto.getLocationGeographicalCoordinates())
                 .qrCode(dto.getQrCode())
-                .course(course)
-                .teacher(teacher)
-                .classroom(classroom)
                 .build();
     }
 }

@@ -2,6 +2,7 @@ package group3.en.stuattendance.Institutionmanager.Model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import group3.en.stuattendance.Timetablemanager.Model.Course;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -42,6 +43,8 @@ public class Speciality {
     @JsonIgnore
     @Builder.Default
     private Set<Classroom> classrooms = new HashSet<>();
+    private Set<Course> courses = new HashSet<>();
+
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
