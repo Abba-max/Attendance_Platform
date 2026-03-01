@@ -1,30 +1,15 @@
 package group3.en.stuattendance.Timetablemanager.Service;
 
 import group3.en.stuattendance.Timetablemanager.DTO.TimetablecontentDto;
-
 import java.util.List;
 
 public interface TimetablecontentService {
 
-    TimetablecontentDto createTimetableContent(TimetablecontentDto timetableContentDto);
+    TimetablecontentDto saveWeeklyTimetable(TimetablecontentDto dto);
 
-    TimetablecontentDto updateTimetableContent(Integer id, TimetablecontentDto timetableContentDto);
+    TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week);
 
-    void deleteTimetableContent(Integer id);
+    void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week);
 
-    TimetablecontentDto getTimetableContentById(Integer id);
-
-    List<TimetablecontentDto> getAllTimetableContents();
-
-    List<TimetablecontentDto> getTimetableContentsByCourse(Integer courseId);
-
-    List<TimetablecontentDto> getTimetableContentsBySession(Integer sessionId);
-
-    List<TimetablecontentDto> getTimetableContentsByWeek(Integer week);
-
-    List<TimetablecontentDto> getTimetableContentsByDay(String day);
-
-    List<TimetablecontentDto> getTimetableContentsByWeekAndDay(Integer week, String day);
-
-    List<TimetablecontentDto> getTimetableContentsByCourseAndWeek(Integer courseId, Integer week);
+    List<TimetablecontentDto> getAllTimetablecontents();
 }

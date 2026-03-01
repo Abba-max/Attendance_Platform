@@ -15,64 +15,51 @@ import java.util.List;
 public class TimetablecontentController {
 
     private final TimetablecontentService timetablecontentService;
+    private final group3.en.stuattendance.Timetablemanager.Service.PdfExportService pdfExportService;
 
-    @PostMapping
-    public ResponseEntity<TimetablecontentDto> createTimetablecontent(@RequestBody TimetablecontentDto timetablecontentDto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(timetablecontentService.createTimetablecontent(timetablecontentDto));
+    @PostMapping("/weekly")
+    public ResponseEntity<TimetablecontentDto> saveWeeklyTimetable(@RequestBody TimetablecontentDto dto) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(timetablecontentService.saveWeeklyTimetable(dto));
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<TimetablecontentDto> updateTimetablecontent(@PathVariable Integer id, @RequestBody TimetablecontentDto timetablecontentDto) {
-        return ResponseEntity.ok(timetablecontentService.updateTimetablecontent(id, timetablecontentDto));
+    @GetMapping("/weekly/{classroomId}/{academicYearId}/{week}")
+    public ResponseEntity<TimetablecontentDto> getWeeklyTimetable(
+            @PathVariable Integer classroomId,
+            @PathVariable Long academicYearId,
+            @PathVariable Integer week) {
+        return ResponseEntity.ok(timetablecontentService.getWeeklyTimetable(classroomId, academicYearId, week));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTimetablecontent(@PathVariable Integer id) {
-        timetablecontentService.deleteTimetablecontent(id);
+    @GetMapping("/export/pdf/{classroomId}/{academicYearId}/{week}")
+    public ResponseEntity<org.springframework.core.io.InputStreamResource> exportTimetableToPdf(
+            @PathVariable Integer classroomId,
+            @PathVariable Long academicYearId,
+            @PathVariable Integer week) {
+        
+        TimetablecontentDto dto = timetablecontentService.getWeeklyTimetable(classroomId, academicYearId, week);
+        java.io.ByteArrayInputStream bis = pdfExportService.exportTimetableToPdf(dto);
+
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.add("Content-Disposition", "inline; filename=timetable_week" + week + ".pdf");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(new org.springframework.core.io.InputStreamResource(bis));
+    }
+
+    @DeleteMapping("/weekly/{classroomId}/{academicYearId}/{week}")
+    public ResponseEntity<Void> deleteWeeklyTimetable(
+            @PathVariable Integer classroomId,
+            @PathVariable Long academicYearId,
+            @PathVariable Integer week) {
+        timetablecontentService.deleteWeeklyTimetable(classroomId, academicYearId, week);
         return ResponseEntity.noContent().build();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<TimetablecontentDto> getTimetablecontentById(@PathVariable Integer id) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentById(id));
     }
 
     @GetMapping
     public ResponseEntity<List<TimetablecontentDto>> getAllTimetablecontents() {
         return ResponseEntity.ok(timetablecontentService.getAllTimetablecontents());
-    }
-
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsByCourse(@PathVariable Integer courseId) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsByCourse(courseId));
-    }
-
-    @GetMapping("/session/{sessionId}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsBySession(@PathVariable Integer sessionId) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsBySession(sessionId));
-    }
-
-    @GetMapping("/week/{week}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsByWeek(@PathVariable Integer week) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsByWeek(week));
-    }
-
-    @GetMapping("/day/{day}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsByDay(@PathVariable String day) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsByDay(day));
-    }
-
-    @GetMapping("/week/{week}/day/{day}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsByWeekAndDay(
-            @PathVariable Integer week,
-            @PathVariable String day) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsByWeekAndDay(week, day));
-    }
-
-    @GetMapping("/course/{courseId}/week/{week}")
-    public ResponseEntity<List<TimetablecontentDto>> getTimetablecontentsByCourseAndWeek(
-            @PathVariable Integer courseId,
-            @PathVariable Integer week) {
-        return ResponseEntity.ok(timetablecontentService.getTimetablecontentsByCourseAndWeek(courseId, week));
     }
 }

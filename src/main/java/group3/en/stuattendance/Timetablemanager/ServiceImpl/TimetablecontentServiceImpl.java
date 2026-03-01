@@ -47,9 +47,9 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                     .orElseThrow(() -> new EntityNotFoundException("Academic Year not found with id: " + dto.getAcademicYearId()));
         }
 
-        // Check if a timetable already exists for this classroom and week
+        // Check if a timetable already exists for this classroom, academic year, and week
         Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndWeek(dto.getClassroomId(), dto.getWeek())
+                .findByClassroomClassIdAndAcademicYearIdAndWeek(dto.getClassroomId(), academicYear.getId(), dto.getWeek())
                 .orElse(new Timetablecontent());
 
         timetablecontent.setClassroom(classroom);
@@ -110,24 +110,16 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     }
 
     @Override
-    public TimetablecontentDto getWeeklyTimetable(Integer classroomId, Integer week) {
-        Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndWeek(classroomId, week)
-                .orElseThrow(() -> new EntityNotFoundException("Timetable not found for classroom " + classroomId + " and week " + week));
-        return timetablecontentMapper.toDto(timetablecontent);
-    }
-
-    @Override
     public TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week) {
         Timetablecontent timetablecontent = timetablecontentRepository
                 .findByClassroomClassIdAndAcademicYearIdAndWeek(classroomId, academicYearId, week)
-                .orElseThrow(() -> new EntityNotFoundException("Timetable not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Timetable not found for classroom " + classroomId + ", year " + academicYearId + " and week " + week));
         return timetablecontentMapper.toDto(timetablecontent);
     }
 
     @Override
-    public void deleteWeeklyTimetable(Integer classroomId, Integer week) {
-        timetablecontentRepository.findByClassroomClassIdAndWeek(classroomId, week)
+    public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week) {
+        timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeek(classroomId, academicYearId, week)
                 .ifPresent(timetablecontentRepository::delete);
     }
 
