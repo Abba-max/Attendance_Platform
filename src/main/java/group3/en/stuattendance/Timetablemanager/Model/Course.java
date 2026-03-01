@@ -53,10 +53,14 @@ public class Course {
     @JsonIgnore
     private Speciality speciality;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id")
-    @JsonIgnore
-    private User teacher;
+    @ManyToMany
+    @JoinTable(
+        name = "course_teachers",
+        joinColumns = @JoinColumn(name = "course_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @Builder.Default
+    private java.util.Set<User> teachers = new java.util.HashSet<>();
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

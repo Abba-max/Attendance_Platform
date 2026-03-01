@@ -125,7 +125,7 @@ public class User {
     @Builder.Default
     private Set<Justification> justifications = new HashSet<>();
 
-    @OneToMany(mappedBy = "teacher", cascade = CascadeType.ALL)
+    @ManyToMany(mappedBy = "teachers")
     @JsonIgnore
     @Builder.Default
     private Set<Course> courses = new HashSet<>();
