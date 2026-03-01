@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Attendee – Login</title>
 
     <!-- Your existing Tailwind stylesheet -->
@@ -12,169 +11,187 @@
     <!-- Login-specific styles -->
     <link rel="stylesheet" th:href="@{/css/Login.css}" />
 </head>
-
 <body>
 
-    <div class="login-card">
+<div class="login-card">
 
+    <!-- Teal → Gold accent bar -->
+<!--    <div class="card-accent"></div>-->
 
-        <div class="logo-wrap">
-            <img th:src="@{/image/logo.png} "
-                class="w-20 h-20 object-contain rounded-xl shadow-sm border-2 border-blue-50" alt="Attendee Logo" />
-            <span class="brand-name">ATTENDEE</span>
-            <span class="tagline" id="tagline">Smart Attendance Management</span>
-        </div>
-
-        <!-- Error message — shown on Spring Security login failure (?error) -->
-        <div class="alert-error" id="errorMsg" th:if="${param.error}">
-            Invalid username or password. Please try again.
-        </div>
-
-        <!-- Login form — posts to Spring Security's /login endpoint -->
-        <form th:action="@{/login}" method="post">
-
-            <!-- Email / Username -->
-            <div class="form-group">
-                <label for="username" id="labelUsername">Email / Username</label>
-                <div class="input-wrap">
-                    <input type="text" id="username" name="username" placeholder="you@example.com"
-                        autocomplete="username" required />
-                </div>
-            </div>
-
-            <!-- Password -->
-            <div class="form-group">
-                <label for="password" id="labelPassword">Password</label>
-                <div class="input-wrap">
-                    <input type="password" id="password" name="password" placeholder="••••••••"
-                        autocomplete="current-password" required />
-                    <button type="button" class="toggle-pw" id="toggleBtn" onclick="togglePassword()"
-                        aria-label="Show password">
-                        👁
-                    </button>
-                </div>
-            </div>
-
-            <!-- Remember me + Forgot password -->
-            <div class="form-meta">
-                <label>
-                    <input type="checkbox" name="remember-me" />
-                    <span id="rememberText">Remember me</span>
-                </label>
-                <a th:href="@{/forgot-password}" href="#" class="forgot-link" id="forgotLink">
-                    Forgot Password?
-                </a>
-            </div>
-
-            <!-- Submit -->
-            <button type="submit" class="btn-login" id="btnLogin">Login</button>
-
-        </form>
-
-        <!-- Language switcher -->
-        <div class="lang-bar">
-            <button class="lang-btn active" data-lang="en" onclick="setLang('en', event)">EN</button>
-            <button class="lang-btn" data-lang="fr" onclick="setLang('fr', event)">FR</button>
-        </div>
-
+    <!-- Logo & branding -->
+    <div class="logo-wrap">
+        <img th:src="@{/image/logo.jpeg}" alt="Attendee Logo" />
+        <span class="brand-name">ATTENDEE</span>
+        <span class="tagline" id="tagline">Smart Attendance Management</span>
     </div>
 
+    <!-- Error message — shown on Spring Security login failure (?error) -->
+    <div class="alert-error" id="errorMsg" th:if="${param.error}">
+        Invalid username or password. Please try again.
+    </div>
 
-    <script>
-        /* ── Translations ── */
-        const translations = {
-            en: {
-                pageTitle: 'Attendee \u2013 Login',
-                tagline: 'Smart Attendance Management',
-                labelUsername: 'Email / Username',
-                placeholderUser: 'you@example.com',
-                labelPassword: 'Password',
-                remember: 'Remember me',
-                forgot: 'Forgot Password?',
-                btnLogin: 'Login',
-                errorMsg: 'Invalid username or password. Please try again.',
-                toggleShow: 'Show password',
-                toggleHide: 'Hide password',
-            },
-            fr: {
-                pageTitle: 'Attendee \u2013 Connexion',
-                tagline: 'Gestion intelligente des pr\u00e9sences',
-                labelUsername: 'Email / Nom d\u2019utilisateur',
-                placeholderUser: 'vous@exemple.com',
-                labelPassword: 'Mot de passe',
-                remember: 'Se souvenir de moi',
-                forgot: 'Mot de passe oubli\u00e9\u00a0?',
-                btnLogin: 'Connexion',
-                errorMsg: 'Identifiant ou mot de passe invalide. Veuillez r\u00e9essayer.',
-                toggleShow: 'Afficher le mot de passe',
-                toggleHide: 'Masquer le mot de passe',
-            }
-        };
+    <!-- Login form — posts to Spring Security's /login endpoint -->
+    <form th:action="@{/login}" method="post">
 
-        /* ── Current language (persisted in localStorage) ── */
-        let currentLang = localStorage.getItem('attendee_lang') || 'en';
+        <!-- CSRF token (auto-injected by Thymeleaf + Spring Security) -->
+<!--        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />-->
 
-        /* ── Apply all translations to the page ── */
-        function applyTranslations(lang) {
-            const t = translations[lang];
-            if (!t) return;
+        <!-- Email / Username -->
+        <div class="form-group">
+            <label for="username" id="labelUsername">Email / Username</label>
+            <div class="input-wrap">
+                <input
+                        type="text"
+                        id="username"
+                        name="username"
+                        placeholder="you@example.com"
+                        autocomplete="username"
+                        required />
+            </div>
+        </div>
 
-            document.title = t.pageTitle;
-            document.getElementById('tagline').textContent = t.tagline;
-            document.getElementById('labelUsername').textContent = t.labelUsername;
-            document.getElementById('username').placeholder = t.placeholderUser;
-            document.getElementById('labelPassword').textContent = t.labelPassword;
-            document.getElementById('password').placeholder = '••••••••';
-            document.getElementById('rememberText').textContent = t.remember;
-            document.getElementById('forgotLink').textContent = t.forgot;
-            document.getElementById('btnLogin').textContent = t.btnLogin;
+        <!-- Password -->
+        <div class="form-group">
+            <label for="password" id="labelPassword">Password</label>
+            <div class="input-wrap">
+                <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="••••••••"
+                        autocomplete="current-password"
+                        required />
+                <button
+                        type="button"
+                        class="toggle-pw"
+                        id="toggleBtn"
+                        onclick="togglePassword()"
+                        aria-label="Show password">
+                    👁
+                </button>
+            </div>
+        </div>
 
-            const errorEl = document.getElementById('errorMsg');
-            if (errorEl) errorEl.textContent = t.errorMsg;
+        <!-- Remember me + Forgot password -->
+        <div class="form-meta">
+            <label>
+                <input type="checkbox" name="remember-me" />
+                <span id="rememberText">Remember me</span>
+            </label>
+            <a th:href="@{/forgot-password}" href="#" class="forgot-link" id="forgotLink">
+                Forgot Password?
+            </a>
+        </div>
 
-            /* Sync toggle button aria-label with current password visibility */
-            const pw = document.getElementById('password');
-            const btn = document.getElementById('toggleBtn');
-            btn.setAttribute('aria-label', pw.type === 'text' ? t.toggleHide : t.toggleShow);
-        }
+        <!-- Submit -->
+        <button type="submit" class="btn-login" id="btnLogin">Login</button>
 
-        /* ── Language switcher ── */
-        function setLang(lang, event) {
-            currentLang = lang;
-            localStorage.setItem('attendee_lang', lang);
+    </form>
 
-            /* Update active button highlight */
-            document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+    <!-- Language switcher -->
+    <div class="lang-bar">
+        <button class="lang-btn active" data-lang="en" onclick="setLang('en', event)">EN</button>
+        <button class="lang-btn"        data-lang="fr" onclick="setLang('fr', event)">FR</button>
+    </div>
 
-            /* Translate entire page */
-            applyTranslations(lang);
-        }
+</div>
 
-        /* ── Password visibility toggle ── */
-        function togglePassword() {
-            const pw = document.getElementById('password');
-            const btn = document.getElementById('toggleBtn');
-            const t = translations[currentLang];
-            const isHidden = pw.type === 'password';
+<!--&lt;!&ndash; Login page scripts &ndash;&gt;-->
+<!--<script th:src="@{/js/Login.js}" defer></script>-->
+<script>
+    /* ── Translations ── */
+const translations = {
+    en: {
+        pageTitle:       'Attendee \u2013 Login',
+        tagline:         'Smart Attendance Management',
+        labelUsername:   'Email / Username',
+        placeholderUser: 'you@example.com',
+        labelPassword:   'Password',
+        remember:        'Remember me',
+        forgot:          'Forgot Password?',
+        btnLogin:        'Login',
+        errorMsg:        'Invalid username or password. Please try again.',
+        toggleShow:      'Show password',
+        toggleHide:      'Hide password',
+    },
+    fr: {
+        pageTitle:       'Attendee \u2013 Connexion',
+        tagline:         'Gestion intelligente des pr\u00e9sences',
+        labelUsername:   'Email / Nom d\u2019utilisateur',
+        placeholderUser: 'vous@exemple.com',
+        labelPassword:   'Mot de passe',
+        remember:        'Se souvenir de moi',
+        forgot:          'Mot de passe oubli\u00e9\u00a0?',
+        btnLogin:        'Connexion',
+        errorMsg:        'Identifiant ou mot de passe invalide. Veuillez r\u00e9essayer.',
+        toggleShow:      'Afficher le mot de passe',
+        toggleHide:      'Masquer le mot de passe',
+    }
+};
 
-            pw.type = isHidden ? 'text' : 'password';
-            btn.textContent = isHidden ? '\uD83D\uDE48' : '\uD83D\uDC41'; /* 🙈 / 👁 */
-            btn.style.color = isHidden ? 'var(--teal)' : '';
-            btn.setAttribute('aria-label', isHidden ? t.toggleHide : t.toggleShow);
-        }
+/* ── Current language (persisted in localStorage) ── */
+let currentLang = localStorage.getItem('attendee_lang') || 'en';
 
-        /* ── Init: restore saved language preference on page load ── */
-        document.addEventListener('DOMContentLoaded', function () {
-            applyTranslations(currentLang);
+/* ── Apply all translations to the page ── */
+function applyTranslations(lang) {
+    const t = translations[lang];
+    if (!t) return;
 
-            /* Mark the correct language button as active */
-            document.querySelectorAll('.lang-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.lang === currentLang);
-            });
-        });
-    </script>
+    document.title                                           = t.pageTitle;
+    document.getElementById('tagline').textContent          = t.tagline;
+    document.getElementById('labelUsername').textContent    = t.labelUsername;
+    document.getElementById('username').placeholder         = t.placeholderUser;
+    document.getElementById('labelPassword').textContent    = t.labelPassword;
+    document.getElementById('password').placeholder         = '••••••••';
+    document.getElementById('rememberText').textContent     = t.remember;
+    document.getElementById('forgotLink').textContent       = t.forgot;
+    document.getElementById('btnLogin').textContent         = t.btnLogin;
+
+    const errorEl = document.getElementById('errorMsg');
+    if (errorEl) errorEl.textContent = t.errorMsg;
+
+    /* Sync toggle button aria-label with current password visibility */
+    const pw  = document.getElementById('password');
+    const btn = document.getElementById('toggleBtn');
+    btn.setAttribute('aria-label', pw.type === 'text' ? t.toggleHide : t.toggleShow);
+}
+
+/* ── Language switcher ── */
+function setLang(lang, event) {
+    currentLang = lang;
+    localStorage.setItem('attendee_lang', lang);
+
+    /* Update active button highlight */
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+
+    /* Translate entire page */
+    applyTranslations(lang);
+}
+
+/* ── Password visibility toggle ── */
+function togglePassword() {
+    const pw       = document.getElementById('password');
+    const btn      = document.getElementById('toggleBtn');
+    const t        = translations[currentLang];
+    const isHidden = pw.type === 'password';
+
+    pw.type         = isHidden ? 'text' : 'password';
+    btn.textContent = isHidden ? '\uD83D\uDE48' : '\uD83D\uDC41'; /* 🙈 / 👁 */
+    btn.style.color = isHidden ? 'var(--teal)' : '';
+    btn.setAttribute('aria-label', isHidden ? t.toggleHide : t.toggleShow);
+}
+
+/* ── Init: restore saved language preference on page load ── */
+document.addEventListener('DOMContentLoaded', function () {
+    applyTranslations(currentLang);
+
+    /* Mark the correct language button as active */
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    });
+});
+</script>
 
 </body>
-
 </html>
