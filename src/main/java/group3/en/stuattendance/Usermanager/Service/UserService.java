@@ -22,6 +22,7 @@ public interface UserService {
     void deleteUser(Integer userId);
     void deactivateUser(Integer userId);
     void activateUser(Integer userId);
+    List<UserDto> getUsersByRole(String roleName);
 
     // Role and Permissions
     void assignRole(Integer userId, Integer roleId);
@@ -45,4 +46,5 @@ public interface UserService {
 
     // Bulk Operations
     group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file);
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStudents(org.springframework.web.multipart.MultipartFile file, Integer classroomId);
 }

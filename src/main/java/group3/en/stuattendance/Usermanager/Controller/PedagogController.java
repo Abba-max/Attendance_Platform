@@ -20,8 +20,15 @@ public class PedagogController {
        return ResponseEntity.ok(userService.registerTeacher(dto));
     }
 
-    @PostMapping("/students")
-    public ResponseEntity<User> createStudent(@RequestBody StudentCreateDto dto) {
-        return ResponseEntity.ok(userService.registerStudent(dto));
+    @GetMapping("/teachers")
+    public ResponseEntity<java.util.List<group3.en.stuattendance.Usermanager.DTO.UserDto>> getAllTeachers() {
+        return ResponseEntity.ok(userService.getUsersByRole("TEACHER"));
+    }
+
+    @PostMapping("/students/bulk-import")
+    public ResponseEntity<group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto> bulkImportStudents(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("classroomId") Integer classroomId) {
+        return ResponseEntity.ok(userService.bulkImportStudents(file, classroomId));
     }
 }

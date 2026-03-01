@@ -166,6 +166,8 @@ public class UserServiceImpl implements UserService {
         User user = User.builder()
                 .username(dto.getUsername())
                 .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
                 .password(passwordEncoder.encode(rawPassword))
                 .matricule(dto.getMatricule())
                 .institution(institution)
@@ -329,6 +331,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<group3.en.stuattendance.Usermanager.DTO.UserDto> getUsersByRole(String roleName) {
+        return userRepository.findAll().stream()
+            .filter(u -> u.getRoles().stream()
+                .anyMatch(r -> r.getName().equalsIgnoreCase(roleName) || r.getName().equalsIgnoreCase("ROLE_" + roleName)))
+            .map(userMapper::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
     public void assignRole(Integer userId, Integer roleId) {
         userRepository.findById(userId).ifPresent(user -> {
             roleRepository.findById(roleId).ifPresent(role -> {
@@ -462,6 +473,68 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Failed to parse CSV file: " + e.getMessage());
         }
 
+    }
+
+    @Override
+    @Auditable(action = "STUDENT_BULK_IMPORT", category = "USER_MANAGEMENT", severity = "INFO")
+    public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStudents(org.springframework.web.multipart.MultipartFile file, Integer classroomId) {
+        group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
+        
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()));
+             com.opencsv.CSVReader csvReader = new com.opencsv.CSVReader(reader)) {
+            
+            List<String[]> rows = csvReader.readAll();
+            result.setTotalRows(rows.size());
+
+            Classroom classroom = classroomRepository.findById(classroomId).orElse(null);
+            Institution institution = (classroom != null && classroom.getSpeciality() != null && classroom.getSpeciality().getDepartment() != null) 
+                ? classroom.getSpeciality().getDepartment().getInstitution() : institutionRepository.findById(1).orElse(null);
+
+            for (int i = 0; i < rows.size(); i++) {
+                String[] row = rows.get(i);
+                int rowNum = i + 1;
+
+                if (row.length < 4) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: firstName, lastName, email, matricule"));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                    continue;
+                }
+
+                String firstName = row[0].trim();
+                String lastName = row[1].trim();
+                String email = row[2].trim();
+                String matricule = row[3].trim();
+                String username = (row.length > 4 && !row[4].trim().isEmpty()) ? row[4].trim() : email;
+
+                try {
+                    if (userRepository.findByEmail(email).isPresent()) {
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, email, "User with this email already exists"));
+                         result.setFailureCount(result.getFailureCount() + 1);
+                         continue;
+                    }
+
+                    group3.en.stuattendance.Usermanager.DTO.StudentCreateDto dto = group3.en.stuattendance.Usermanager.DTO.StudentCreateDto.builder()
+                            .firstName(firstName)
+                            .lastName(lastName)
+                            .email(email)
+                            .username(username)
+                            .matricule(matricule)
+                            .classroomId(classroomId)
+                            .institutionId(institution != null ? institution.getInstitutionId() : null)
+                            .isActive(true)
+                            .build();
+
+                    registerStudent(dto);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+
+                } catch (Exception e) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, email, "Error: " + e.getMessage()));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CSV: " + e.getMessage());
+        }
         return result;
     }
 }
