@@ -13,8 +13,14 @@ public class CourseDto {
 
     private Integer courseId;
     private String courseName;
-    private Integer credits;
+    private String code;
     private String description;
+    private Integer credits;
+    private Integer hoursPerWeek;
+    private Integer semester;
+    private Integer level;
+    private Integer specialityId;
+    private String specialityName;
     private Integer teacherId;
-    private Integer classroomId; // Added for UI compatibility
+    private String teacherName;
 }
