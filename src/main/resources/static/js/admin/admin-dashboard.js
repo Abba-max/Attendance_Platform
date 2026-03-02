@@ -16,6 +16,47 @@ let allPermissions = [];
 // Hierarchy Filter State
 let currentCycleFilter = 'all';
 let currentDeptFilter = 'all';
+let currentRoleFilter = 'ALL';
+
+/**
+ * Toggle custom dropdown
+ */
+function toggleUserDropdown(id, event) {
+    if (event) event.stopPropagation();
+
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+
+    const isHidden = dropdown.classList.contains('hidden');
+
+    // Close all other user dropdowns
+    document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+
+    if (isHidden) {
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Global click listener to close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    // Check if click is inside any dropdown or its trigger
+    if (!e.target.closest('[id^="dropdown-"]') && !e.target.closest('button[onclick*="toggleUserDropdown"]')) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+    }
+});
+
+/**
+ * Escape HTML
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Dashboard initializing... v20260216-2'); // Version check
@@ -139,7 +180,17 @@ function renderUserTable(users) {
         return;
     }
 
-    tableBody.innerHTML = users.map(user => `
+    // Apply role filter on the already filtered/searched list
+    const filteredByRole = currentRoleFilter === 'ALL'
+        ? users
+        : users.filter(user => (user.roleNames || []).includes(currentRoleFilter));
+
+    if (filteredByRole.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No users match this role filter</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = filteredByRole.map(user => `
         <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 text-sm font-medium text-gray-400 text-center">#${user.userId}</td>
             <td class="px-6 py-4">
@@ -155,9 +206,9 @@ function renderUserTable(users) {
             </td>
             <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    ${user.roles.map(role => `
+                    ${(user.roleNames || []).map(roleName => `
                         <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-tight">
-                            ${escapeHtml(role.name)}
+                            ${escapeHtml(roleName)}
                         </span>
                     `).join('')}
                 </div>
@@ -184,49 +235,82 @@ function renderUserTable(users) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                     </button>
-                    <div class="relative group">
-                        <button class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
+                    <!-- Roles Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleUserDropdown('dropdown-roles-${user.userId}', event)" 
+                                class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                             </svg>
                         </button>
-                        <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                        <div id="dropdown-roles-${user.userId}" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden" onclick="event.stopPropagation()">
                             <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Assign Role</div>
-                            ${allRoles.map(role => {
-        const hasRole = user.roles.some(r => r.roleId === role.roleId);
+                            <div class="max-h-60 overflow-y-auto">
+                                ${allRoles.map(role => {
+        const hasRole = (user.roleIds || []).includes(role.roleId);
         return `
-                                    <button onclick="handleUpdateUserRole(${user.userId}, ${role.roleId}, ${!hasRole})" 
-                                        class="w-full text-left px-4 py-2 text-sm ${hasRole ? 'text-[#00B0FF] bg-blue-50' : 'text-gray-600 hover:bg-gray-50'} transition-colors flex items-center justify-between">
-                                        ${escapeHtml(role.name)}
-                                        ${hasRole ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
-                                    </button>
-                                `;
+                                        <button onclick="handleUpdateUserRole(${user.userId}, ${role.roleId}, ${!hasRole})" 
+                                            class="w-full text-left px-4 py-2 text-sm ${hasRole ? 'text-[#00B0FF] bg-blue-50' : 'text-gray-600 hover:bg-gray-50'} transition-colors flex items-center justify-between">
+                                            ${escapeHtml(role.name)}
+                                            ${hasRole ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+                                        </button>
+                                    `;
     }).join('')}
+                            </div>
                         </div>
                     </div>
-                    <!-- Permissions Dropdown -->
-                    <div class="relative group">
-                        <button class="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title="View Permissions">
+                    <!-- Manual Overrides Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleUserDropdown('dropdown-perms-${user.userId}', event)" 
+                                class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Permission Overrides">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
                             </svg>
                         </button>
-                        <div class="hidden group-hover:block absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
-                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50 italic">Effective Permissions</div>
-                            <div class="max-h-60 overflow-y-auto">
-                                ${(() => {
-            const userPermissions = new Set();
-            user.roles.forEach(role => {
-                (role.permissions || []).forEach(p => userPermissions.add(p.name));
-            });
-            if (userPermissions.size === 0) return '<div class="p-4 text-xs text-gray-400 text-center italic">No permissions granted</div>';
-            return Array.from(userPermissions).sort().map(pName => `
-                                        <div class="px-4 py-2 text-xs text-emerald-600 flex items-center gap-2 border-b border-gray-50 last:border-0 hover:bg-emerald-50">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
-                                            ${escapeHtml(pName)}
+                        <div id="dropdown-perms-${user.userId}" class="hidden absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden" onclick="event.stopPropagation()">
+                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Manage Permissions</div>
+                            <div class="max-h-60 overflow-y-auto p-2 space-y-1">
+                                ${allPermissions.map(perm => {
+        // Use pre-calculated effective permissions from DTO
+        const isExplicitlyGranted = (user.additionalPermissionIds || []).includes(perm.permissionId);
+        const isExplicitlyDenied = (user.deniedPermissionIds || []).includes(perm.permissionId);
+        const hasPermission = (user.effectivePermissionIds || []).includes(perm.permissionId);
+
+        let state = 'default';
+        if (isExplicitlyGranted) state = 'granted';
+        else if (isExplicitlyDenied) state = 'denied';
+
+        // Permission is inherited if the user has it but hasn't explicitly granted it
+        // (This covers the case where a role provides it)
+        const isInherited = hasPermission && !isExplicitlyGranted;
+
+        return `
+                                        <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-xs transition-colors">
+                                            <span class="font-medium ${hasPermission ? 'text-green-600' : (state === 'denied' ? 'text-red-600' : 'text-gray-700')}">
+                                                ${escapeHtml(perm.name)}
+                                                ${isInherited ? '<span class="ml-1 text-[10px] text-gray-400 italic">(inherited)</span>' : ''}
+                                            </span>
+                                            <button onclick="handlePermissionCycle(${user.userId}, ${perm.permissionId}, '${state}')" 
+                                                class="flex items-center justify-center p-1.5 rounded-lg border-2 transition-all ${state === 'granted' ? 'bg-green-500 border-green-500 text-white shadow-sm' :
+                state === 'denied' ? 'bg-red-500 border-red-500 text-white shadow-sm' :
+                    'bg-white border-gray-200 text-gray-300 hover:border-blue-400 hover:text-blue-400'
+            }" 
+                                                title="${state === 'granted' ? 'Explicitly Granted' : state === 'denied' ? 'Explicitly Denied' : 'Default (Inherited)'}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    ${state === 'granted' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>' :
+                state === 'denied' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>' :
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" opacity="0.3"></path>'}
+                                                </svg>
+                                            </button>
                                         </div>
-                                    `).join('');
-        })()}
+                                    `;
+    }).join('')}
+                                <div class="pt-2 border-t border-gray-50">
+                                    <button onclick="handleClearOverrides(${user.userId})" 
+                                        class="w-full py-2 text-[10px] font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 uppercase tracking-widest transition-colors">
+                                        Clear Manual Overrides
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -283,7 +367,7 @@ async function handleUpdateUserRole(userId, roleId, add) {
         const user = allUsers.find(u => u.userId === userId);
         if (!user) return;
 
-        let roleIds = user.roles.map(r => r.roleId);
+        let roleIds = [...(user.roleIds || [])];
         if (add) {
             roleIds.push(roleId);
         } else {
@@ -305,6 +389,141 @@ async function handleUpdateUserRole(userId, roleId, add) {
     } catch (error) {
         console.error('Error updating user roles:', error);
         showNotification('Error updating roles', 'error');
+    }
+}
+
+/**
+ * Handle Permission Cycle (Default -> Granted -> Revoked -> Default)
+ */
+async function handlePermissionCycle(userId, permissionId, currentState) {
+    let action;
+    let endpoint;
+
+    if (currentState === 'default') {
+        action = 'grant';
+        endpoint = `/api/admin/users/${userId}/permissions/grant/${permissionId}`;
+    } else if (currentState === 'granted') {
+        action = 'revoke';
+        endpoint = `/api/admin/users/${userId}/permissions/revoke/${permissionId}`;
+    } else {
+        action = 'clear';
+        endpoint = `/api/admin/users/${userId}/permissions/clear/${permissionId}`;
+    }
+
+    try {
+        const response = await fetch(endpoint, { method: 'POST' });
+
+        if (response.ok) {
+            showNotification(`Permission ${action}${action.endsWith('e') ? 'd' : 'ed'} successfully`, 'success');
+            loadUsers(); // Refresh cache and table immediately
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || `Failed to ${action} permission`);
+        }
+    } catch (error) {
+        console.error(`Error cycling permission:`, error);
+        showNotification(error.message || `Error updating permission`, 'error');
+    }
+}
+
+/**
+ * Handle Permission Override (Grant/Revoke) - Deprecated by cycle but kept for safety
+ */
+async function handleOverridePermission(userId, permissionId, action) {
+    // ... code omitted ...
+}
+
+/**
+ * Handle Clear Overrides
+ */
+async function handleClearOverrides(userId) {
+    if (!confirm('Are you sure you want to clear all permission overrides for this user?')) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/permissions/clear`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('Permission overrides cleared', 'success');
+            loadUsers();
+        } else {
+            throw new Error('Failed to clear overrides');
+        }
+    } catch (error) {
+        console.error('Error clearing overrides:', error);
+        showNotification('Error clearing overrides', 'error');
+    }
+}
+
+/**
+ * Handle Toggle User Status (Deactivate/Activate)
+ */
+async function handleToggleStatus(userId, currentIsActive) {
+    const action = currentIsActive ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    try {
+        const response = await fetch(`/api/users/${userId}/${action}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showNotification(`User ${action}d successfully`, 'success');
+            loadUsers();
+        } else {
+            throw new Error(`Failed to ${action} user`);
+        }
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        showNotification(`Error ${action}ing user`, 'error');
+    }
+}
+
+/**
+ * Handle Reset Password
+ */
+async function handleResetPassword(userId) {
+    const newPassword = prompt("Enter new password for this user:");
+    if (!newPassword) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            body: newPassword
+        });
+
+        if (response.ok) {
+            showNotification('Password reset successfully', 'success');
+        } else {
+            throw new Error('Failed to reset password');
+        }
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showNotification('Error resetting password', 'error');
+    }
+}
+
+/**
+ * Handle Delete User
+ */
+async function handleDeleteUser(userId) {
+    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('User deleted successfully', 'success');
+            loadUsers();
+        } else {
+            throw new Error('Failed to delete user');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showNotification('Error deleting user', 'error');
     }
 }
 
@@ -413,76 +632,6 @@ async function handleToggleRolePermission(roleName, permissionName, add) {
     }
 }
 
-/**
- * Handle Reset Password
- */
-async function handleResetPassword(userId) {
-    const newPassword = prompt("Enter new password for this user:");
-    if (!newPassword) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
-            method: 'POST',
-            body: newPassword
-        });
-
-        if (response.ok) {
-            showNotification('Password reset successfully', 'success');
-        } else {
-            throw new Error('Failed to reset password');
-        }
-    } catch (error) {
-        console.error('Error resetting password:', error);
-        showNotification('Error resetting password', 'error');
-    }
-}
-
-/**
- * Handle Toggle User Status (Deactivate/Activate)
- */
-async function handleToggleStatus(userId, currentIsActive) {
-    const action = currentIsActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
-
-    try {
-        const response = await fetch(`/api/users/${userId}/${action}`, {
-            method: 'POST'
-        });
-
-        if (response.ok) {
-            showNotification(`User ${action}d successfully`, 'success');
-            loadUsers(); // Reload to update UI
-        } else {
-            throw new Error(`Failed to ${action} user`);
-        }
-    } catch (error) {
-        console.error(`Error ${action}ing user:`, error);
-        showNotification(`Error ${action}ing user`, 'error');
-    }
-}
-
-/**
- * Handle Delete User
- */
-async function handleDeleteUser(userId) {
-    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            showNotification('User deleted successfully', 'success');
-            loadUsers();
-        } else {
-            throw new Error('Failed to delete user');
-        }
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        showNotification('Error deleting user', 'error');
-    }
-}
 
 /**
  * Setup User Search
@@ -500,6 +649,28 @@ function setupUserSearch() {
         });
     }
 }
+
+/**
+ * Filter users by role
+ */
+function setRoleFilter(role) {
+    currentRoleFilter = role;
+
+    // Update UI
+    document.querySelectorAll('.role-filter-btn').forEach(btn => {
+        if ((role === 'ALL' && btn.textContent.trim() === 'All') ||
+            (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${role}'`))) {
+            btn.classList.add('active', 'bg-[#00B0FF]', 'text-white');
+            btn.classList.remove('bg-white', 'text-slate-600');
+        } else {
+            btn.classList.remove('active', 'bg-[#00B0FF]', 'text-white');
+            btn.classList.add('bg-white', 'text-slate-600');
+        }
+    });
+
+    renderUserTable(allUsers);
+}
+
 
 /**
  * Manual Refresh Users
@@ -995,7 +1166,8 @@ async function handleCreateStaff(e) {
     const roleNames = Array.from(form.querySelector('select[name="roleNames"]').selectedOptions).map(opt => opt.value);
 
     const payload = {
-        username: formData.get('username'),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
         email: formData.get('email'),
         roleNames: roleNames,
         institutionId: 1, // Default single institution
@@ -1627,22 +1799,41 @@ window.openCreateDepartmentModal = function (cycleId, institutionId) {
     }
 };
 
+window.openCreateDepartmentModal = function (cycleId, institutionId) {
+    const modal = document.getElementById('departmentModal');
+    const cycleInput = document.getElementById('deptCycleId');
+    const instInput = document.getElementById('deptInstitutionId');
+
+    if (modal) {
+        if (cycleInput) cycleInput.value = cycleId;
+        if (instInput) instInput.value = institutionId;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        // Reset multi-selects
+        resetMultiSelect('paCreateDropdown');
+        resetMultiSelect('supCreateDropdown');
+    }
+};
+
 window.closeCreateDepartmentModal = function () {
     const modal = document.getElementById('departmentModal');
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
+        // Reset multi-selects
+        resetMultiSelect('paCreateDropdown');
+        resetMultiSelect('supCreateDropdown');
     }
 };
 
-window.openEditDepartmentModal = function (id, name, chief, cycleId, institutionId, paId, supervisorIds) {
+window.openEditDepartmentModal = function (id, name, chief, cycleId, institutionId, paIds, supervisorIds) {
     const modal = document.getElementById('editDepartmentModal');
     const idInput = document.getElementById('editDeptId');
     const nameInput = document.getElementById('editDeptName');
     const chiefInput = document.getElementById('editDeptChief');
     const cycleSelect = document.getElementById('editDeptCycleId');
     const instSelect = document.getElementById('editDeptInstitutionId');
-    const paSelect = document.getElementById('editDeptPaId');
     const form = document.getElementById('editDepartmentForm');
 
     if (modal && idInput && nameInput && chiefInput && form) {
@@ -1651,13 +1842,12 @@ window.openEditDepartmentModal = function (id, name, chief, cycleId, institution
         chiefInput.value = chief || '';
         if (cycleSelect) cycleSelect.value = cycleId;
         if (instSelect) instSelect.value = institutionId;
-        if (paSelect) paSelect.value = paId || '';
 
-        // Handle Supervisors Checkboxes
-        const checkboxes = document.querySelectorAll('#editDeptSupervisorsContainer input[type="checkbox"]');
-        checkboxes.forEach(cb => {
-            cb.checked = supervisorIds.includes(parseInt(cb.value));
-        });
+        // Populate PA Multi-select
+        syncMultiSelect('paEditDropdown', paIds);
+
+        // Populate Supervisor Multi-select
+        syncMultiSelect('supEditDropdown', supervisorIds);
 
         form.action = `/admin/departments/edit/${id}`;
         modal.classList.remove('hidden');
@@ -1674,11 +1864,23 @@ window.closeEditDepartmentModal = function () {
 };
 
 window.openCreateClassroomModal = function (departmentId) {
+    // This is now deprecated in favor of openCreateClassroomModalFromSpec
+    // but we keep it for compatibility if called from elsewhere
     const modal = document.getElementById('classroomModal');
-    const deptIdInput = document.getElementById('classroomDepartmentId');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
 
-    if (modal && deptIdInput) {
-        deptIdInput.value = departmentId;
+window.openCreateClassroomModalFromSpec = function (specialityId) {
+    const modal = document.getElementById('classroomModal');
+    const specIdInput = document.getElementById('classroomSpecialityId');
+    const specSelect = document.getElementById('classroomSpecialitySelect');
+
+    if (modal && specIdInput) {
+        specIdInput.value = specialityId;
+        if (specSelect) specSelect.value = specialityId;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
     }
@@ -1692,13 +1894,13 @@ window.closeCreateClassroomModal = function () {
     }
 };
 
-window.openEditClassroomModal = function (id, name, level, capacity, departmentId) {
+window.openEditClassroomModal = function (id, name, level, capacity, specialityId) {
     const modal = document.getElementById('editClassroomModal');
     const idInput = document.getElementById('editClassroomId');
     const nameInput = document.getElementById('editClassroomName');
     const levelInput = document.getElementById('editClassroomLevel');
     const capInput = document.getElementById('editClassroomCapacity');
-    const deptSelect = document.getElementById('editClassroomDeptId');
+    const specSelect = document.getElementById('editClassroomSpecId');
     const form = document.getElementById('editClassroomForm');
 
     if (modal && idInput && nameInput && levelInput && capInput && form) {
@@ -1706,7 +1908,7 @@ window.openEditClassroomModal = function (id, name, level, capacity, departmentI
         nameInput.value = name;
         levelInput.value = level;
         capInput.value = capacity;
-        if (deptSelect) deptSelect.value = departmentId;
+        if (specSelect) specSelect.value = specialityId;
         form.action = `/admin/classrooms/edit/${id}`;
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -1720,6 +1922,194 @@ window.closeEditClassroomModal = function () {
         modal.classList.remove('flex');
     }
 };
+
+// --- Speciality Modal Functions ---
+
+window.openCreateSpecialityModal = function (departmentId) {
+    const modal = document.getElementById('specialityModal');
+    const deptSelect = document.getElementById('specialityDeptId');
+    const form = document.getElementById('specialityForm');
+
+    if (modal) {
+        if (form) form.reset();
+        if (deptSelect && departmentId) {
+            deptSelect.value = departmentId;
+        }
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeCreateSpecialityModal = function () {
+    const modal = document.getElementById('specialityModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.openEditSpecialityModal = function (id, name, description, departmentId) {
+    const modal = document.getElementById('editSpecialityModal');
+    const idInput = document.getElementById('editSpecialityId');
+    const nameInput = document.getElementById('editSpecialityName');
+    const descInput = document.getElementById('editSpecialityDescription');
+    const deptSelect = document.getElementById('editSpecialityDeptId');
+    const form = document.getElementById('editSpecialityForm');
+
+    if (modal && idInput && nameInput && descInput && form) {
+        idInput.value = id;
+        nameInput.value = name;
+        descInput.value = description;
+        if (deptSelect) deptSelect.value = departmentId;
+        form.action = `/admin/specialities/edit/${id}`;
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+};
+
+window.closeEditSpecialityModal = function () {
+    const modal = document.getElementById('editSpecialityModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+};
+
+window.handleDeleteSpeciality = function (id) {
+    if (confirm('Are you sure you want to delete this speciality? This action cannot be undone.')) {
+        fetch(`/admin/specialities/delete/${id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
+            }
+        }).then(response => response.text()).then(result => {
+            if (result === 'success') {
+                window.location.reload();
+            } else {
+                alert('Failed to delete speciality.');
+            }
+        }).catch(err => {
+            console.error('Delete error:', err);
+            alert('Error deleting speciality.');
+        });
+    }
+};
+
+/* --- Custom Multi-select Dropdown Logic --- */
+
+window.toggleMultiSelect = function (id) {
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+    const content = dropdown.querySelector('.dropdown-content');
+
+    // Close other dropdowns
+    document.querySelectorAll('.multi-select-dropdown .dropdown-content').forEach(other => {
+        if (other !== content) other.classList.add('hidden');
+    });
+
+    content.classList.toggle('hidden');
+};
+
+window.filterMultiSelect = function (input) {
+    const term = input.value.toLowerCase();
+    const dropdown = input.closest('.multi-select-dropdown');
+    const options = dropdown.querySelectorAll('.dropdown-content > div:not(.p-2)');
+
+    options.forEach(opt => {
+        const text = opt.textContent.toLowerCase();
+        opt.classList.toggle('hidden', !text.includes(term));
+    });
+};
+
+window.toggleOption = function (element, dropdownId, value) {
+    const checkbox = element.querySelector('input[type="checkbox"]');
+    const indicator = element.querySelector('.checkbox-indicator');
+    const svg = indicator.querySelector('svg');
+
+    checkbox.checked = !checkbox.checked;
+
+    if (checkbox.checked) {
+        indicator.classList.add('bg-blue-500', 'border-blue-500');
+        indicator.classList.remove('border-slate-200');
+        svg.classList.remove('hidden');
+    } else {
+        indicator.classList.remove('bg-blue-500', 'border-blue-500');
+        indicator.classList.add('border-slate-200');
+        svg.classList.add('hidden');
+    }
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+window.updateMultiSelectDisplay = function (dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    const selectedText = dropdown.querySelector('.selected-text');
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]:checked');
+
+    if (checkboxes.length === 0) {
+        selectedText.textContent = dropdownId.toLowerCase().includes('pa') ? 'Select PAs...' : 'Select Supervisors...';
+        selectedText.classList.add('text-slate-500');
+        selectedText.classList.remove('text-blue-600', 'font-semibold');
+    } else {
+        selectedText.textContent = `${checkboxes.length} Selected`;
+        selectedText.classList.remove('text-slate-500');
+        selectedText.classList.add('text-blue-600', 'font-semibold');
+    }
+};
+
+window.syncMultiSelect = function (dropdownId, selectedIds) {
+    if (!selectedIds) selectedIds = [];
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = selectedIds.includes(parseInt(cb.value));
+        const element = cb.closest('div.cursor-pointer');
+        const indicator = element.querySelector('.checkbox-indicator');
+        const svg = indicator.querySelector('svg');
+
+        if (cb.checked) {
+            indicator.classList.add('bg-blue-500', 'border-blue-500');
+            indicator.classList.remove('border-slate-200');
+            svg.classList.remove('hidden');
+        } else {
+            indicator.classList.remove('bg-blue-500', 'border-blue-500');
+            indicator.classList.add('border-slate-200');
+            svg.classList.add('hidden');
+        }
+    });
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+window.resetMultiSelect = function (dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(cb => {
+        cb.checked = false;
+        const element = cb.closest('div.cursor-pointer');
+        const indicator = element.querySelector('.checkbox-indicator');
+        const svg = indicator.querySelector('svg');
+
+        indicator.classList.remove('bg-blue-500', 'border-blue-500');
+        indicator.classList.add('border-slate-200');
+        svg.classList.add('hidden');
+    });
+
+    updateMultiSelectDisplay(dropdownId);
+};
+
+// Global click-away to close dropdowns
+document.addEventListener('click', function (e) {
+    if (!e.target.closest('.multi-select-dropdown')) {
+        document.querySelectorAll('.multi-select-dropdown .dropdown-content').forEach(d => d.classList.add('hidden'));
+    }
+});
 
 /**
  * Handles deletion of a cycle with confirmation.
@@ -1826,8 +2216,8 @@ window.switchManageTab = function (tabName) {
         } else {
             subFilters.classList.remove('hidden');
             // Reset all chips to default state
-            document.querySelectorAll('.cycle-chip, .dept-chip').forEach(chip => {
-                const id = chip.dataset.cycleId || chip.dataset.deptId;
+            document.querySelectorAll('.cycle-chip, .dept-chip, .spec-chip').forEach(chip => {
+                const id = chip.dataset.cycleId || chip.dataset.deptId || chip.dataset.specId;
                 if (id === 'all') {
                     chip.classList.add('active');
                     chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
@@ -1835,17 +2225,25 @@ window.switchManageTab = function (tabName) {
                     chip.classList.remove('active');
                     chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
                 }
-                // Departments chips are hidden until we decide which belong to cycle or if we show all
+
+                // Toggle visibility based on tab
                 if (chip.classList.contains('dept-chip')) {
-                    // We'll show dept chips only if classrooms tab is active
+                    chip.parentElement.classList.toggle('hidden', tabName !== 'specialities' && tabName !== 'classrooms');
+                }
+                if (chip.classList.contains('spec-chip')) {
                     chip.parentElement.classList.toggle('hidden', tabName !== 'classrooms');
                 }
             });
 
             if (tabName === 'departments') {
                 deptContainer.classList.add('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.add('hidden');
+            } else if (tabName === 'specialities') {
+                deptContainer.classList.remove('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.add('hidden');
             } else if (tabName === 'classrooms') {
                 deptContainer.classList.remove('hidden');
+                if (document.getElementById('specFilterContainer')) document.getElementById('specFilterContainer').classList.remove('hidden');
             }
         }
     }
@@ -1881,6 +2279,8 @@ window.applyManageSearch = function () {
         items = Array.from(document.querySelectorAll('.cycle-card'));
     } else if (activeTab === 'departments') {
         items = Array.from(document.querySelectorAll('.dept-card'));
+    } else if (activeTab === 'specialities') {
+        items = Array.from(document.querySelectorAll('.spec-card'));
     } else if (activeTab === 'classrooms') {
         items = Array.from(document.querySelectorAll('.class-card'));
     }
@@ -1898,10 +2298,13 @@ window.applyManageSearch = function () {
 
         if (activeTab === 'departments') {
             matchesHierarchy = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
+        } else if (activeTab === 'specialities') {
+            matchesHierarchy = (currentDeptFilter === 'all' || deptId === currentDeptFilter);
         } else if (activeTab === 'classrooms') {
             const matchesCycle = (currentCycleFilter === 'all' || cycleId === currentCycleFilter);
             const matchesDept = (currentDeptFilter === 'all' || deptId === currentDeptFilter);
-            matchesHierarchy = matchesCycle && matchesDept;
+            const matchesSpec = (typeof currentSpecFilter !== 'undefined' && (currentSpecFilter === 'all' || item.dataset.specId === currentSpecFilter)) || true;
+            matchesHierarchy = matchesCycle && matchesDept && matchesSpec;
         }
 
         if (matchesTerm && matchesHierarchy) {
@@ -1974,11 +2377,46 @@ window.setManageFilter = function (type, id) {
 
     } else if (type === 'dept') {
         currentDeptFilter = String(id);
+        currentSpecFilter = 'all';
 
         // Update Dept Chips
         document.querySelectorAll('.dept-chip').forEach(chip => {
             const chipId = String(chip.dataset.deptId);
             if (chipId === currentDeptFilter) {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+            }
+        });
+
+        // Update Spec Chip visibility based on Dept
+        document.querySelectorAll('.spec-chip').forEach(chip => {
+            const chipId = String(chip.dataset.specId);
+            const chipDeptId = String(chip.dataset.deptId);
+
+            if (chipId === 'all') {
+                chip.classList.add('active');
+                chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                chip.classList.remove('hidden');
+            } else {
+                chip.classList.remove('active');
+                chip.classList.add('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
+                if (currentDeptFilter === 'all' || chipDeptId === currentDeptFilter) {
+                    chip.classList.remove('hidden');
+                } else {
+                    chip.classList.add('hidden');
+                }
+            }
+        });
+    } else if (type === 'spec') {
+        currentSpecFilter = String(id);
+
+        // Update Spec Chips
+        document.querySelectorAll('.spec-chip').forEach(chip => {
+            const chipId = String(chip.dataset.specId);
+            if (chipId === currentSpecFilter) {
                 chip.classList.add('active');
                 chip.classList.remove('border-slate-100', 'text-slate-500', 'bg-white', 'hover:border-blue-200');
             } else {
@@ -2479,6 +2917,7 @@ function handleSchedScopeChange() {
     document.getElementById('schedCycleDirectStep').classList.toggle('hidden', scope !== 'cycle_direct');
     document.getElementById('schedCycleStep').classList.toggle('hidden', scope !== 'cycle');
     document.getElementById('schedDeptStep').classList.toggle('hidden', scope !== 'department');
+    document.getElementById('schedSpecStep').classList.toggle('hidden', scope !== 'speciality');
 
     // Reset selections when scope changes
     if (scope !== 'cycle') {
@@ -2488,8 +2927,13 @@ function handleSchedScopeChange() {
     }
     if (scope !== 'department') {
         document.getElementById('schedDeptSelector').value = '';
-        document.getElementById('schedClassListWrapper').classList.add('hidden');
-        document.getElementById('schedClassCheckboxes').innerHTML = '';
+        if (document.getElementById('schedSpecListWrapper')) document.getElementById('schedSpecListWrapper').classList.add('hidden');
+        if (document.getElementById('schedSpecCheckboxes')) document.getElementById('schedSpecCheckboxes').innerHTML = '';
+    }
+    if (scope !== 'speciality') {
+        if (document.getElementById('schedSpecSelector')) document.getElementById('schedSpecSelector').value = '';
+        if (document.getElementById('schedClassBySpecListWrapper')) document.getElementById('schedClassBySpecListWrapper').classList.add('hidden');
+        if (document.getElementById('schedClassBySpecCheckboxes')) document.getElementById('schedClassBySpecCheckboxes').innerHTML = '';
     }
 }
 
@@ -2530,27 +2974,68 @@ async function handleCycleSelectionChange() {
  */
 async function handleDeptSelectionChange() {
     const deptId = document.getElementById('schedDeptSelector').value;
-    const wrapper = document.getElementById('schedClassListWrapper');
-    const container = document.getElementById('schedClassCheckboxes');
+    const scope = document.getElementById('schedScopeType').value;
 
-    if (!deptId) {
-        wrapper.classList.add('hidden');
+    // If scope is 'department', we show Specialities to select
+    if (scope === 'department') {
+        const wrapper = document.getElementById('schedSpecListWrapper');
+        const container = document.getElementById('schedSpecCheckboxes');
+
+        if (!deptId) {
+            if (wrapper) wrapper.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/admin/specialities/by-department/${deptId}`);
+            if (!resp.ok) throw new Error("Failed to fetch specialities");
+            const specs = await resp.json();
+
+            if (container) {
+                container.innerHTML = specs.map(s => `
+                    <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                        <input type="checkbox" name="schedSpecIds" value="${s.specialityId}" id="ss_${s.specialityId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                        <label for="ss_${s.specialityId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${s.name}</label>
+                    </div>
+                `).join('');
+            }
+
+            if (wrapper) wrapper.classList.remove('hidden');
+        } catch (err) {
+            console.error(err);
+            showNotification("Error loading specialities", "error");
+        }
+    }
+}
+
+/**
+ * Fetch and show classrooms for the selected speciality.
+ */
+async function handleSpecSelectionChange() {
+    const specId = document.getElementById('schedSpecSelector').value;
+    const wrapper = document.getElementById('schedClassBySpecListWrapper');
+    const container = document.getElementById('schedClassBySpecCheckboxes');
+
+    if (!specId) {
+        if (wrapper) wrapper.classList.add('hidden');
         return;
     }
 
     try {
-        const resp = await fetch(`/admin/classrooms/by-department/${deptId}`);
+        const resp = await fetch(`/admin/classrooms/by-speciality/${specId}`);
         if (!resp.ok) throw new Error("Failed to fetch classrooms");
         const classes = await resp.json();
 
-        container.innerHTML = classes.map(c => `
-            <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
-                <input type="checkbox" name="schedClassIds" value="${c.classId}" id="sc_${c.classId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
-                <label for="sc_${c.classId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${c.name}</label>
-            </div>
-        `).join('');
+        if (container) {
+            container.innerHTML = classes.map(c => `
+                <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                    <input type="checkbox" name="schedClassIds" value="${c.classId}" id="scs_${c.classId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                    <label for="scs_${c.classId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${c.name}</label>
+                </div>
+            `).join('');
+        }
 
-        wrapper.classList.remove('hidden');
+        if (wrapper) wrapper.classList.remove('hidden');
     } catch (err) {
         console.error(err);
         showNotification("Error loading classrooms", "error");
@@ -2603,6 +3088,14 @@ async function saveSchedule() {
         }
         checkedDepts.forEach(id => payloads.push({ ...basePayload, departmentId: id }));
     } else if (scope === 'department') {
+        const checkedSpecs = Array.from(document.querySelectorAll('input[name="schedSpecIds"]:checked')).map(el => parseInt(el.value));
+        if (checkedSpecs.length === 0) {
+            errTxt.textContent = 'Please select at least one speciality.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        checkedSpecs.forEach(id => payloads.push({ ...basePayload, specialityId: id }));
+    } else if (scope === 'speciality') {
         const checkedClasses = Array.from(document.querySelectorAll('input[name="schedClassIds"]:checked')).map(el => parseInt(el.value));
         if (checkedClasses.length === 0) {
             errTxt.textContent = 'Please select at least one classroom.';
@@ -2656,8 +3149,20 @@ document.addEventListener('DOMContentLoaded', function () {
 window.openAddScheduleModal = openAddScheduleModal;
 window.closeAddScheduleModal = closeAddScheduleModal;
 window.handleSchedScopeChange = handleSchedScopeChange;
+window.handleCycleSelectionChange = handleCycleSelectionChange;
+window.handleDeptSelectionChange = handleDeptSelectionChange;
+window.handleSpecSelectionChange = handleSpecSelectionChange;
 window.saveSchedule = saveSchedule;
 window.scheduleAction = scheduleAction;
 window.loadScheduleGrid = loadScheduleGrid;
+window.handleOverridePermission = handleOverridePermission;
+window.handleClearOverrides = handleClearOverrides;
+window.handleToggleStatus = handleToggleStatus;
+window.handleResetPassword = handleResetPassword;
+window.handleDeleteUser = handleDeleteUser;
+window.toggleUserDropdown = toggleUserDropdown;
+window.setRoleFilter = setRoleFilter;
+window.handleUpdateUserRole = handleUpdateUserRole;
+window.handlePermissionCycle = handlePermissionCycle;
 
 console.log('Scheduling Grid module loaded');

@@ -22,6 +22,9 @@ public interface AcademicYearScheduleRepository extends JpaRepository<AcademicYe
     @Query("SELECT s FROM AcademicYearSchedule s WHERE s.status = 'ACTIVE' AND s.department.departmentId = :deptId")
     Optional<AcademicYearSchedule> findActiveScheduleByDepartment(@Param("deptId") Integer deptId);
 
+    @Query("SELECT s FROM AcademicYearSchedule s WHERE s.status = 'ACTIVE' AND s.speciality.specialityId = :specId")
+    Optional<AcademicYearSchedule> findActiveScheduleBySpeciality(@Param("specId") Integer specId);
+
     @Query("SELECT s FROM AcademicYearSchedule s WHERE s.status = 'ACTIVE' AND s.classroom.classId = :classId")
     Optional<AcademicYearSchedule> findActiveScheduleByClassroom(@Param("classId") Integer classId);
 
@@ -33,9 +36,12 @@ public interface AcademicYearScheduleRepository extends JpaRepository<AcademicYe
     @Query("SELECT s FROM AcademicYearSchedule s WHERE s.department.departmentId = :deptId AND YEAR(s.startDate) = :year")
     List<AcademicYearSchedule> findSchedulesByDepartmentAndYear(@Param("deptId") Integer deptId, @Param("year") int year);
     
+    @Query("SELECT s FROM AcademicYearSchedule s WHERE s.speciality.specialityId = :specId AND YEAR(s.startDate) = :year")
+    List<AcademicYearSchedule> findSchedulesBySpecialityAndYear(@Param("specId") Integer specId, @Param("year") int year);
+
     @Query("SELECT s FROM AcademicYearSchedule s WHERE s.classroom.classId = :classId AND YEAR(s.startDate) = :year")
     List<AcademicYearSchedule> findSchedulesByClassroomAndYear(@Param("classId") Integer classId, @Param("year") int year);
 
-    @Query("SELECT s FROM AcademicYearSchedule s WHERE s.cycle IS NULL AND s.department IS NULL AND s.classroom IS NULL AND YEAR(s.startDate) = :year")
+    @Query("SELECT s FROM AcademicYearSchedule s WHERE s.cycle IS NULL AND s.department IS NULL AND s.speciality IS NULL AND s.classroom IS NULL AND YEAR(s.startDate) = :year")
     List<AcademicYearSchedule> findDefaultSchedulesByYear(@Param("year") int year);
 }

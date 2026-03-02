@@ -48,7 +48,7 @@ public class DepartmentController {
             @RequestParam(required = false) String chief,
             @RequestParam Integer cycleId,
             @RequestParam Integer institutionId,
-            @RequestParam(required = false) Integer pedagogicAssistantId,
+            @RequestParam(required = false) java.util.Set<Integer> pedagogicAssistantIds,
             @RequestParam(required = false) java.util.Set<Integer> supervisorIds,
             RedirectAttributes redirectAttributes) {
 
@@ -66,8 +66,8 @@ public class DepartmentController {
             Department savedDept = departmentService.save(department);
             
             // Assign staff if provided
-            if (pedagogicAssistantId != null || (supervisorIds != null && !supervisorIds.isEmpty())) {
-                 departmentService.assignStaffToDepartment(savedDept.getDepartmentId(), pedagogicAssistantId, supervisorIds);
+            if ((pedagogicAssistantIds != null && !pedagogicAssistantIds.isEmpty()) || (supervisorIds != null && !supervisorIds.isEmpty())) {
+                 departmentService.assignStaffToDepartment(savedDept.getDepartmentId(), pedagogicAssistantIds, supervisorIds);
             }
 
             redirectAttributes.addFlashAttribute("success",
@@ -90,7 +90,7 @@ public class DepartmentController {
             @RequestParam(required = false) String chief,
             @RequestParam Integer cycleId,
             @RequestParam Integer institutionId,
-            @RequestParam(required = false) Integer pedagogicAssistantId,
+            @RequestParam(required = false) java.util.Set<Integer> pedagogicAssistantIds,
             @RequestParam(required = false) java.util.Set<Integer> supervisorIds,
             RedirectAttributes redirectAttributes) {
 
@@ -106,7 +106,7 @@ public class DepartmentController {
             departmentService.save(department);
 
             // Update staff assignment
-            departmentService.assignStaffToDepartment(id, pedagogicAssistantId, supervisorIds);
+            departmentService.assignStaffToDepartment(id, pedagogicAssistantIds, supervisorIds);
 
             redirectAttributes.addFlashAttribute("success",
                     "Department updated successfully!");

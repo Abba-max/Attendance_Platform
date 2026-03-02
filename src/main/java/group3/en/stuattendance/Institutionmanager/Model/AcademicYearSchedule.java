@@ -36,6 +36,10 @@ public class AcademicYearSchedule {
     private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "speciality_id")
+    private Speciality speciality;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_id")
     private Classroom classroom;
 

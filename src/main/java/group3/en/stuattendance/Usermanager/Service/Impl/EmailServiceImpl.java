@@ -47,7 +47,7 @@ public class EmailServiceImpl implements EmailService {
                     StandardCharsets.UTF_8.name()
             );
 
-            // Populate Thymeleaf context
+
             Context context = new Context();
             context.setVariable("username", username);
             context.setVariable("password", password);

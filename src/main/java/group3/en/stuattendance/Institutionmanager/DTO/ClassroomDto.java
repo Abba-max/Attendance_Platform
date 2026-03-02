@@ -29,9 +29,14 @@ public class ClassroomDto {
     @Min(value = 1, message = "Capacity must be at least 1")
     private Integer capacity;
 
-    @NotNull(message = "Department ID is required")
-    private Integer departmentId;
+    @NotNull(message = "Speciality ID is required")
+    private Integer specialityId;
 
     private String field; // Added for UI compatibility
     private Integer institutionId; // Added for UI compatibility
+
+    // Read-only display fields populated by mapper
+    private String specialityName;
+    private Integer departmentId;
+    private Integer studentCount;
 }

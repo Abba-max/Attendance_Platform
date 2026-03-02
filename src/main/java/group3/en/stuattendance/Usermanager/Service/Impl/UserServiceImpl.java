@@ -7,8 +7,10 @@ import group3.en.stuattendance.Institutionmanager.Repository.InstitutionReposito
 import group3.en.stuattendance.Usermanager.DTO.StaffCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
+import group3.en.stuattendance.Usermanager.Model.Permission;
 import group3.en.stuattendance.Usermanager.Model.Role;
 import group3.en.stuattendance.Usermanager.Model.User;
+import group3.en.stuattendance.Usermanager.Repository.PermissionRepository;
 import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
@@ -37,6 +39,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder;
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
+    private final PermissionRepository permissionRepository;
 
     @Override
     @Auditable(action = "USER_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
@@ -53,7 +56,13 @@ public class UserServiceImpl implements UserService {
         Set<Classroom> staffClassrooms = dto.getStaffClassroomIds() != null ?
             new java.util.HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())) : new java.util.HashSet<>();
 
-        User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms);
+        Set<Permission> additionalPermissions = dto.getAdditionalPermissionIds() != null ?
+            new java.util.HashSet<>(permissionRepository.findAllById(dto.getAdditionalPermissionIds())) : new java.util.HashSet<>();
+
+        Set<Permission> deniedPermissions = dto.getDeniedPermissionIds() != null ?
+            new java.util.HashSet<>(permissionRepository.findAllById(dto.getDeniedPermissionIds())) : new java.util.HashSet<>();
+
+        User user = userMapper.toEntity(dto, institution, studentClassroom, roles, staffClassrooms, additionalPermissions, deniedPermissions);
         if (user.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(user.getPassword()));
         }
@@ -74,12 +83,14 @@ public class UserServiceImpl implements UserService {
 
         // Handle password generation
         String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
-            ? PasswordUtils.generatePassword(dto.getUsername())
+            ? PasswordUtils.generatePassword(dto.getFirstName())
             : dto.getPassword();
 
         User user = User.builder()
-                .username(dto.getUsername())
+                .username(dto.getEmail()) // Username = Email
                 .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
                 .password(passwordEncoder.encode(rawPassword))
                 .institution(institution)
                 .roles(roles)
@@ -110,12 +121,14 @@ public class UserServiceImpl implements UserService {
 
         // Handle password generation
         String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
-            ? PasswordUtils.generatePassword(dto.getUsername())
+            ? PasswordUtils.generatePassword(dto.getFirstName())
             : dto.getPassword();
 
         User user = User.builder()
-                .username(dto.getUsername())
+                .username(dto.getEmail()) // Username = Email
                 .email(dto.getEmail())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
                 .password(passwordEncoder.encode(rawPassword))
                 .institution(institution)
                 .roles(roles)
@@ -178,6 +191,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public List<UserDto> getAllStaffDtos() {
+        return getAllStaff().stream()
+            .map(userMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public Optional<User> getUserById(Integer userId) {
         return userRepository.findById(userId);
     }
@@ -195,6 +215,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    @Override
+    public List<UserDto> getAllUserDtos() {
+        return userRepository.findAll().stream()
+            .map(userMapper::toDto)
+            .collect(java.util.stream.Collectors.toList());
     }
 
     @Override
@@ -218,6 +245,14 @@ public class UserServiceImpl implements UserService {
             existingUser.setRoles(new HashSet<>(roleRepository.findAllById(dto.getRoleIds())));
         }
 
+        if (dto.getAdditionalPermissionIds() != null) {
+            existingUser.setAdditionalPermissions(new HashSet<>(permissionRepository.findAllById(dto.getAdditionalPermissionIds())));
+        }
+
+        if (dto.getDeniedPermissionIds() != null) {
+            existingUser.setDeniedPermissions(new HashSet<>(permissionRepository.findAllById(dto.getDeniedPermissionIds())));
+        }
+
         if (dto.getClassroomId() != null) {
             existingUser.setClassroom(classroomRepository.findById(dto.getClassroomId()).orElse(null));
         }
@@ -227,6 +262,46 @@ public class UserServiceImpl implements UserService {
         }
 
         return userRepository.save(existingUser);
+    }
+
+    @Override
+    public void grantPermission(Integer userId, Integer permissionId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            permissionRepository.findById(permissionId).ifPresent(perm -> {
+                user.getAdditionalPermissions().add(perm);
+                user.getDeniedPermissions().remove(perm); // Ensure it's not also denied
+                userRepository.save(user);
+            });
+        });
+    }
+
+    @Override
+    public void revokePermission(Integer userId, Integer permissionId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            permissionRepository.findById(permissionId).ifPresent(perm -> {
+                user.getDeniedPermissions().add(perm);
+                user.getAdditionalPermissions().remove(perm); // Ensure it's not also granted
+                userRepository.save(user);
+            });
+        });
+    }
+
+    @Override
+    public void clearPermissionOverride(Integer userId, Integer permissionId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.getAdditionalPermissions().removeIf(p -> p.getPermissionId().equals(permissionId));
+            user.getDeniedPermissions().removeIf(p -> p.getPermissionId().equals(permissionId));
+            userRepository.save(user);
+        });
+    }
+
+    @Override
+    public void clearPermissionOverrides(Integer userId) {
+        userRepository.findById(userId).ifPresent(user -> {
+            user.getAdditionalPermissions().clear();
+            user.getDeniedPermissions().clear();
+            userRepository.save(user);
+        });
     }
 
     @Override
@@ -337,34 +412,36 @@ public class UserServiceImpl implements UserService {
                 String[] row = rows.get(i);
                 int rowNum = i + 1;
 
-                if (row.length < 3) {
-                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: username, email, role"));
+                if (row.length < 4) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: firstName, lastName, email, role"));
                     result.setFailureCount(result.getFailureCount() + 1);
                     continue;
                 }
 
-                String username = row[0].trim();
-                String email = row[1].trim();
-                String roleName = row[2].trim().toUpperCase();
+                String firstName = row[0].trim();
+                String lastName = row[1].trim();
+                String email = row[2].trim();
+                String roleName = row[3].trim().toUpperCase();
 
                 try {
                     // Check if user already exists
-                    if (userRepository.findByUsername(username).isPresent() || userRepository.findByEmail(email).isPresent()) {
-                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "User with this username or email already exists"));
+                    if (userRepository.findByEmail(email).isPresent()) {
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, email, "User with this email already exists"));
                          result.setFailureCount(result.getFailureCount() + 1);
                          continue;
                     }
 
                     // Validate role
                     if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR")) {
-                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "Invalid role: " + roleName + ". Must be PEDAGOG or SUPERVISOR"));
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, email, "Invalid role: " + roleName + ". Must be PEDAGOG or SUPERVISOR"));
                          result.setFailureCount(result.getFailureCount() + 1);
                          continue;
                     }
 
                     // Prepare DTO
                     StaffCreateDto dto = StaffCreateDto.builder()
-                            .username(username)
+                            .firstName(firstName)
+                            .lastName(lastName)
                             .email(email)
                             .roleNames(java.util.Collections.singleton(roleName))
                             .institutionId(institution != null ? institution.getInstitutionId() : null)
@@ -376,7 +453,7 @@ public class UserServiceImpl implements UserService {
                     result.setSuccessCount(result.getSuccessCount() + 1);
 
                 } catch (Exception e) {
-                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, username, "System error: " + e.getMessage()));
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, email, "System error: " + e.getMessage()));
                     result.setFailureCount(result.getFailureCount() + 1);
                 }
             }

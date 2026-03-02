@@ -7,7 +7,7 @@ public interface DepartmentService {
     Department save(Department department);
     Department findById(Integer id);
     List<Department> getAllDepartments();
-    void assignStaffToDepartment(Integer departmentId, Integer pedagogicAssistantId, java.util.Set<Integer> supervisorIds);
+    void assignStaffToDepartment(Integer departmentId, java.util.Set<Integer> pedagogicAssistantIds, java.util.Set<Integer> supervisorIds);
     List<Department> findByCycleId(Integer cycleId);
     void deleteById(Integer id);
 }

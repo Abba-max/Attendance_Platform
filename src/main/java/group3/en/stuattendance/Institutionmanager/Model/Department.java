@@ -48,12 +48,17 @@ Department {
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
     @JsonIgnore
     @Builder.Default
-    private Set<Classroom> classrooms = new HashSet<>();
+    private Set<Speciality> specialities = new HashSet<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pa_id")
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "department_pedagogic_assistants",
+            joinColumns = @JoinColumn(name = "department_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
     @JsonIgnore
-    private User pedagogicAssistant;
+    @Builder.Default
+    private Set<User> pedagogicAssistants = new HashSet<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

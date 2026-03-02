@@ -33,9 +33,9 @@ public class Classroom {
     private Integer capacity;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
+    @JoinColumn(name = "speciality_id")
     @JsonIgnore
-    private Department department;
+    private Speciality speciality;
 
     // Students in this classroom
     @OneToMany(mappedBy = "classroom")
