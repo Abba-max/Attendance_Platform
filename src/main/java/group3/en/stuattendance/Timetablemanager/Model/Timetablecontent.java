@@ -8,6 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.LocalDate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -42,6 +43,12 @@ public class Timetablecontent {
     private Integer week;
 
     private Integer semester;
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
 
     @OneToMany(mappedBy = "timetablecontent", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

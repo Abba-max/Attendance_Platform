@@ -7,6 +7,7 @@ import group3.en.stuattendance.Timetablemanager.Model.TimetableEntry;
 import org.springframework.stereotype.Component;
 
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 
 @Component
 public class TimetablecontentMapper {
@@ -21,6 +22,8 @@ public class TimetablecontentMapper {
                 .academicYearName(entity.getAcademicYear() != null ? entity.getAcademicYear().getAcademicYear() : null)
                 .week(entity.getWeek())
                 .semester(entity.getSemester())
+                .startDate(entity.getStartDate())
+                .endDate(entity.getEndDate())
                 .entries(entity.getEntries() != null ? entity.getEntries().stream()
                         .map(this::toEntryDto)
                         .collect(Collectors.toList()) : null)
@@ -46,6 +49,8 @@ public class TimetablecontentMapper {
         return Timetablecontent.builder()
                 .timetableId(dto.getTimetableId())
                 .week(dto.getWeek())
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
                 .build();
     }
 

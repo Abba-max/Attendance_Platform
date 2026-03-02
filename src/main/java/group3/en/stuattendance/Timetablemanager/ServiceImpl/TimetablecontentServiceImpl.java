@@ -56,6 +56,8 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         timetablecontent.setAcademicYear(academicYear);
         timetablecontent.setWeek(dto.getWeek());
         timetablecontent.setSemester(dto.getSemester());
+        timetablecontent.setStartDate(dto.getStartDate());
+        timetablecontent.setEndDate(dto.getEndDate());
 
         // Clear existing entries and map new ones
         if (timetablecontent.getEntries() == null) {

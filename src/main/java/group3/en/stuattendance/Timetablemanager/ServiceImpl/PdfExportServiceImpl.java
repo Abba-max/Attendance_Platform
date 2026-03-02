@@ -39,7 +39,11 @@ public class PdfExportServiceImpl implements PdfExportService {
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             
-            Paragraph subInfo = new Paragraph("Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") + " | Week: " + timetableDto.getWeek());
+            String dateRange = (timetableDto.getStartDate() != null && timetableDto.getEndDate() != null) 
+                    ? " from " + timetableDto.getStartDate() + " to " + timetableDto.getEndDate() 
+                    : "";
+            Paragraph subInfo = new Paragraph("Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") + 
+                    " | Week: " + timetableDto.getWeek() + dateRange);
             subInfo.setAlignment(Element.ALIGN_CENTER);
             document.add(subInfo);
             document.add(Chunk.NEWLINE);

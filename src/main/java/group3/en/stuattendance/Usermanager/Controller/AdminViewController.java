@@ -123,6 +123,6 @@ public class AdminViewController {
         }
         model.addAttribute("schedulesByYear", schedulesByYear);
         
-        return "dashboards/admin";
+        return "dashboards/admin/admin";
     }
 }

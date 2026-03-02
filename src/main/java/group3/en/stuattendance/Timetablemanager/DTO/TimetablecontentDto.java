@@ -22,5 +22,7 @@ public class TimetablecontentDto {
     private String academicYearName;
     private Integer week;
     private Integer semester;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private List<TimetableEntryDto> entries;
 }
