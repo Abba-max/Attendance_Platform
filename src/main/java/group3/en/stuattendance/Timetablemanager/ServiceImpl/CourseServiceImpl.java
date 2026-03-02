@@ -159,9 +159,78 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseDto> getCoursesByTeacher(Integer teacherId) {
-        return courseRepository.findAll().stream()
-                .filter(c -> c.getTeachers().stream().anyMatch(t -> t.getUserId().equals(teacherId)))
+        return courseRepository.findByTeachersUserId(teacherId).stream()
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @org.springframework.transaction.annotation.Transactional
+    public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file) {
+        group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
+        
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()));
+             com.opencsv.CSVReader csvReader = new com.opencsv.CSVReader(reader)) {
+            
+            List<String[]> rows = csvReader.readAll();
+            if (rows.isEmpty()) return result;
+
+            int startRow = 0;
+            if (rows.get(0).length > 0 && (rows.get(0)[0].equalsIgnoreCase("courseName") || rows.get(0)[0].equalsIgnoreCase("name"))) {
+                startRow = 1;
+            }
+
+            result.setTotalRows(rows.size() - startRow);
+
+            for (int i = startRow; i < rows.size(); i++) {
+                String[] row = rows.get(i);
+                int rowNum = i + 1;
+
+                if (row.length < 5) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: courseName, code, hoursPerWeek, semester, level, [specialityId]"));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                    continue;
+                }
+
+                String courseName = row[0].trim();
+                String code = row[1].trim();
+                
+                try {
+                    Integer hoursPerWeek = Integer.parseInt(row[2].trim());
+                    Integer semester = Integer.parseInt(row[3].trim());
+                    Integer level = Integer.parseInt(row[4].trim());
+                    Integer specialityId = (row.length > 5 && !row[5].trim().isEmpty()) ? Integer.parseInt(row[5].trim()) : null;
+
+                    if (courseRepository.findByCourseName(courseName).isPresent()) {
+                         result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Course already exists"));
+                         result.setFailureCount(result.getFailureCount() + 1);
+                         continue;
+                    }
+
+                    CourseDto dto = CourseDto.builder()
+                            .courseName(courseName)
+                            .code(code)
+                            .hoursPerWeek(hoursPerWeek)
+                            .semester(semester)
+                            .level(level)
+                            .specialityId(specialityId)
+                            .credits(3)
+                            .build();
+
+                    createCourse(dto);
+                    result.setSuccessCount(result.getSuccessCount() + 1);
+
+                } catch (NumberFormatException e) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Invalid number format in numeric columns"));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                } catch (Exception e) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, e.getMessage()));
+                    result.setFailureCount(result.getFailureCount() + 1);
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CSV: " + e.getMessage());
+        }
+        return result;
     }
 }

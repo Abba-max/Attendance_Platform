@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Integer> {
 
-    List<Session> findByCourseCourseid(Integer courseId);
+    List<Session> findByCourseCourseId(Integer courseId);
 
     List<Session> findByTeacherUserId(Integer teacherId);
 
@@ -20,7 +20,7 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
 
     List<Session> findByWeek(Integer week);
 
-    List<Session> findByCourseCourseidAndWeek(Integer courseId, Integer week);
+    List<Session> findByCourseCourseIdAndWeek(Integer courseId, Integer week);
 
     List<Session> findByTeacherUserIdAndDate(Integer teacherId, LocalDate date);
 }

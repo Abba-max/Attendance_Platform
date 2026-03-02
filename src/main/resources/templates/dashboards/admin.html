@@ -375,7 +375,7 @@
                                     <div class="flex flex-col">
                                         <span class="text-[10px] uppercase font-bold text-amber-400"></span>
                                         <span class="text-sm font-bold text-amber-800" id="peakSessions"
-                                            th:text="${stats?.peakSessions ?: 0}"></span>
+                                            th:text="${stats?.peakSessions ?: ''}"></span>
                                     </div>
                                 </div>
                             </div>
@@ -1205,11 +1205,11 @@
                         </button>
                         <button onclick="setRoleFilter('SUPERVISOR')"
                             class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
-                            Pedagogic Assistants
+                            Supervisors
                         </button>
                         <button onclick="setRoleFilter('PEDAGOG')"
                             class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
-                            Pedagogs
+                            Pedagogic Assistants
                         </button>
                         <button onclick="setRoleFilter('ADMIN')"
                             class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">

@@ -23,7 +23,7 @@ public class SessionMapper {
                 .teacherId(session.getTeacher() != null ? session.getTeacher().getUserId() : null)
                 .teacherName(session.getTeacher() != null ? session.getTeacher().getUsername() : null)
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
-                .classroomName(session.getClassroom() != null ? session.getClassroom().getClassName() : null)
+                .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : null)
                 .isActive(session.isActive())
                 .build();
     }

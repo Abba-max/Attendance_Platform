@@ -43,6 +43,9 @@ public class Speciality {
     @JsonIgnore
     @Builder.Default
     private Set<Classroom> classrooms = new HashSet<>();
+    @OneToMany(mappedBy = "speciality", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @Builder.Default
     private Set<Course> courses = new HashSet<>();
 
 

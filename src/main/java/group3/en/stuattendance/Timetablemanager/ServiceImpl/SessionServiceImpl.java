@@ -115,7 +115,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public List<SessionDto> getSessionsByCourse(Integer courseId) {
-        return sessionRepository.findByCourseCourseid(courseId)
+        return sessionRepository.findByCourseCourseId(courseId)
                 .stream()
                 .map(sessionMapper::toDto)
                 .collect(Collectors.toList());
@@ -155,7 +155,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public List<SessionDto> getSessionsByCourseAndWeek(Integer courseId, Integer week) {
-        return sessionRepository.findByCourseCourseidAndWeek(courseId, week)
+        return sessionRepository.findByCourseCourseIdAndWeek(courseId, week)
                 .stream()
                 .map(sessionMapper::toDto)
                 .collect(Collectors.toList());

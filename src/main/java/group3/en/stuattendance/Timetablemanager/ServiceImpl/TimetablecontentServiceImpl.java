@@ -99,7 +99,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                             .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + entryDto.getTeacherId()));
                     entry.setTeacher(teacher);
                 } else {
-                    entry.setTeacher(course.getTeacher()); // Fallback to course default teacher
+                    entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null)); // Fallback to course default (first) teacher
                 }
                 
                 timetablecontent.getEntries().add(entry);

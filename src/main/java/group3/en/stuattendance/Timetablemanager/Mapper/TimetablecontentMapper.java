@@ -20,6 +20,7 @@ public class TimetablecontentMapper {
                 .academicYearId(entity.getAcademicYear() != null ? entity.getAcademicYear().getId() : null)
                 .academicYearName(entity.getAcademicYear() != null ? entity.getAcademicYear().getAcademicYear() : null)
                 .week(entity.getWeek())
+                .semester(entity.getSemester())
                 .entries(entity.getEntries() != null ? entity.getEntries().stream()
                         .map(this::toEntryDto)
                         .collect(Collectors.toList()) : null)

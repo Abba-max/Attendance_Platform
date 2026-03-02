@@ -26,4 +26,6 @@ public interface CourseService {
     CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId);
 
     List<CourseDto> getCoursesByTeacher(Integer teacherId);
+
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file);
 }

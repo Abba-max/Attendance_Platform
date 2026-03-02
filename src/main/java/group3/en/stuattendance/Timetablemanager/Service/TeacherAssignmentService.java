@@ -1,15 +1,10 @@
 package group3.en.stuattendance.Timetablemanager.Service;
 
-import group3.en.stuattendance.Timetablemanager.DTO.AssignTeacherDTO;
-import java.util.List;
-
+/**
+ * @deprecated Teacher assignment is now handled directly via CourseService.assignTeacherToCourse().
+ * This interface is kept as a placeholder but has no active implementation.
+ */
+@Deprecated
 public interface TeacherAssignmentService {
-
-    AssignTeacherDTO assignTeacherToCourse(Long teacherId, Long courseId);
-
-    void removeTeacherFromCourse(Long teacherId, Long courseId);
-
-    List<AssignTeacherDTO> getTeachersByCourse(Long courseId);
-
-    List<AssignTeacherDTO> getCoursesByTeacher(Long teacherId);
+    // Superseded by CourseService many-to-many teacher assignment methods
 }
