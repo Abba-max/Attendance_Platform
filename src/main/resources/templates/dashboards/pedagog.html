@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title th:text="${pageTitle ?: 'Attendee — Pedagogic Assistant'}">Attendee</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet"/>
+    <link rel="stylesheet" th:href="@{/static/css/attendee.css}" href="../static/css/attendee.css"/>
+</head>
+<body>
+
+<!-- TOAST STACK -->
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<!-- APP -->
+<div class="app">
+
+    <!-- ══ SIDEBAR ══════════════════════════════════════════ -->
+    <aside class="sidebar">
+
+        <!-- Logo block — large white card style matching screenshot -->
+        <div class="sb-logo-block">
+            <div class="sb-logo-img">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                </svg>
+            </div>
+            <span class="sb-logo-name" th:text="${appName ?: 'Attendee'}">Attendee</span>
+        </div>
+
+        <!-- Nav items -->
+        <nav class="nav" aria-label="Sidebar navigation">
+
+            <!-- Overview / Dashboard — active pill in sky-blue -->
+            <div class="nav-item active" data-page="dashboard" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </span>
+                <span class="ni-label">Overview</span>
+            </div>
+
+            <!-- Manage Institutions -->
+            <div class="nav-item" data-page="institutions" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </span>
+                <span class="ni-label">Manage Institutions</span>
+            </div>
+
+            <!-- Academic Year -->
+            <div class="nav-item" data-page="timetable" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </span>
+                <span class="ni-label">Academic Year</span>
+            </div>
+
+            <!-- Manage Users / Students -->
+            <div class="nav-item" data-page="students" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+        </span>
+                <span class="ni-label">Manage Users</span>
+                <span class="nav-badge" id="stuBadge" style="display:none">0</span>
+            </div>
+
+            <!-- Roles & Permissions / Subjects -->
+            <div class="nav-item" data-page="subjects" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+        </span>
+                <span class="ni-label">Roles &amp; Permissions</span>
+                <span class="nav-badge" id="subjBadge" style="display:none">0</span>
+            </div>
+
+            <!-- Audit Logs / Records -->
+            <div class="nav-item" data-page="records" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        </span>
+                <span class="ni-label">Audit Logs</span>
+            </div>
+
+            <!-- Attendance -->
+            <div class="nav-item" data-page="attendance" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        </span>
+                <span class="ni-label">Take Attendance</span>
+            </div>
+
+            <!-- Irregularities -->
+            <div class="nav-item" data-page="irregularities" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </span>
+                <span class="ni-label">Irregularities</span>
+            </div>
+
+        </nav>
+
+        <!-- Footer -->
+        <div class="sb-footer">
+            <div class="nav-item" data-page="settings" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+          </svg>
+        </span>
+                <span class="ni-label">Settings</span>
+            </div>
+            <div class="nav-item danger" tabindex="0" role="button">
+        <span class="ni-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </span>
+                <span class="ni-label">Logout</span>
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- ══ MAIN ══════════════════════════════════════════════ -->
+    <div class="main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="tb-search-wrap">
+        <span class="tb-search-ico">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+                <input class="tb-search" id="globalSearch" type="search" placeholder="Search students, classes, teachers…"/>
+            </div>
+            <div class="tb-right">
+                <div class="tb-icon-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    <div class="tb-notif-dot"></div>
+                </div>
+                <div class="tb-icon-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </div>
+                <div class="tb-divider"></div>
+                <div class="tb-user">
+                    <div class="tb-avatar" th:text="${currentUser?.initials ?: 'SA'}">SA</div>
+                    <div>
+                        <div class="tb-uname" th:text="${currentUser?.fullName ?: 'Administrator'}">Administrator</div>
+                        <div class="tb-urole" th:text="${currentUser?.role ?: 'System Admin'}">System Admin</div>
+                    </div>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#8896b3;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+            </div>
+        </header>
+
+        <!-- ════════ PAGE: DASHBOARD ════════ -->
+        <div class="content page-section active" id="pg-dashboard">
+            <div style="margin-bottom:22px">
+                <div class="page-breadcrumb">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    Home &rsaquo; <span>Dashboard</span>
+                </div>
+                <h1 class="page-title">Dashboard <em>Overview</em></h1>
+                <p class="page-sub">Welcome back! Here's what's happening with your system today.</p>
+            </div>
+
+            <p style="font-size:13px;font-weight:700;color:var(--text-2);margin-bottom:14px;letter-spacing:.02em">System Insights</p>
+
+            <!-- STAT CARDS -->
+            <div class="stats-grid">
+                <!-- Total Users -->
+                <div class="stat-card c-blue">
+                    <div class="sc-top">
+                        <div>
+                            <div class="sc-label">Total Users</div>
+                            <div class="sc-value" id="dStatTeachers">0</div>
+                        </div>
+                        <div class="sc-icon c-blue">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        </div>
+                    </div>
+                    <div class="sc-bottom">
+                        <div class="sc-sub-item"><div class="sc-sub-lbl">Students</div><div class="sc-sub-val" id="dStatStudents">0</div></div>
+                        <div class="sc-sub-item"><div class="sc-sub-lbl">Admins</div><div class="sc-sub-val" id="dStatAdmins">0</div></div>
+                    </div>
+                </div>
+
+                <!-- Active Sessions -->
+                <div class="stat-card c-orange">
+                    <div class="sc-top">
+                        <div>
+                            <div class="sc-label">Active Sessions</div>
+                            <div class="sc-value" id="dStatQueue">0</div>
+                        </div>
+                        <div class="sc-icon c-orange">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                        </div>
+                    </div>
+                    <div class="sc-bottom">
+                        <div class="sc-sub-item"><div class="sc-sub-lbl">Current</div><div class="sc-sub-val" id="dStatQueueSub">0</div></div>
+                    </div>
+                </div>
+
+                <!-- Departments -->
+                <div class="stat-card c-blue" style="background:linear-gradient(135deg,#e0f2fe 0%,#f0f9ff 100%);border-color:#7dd3fc">
+                    <div class="sc-top">
+                        <div>
+                            <div class="sc-label" style="color:#0369a1">Departments</div>
+                            <div class="sc-value" style="color:#0c4a6e" id="dStatClasses">0</div>
+                        </div>
+                        <div class="sc-icon" style="background:linear-gradient(135deg,#0284c7,#0369a1)">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        </div>
+                    </div>
+                    <div class="sc-bottom">
+                        <div class="sc-sub-item"><div class="sc-sub-lbl">Total Structures</div><div class="sc-sub-val" style="color:#0369a1" id="dStatClasses2">0</div></div>
+                    </div>
+                </div>
+
+                <!-- Active Staff -->
+                <div class="stat-card c-orange" style="background:linear-gradient(135deg,#fef9c3 0%,#fefce8 100%);border-color:#fef08a">
+                    <div class="sc-top">
+                        <div>
+                            <div class="sc-label" style="color:#ca8a04">Active Staff</div>
+                            <div class="sc-value" style="color:#713f12" id="dStatSubjects">0</div>
+                        </div>
+                        <div class="sc-icon" style="background:linear-gradient(135deg,#eab308,#ca8a04)">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
+                    </div>
+                    <div class="sc-bottom">
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--orange);margin-top:6px"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DASH GRID -->
+            <div class="dash-grid">
+                <!-- Validation Queue -->
+                <div class="dash-panel">
+                    <div class="panel-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                        Validation Queue
+                    </div>
+                    <div class="tab-bar">
+                        <button class="tab-btn active" id="tabBtnAttend" onclick="switchQueueTab('attendance')">Attendance</button>
+                        <button class="tab-btn" id="tabBtnJust" onclick="switchQueueTab('justifications')">Justifications</button>
+                    </div>
+                    <div id="queueList"><div class="spinner-wrap"><div class="spinner"></div>Loading…</div></div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="dash-panel">
+                    <div class="panel-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Quick Actions
+                    </div>
+                    <button class="quick-btn" onclick="navigateTo('timetable')">
+                        <div class="qi-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#f59e0b"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                        Manage Timetable
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:#8896b3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="quick-btn" onclick="navigateTo('subjects')">
+                        <div class="qi-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#8b5cf6"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg></div>
+                        Manage Subjects
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:#8896b3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="quick-btn" onclick="navigateTo('students')">
+                        <div class="qi-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+                        Add Student
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:#8896b3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="quick-btn" onclick="navigateTo('records')">
+                        <div class="qi-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                        Attendance Records
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:#8896b3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="quick-btn" onclick="navigateTo('irregularities')">
+                        <div class="qi-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#ef4444"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                        Irregularities
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:#8896b3"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════ PAGE: SUBJECTS ════════ -->
+        <div class="content page-section" id="pg-subjects">
+            <div class="page-hdr">
+                <div>
+                    <div class="page-breadcrumb"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> Management &rsaquo; <span>Subjects</span></div>
+                    <h1 class="page-title">Manage <em>Subjects</em></h1>
+                    <p class="page-sub">Create subjects and assign them to teachers &amp; classes</p>
+                </div>
+                <button class="btn btn-primary" onclick="openSubjectModal()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Subject
+                </button>
+            </div>
+            <div class="banner banner-warn" id="subjAdminWarn" style="display:none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span id="subjAdminWarnText"></span>
+            </div>
+            <div class="filter-bar">
+                <div class="filter-wrap">
+                    <span class="filter-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                    <input class="filter-input" id="subjSearch" type="search" placeholder="Search name, code, department…" oninput="renderSubjects()"/>
+                </div>
+                <select class="filter-select" id="subjDeptFilter" onchange="renderSubjects()"><option value="">All Departments</option></select>
+                <span class="filter-count" id="subjCount"></span>
+            </div>
+            <div id="subjGrid"></div>
+        </div>
+
+        <!-- ════════ PAGE: STUDENTS ════════ -->
+        <div class="content page-section" id="pg-students">
+            <div class="page-hdr">
+                <div>
+                    <div class="page-breadcrumb"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Management &rsaquo; <span>Students</span></div>
+                    <h1 class="page-title"><em>Students</em></h1>
+                    <p class="page-sub" id="stuCountLabel">Loading…</p>
+                </div>
+                <div style="display:flex;gap:8px">
+                    <button class="btn btn-ghost" onclick="openBulkImport()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Bulk Import
+                    </button>
+                    <button class="btn btn-primary" onclick="openStudentModal()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Add Student
+                    </button>
+                </div>
+            </div>
+            <div class="filter-bar">
+                <div class="filter-wrap">
+                    <span class="filter-ico"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+                    <input class="filter-input" id="stuSearch" type="search" placeholder="Search name or matricule…" oninput="renderStudents()"/>
+                </div>
+                <select class="filter-select" id="stuClassFilter" onchange="renderStudents()"><option value="">All Classes</option></select>
+                <span class="filter-count" id="stuCount"></span>
+            </div>
+            <div style="background:var(--surface);border-radius:var(--rl);border:1px solid var(--border);overflow:hidden;box-shadow:var(--sh-sm)">
+                <div id="stuTableWrap"></div>
+            </div>
+        </div>
+
+        <!-- ════════ PAGE: TIMETABLE ════════ -->
+        <div class="page-section" id="pg-timetable">
+            <div class="tt-topbar">
+                <div class="tt-title-group">
+                    <div class="tt-title-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;font-size:14px">Timetable Manager</div>
+                        <div style="font-size:11px;color:var(--text-3)">Drag subjects &amp; teachers onto the grid</div>
+                    </div>
+                    <span id="ttSaving" class="tt-saving">Saving…</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                    <select id="ttClassFilter" class="tt-class-select" onchange="renderTimetable()"><option value="all">— All Classes —</option></select>
+                    <select id="ttSemester" class="tt-sem-select" onchange="loadTimetable()">
+                        <option>Fall 2026</option><option>Spring 2026</option><option>Summer 2026</option><option>Fall 2025</option><option>Spring 2025</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" onclick="saveTimetable()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Save
+                    </button>
+                    <button class="btn btn-ghost btn-sm" onclick="exportTTPDF()">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        Export PDF
+                    </button>
+                </div>
+            </div>
+            <div class="tt-toolbar"><div id="ttClassLabel" style="font-size:12px;color:var(--text-3)">All classes</div></div>
+            <div id="ttAdminWarn" class="tt-admin-warn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                Add subjects, teachers and classes via the admin panel for dropdowns to populate.
+            </div>
+            <div class="tt-layout">
+                <div class="tt-sidebar">
+                    <div class="tt-side-tabs">
+                        <div class="tt-side-tab active" id="ttSideSubjTab" onclick="switchTTTab('subjects')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                            Subjects
+                        </div>
+                        <div class="tt-side-tab" id="ttSideTchrTab" onclick="switchTTTab('teachers')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            Teachers
+                        </div>
+                    </div>
+                    <div class="tt-hint" id="ttSideHint">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        Drag a subject onto a grid cell to schedule it
+                    </div>
+                    <div class="tt-items" id="ttSideItems"></div>
+                </div>
+                <div class="tt-grid-wrap"><div class="tt-grid" id="ttGrid"></div></div>
+            </div>
+        </div>
+
+        <!-- ════════ PLACEHOLDER PAGES ════════ -->
+        <div class="content page-section" id="pg-attendance">
+            <div class="empty">
+                <div class="empty-ico-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#10b981"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+                <div class="empty-title">Take Attendance</div>
+                <div class="empty-msg">Select a class and date to begin marking today's attendance.</div>
+                <button class="btn btn-primary" onclick="navigateTo('timetable')">View Timetable</button>
+            </div>
+        </div>
+
+        <div class="content page-section" id="pg-records">
+            <div class="empty">
+                <div class="empty-ico-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#6366f1"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                <div class="empty-title">Attendance Records</div>
+                <div class="empty-msg">Browse and filter historical attendance records here.</div>
+            </div>
+        </div>
+
+        <div class="content page-section" id="pg-irregularities">
+            <div class="empty">
+                <div class="empty-ico-box"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#ef4444"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+                <div class="empty-title">Irregularities</div>
+                <div class="empty-msg">Students flagged for attendance issues will appear here.</div>
+            </div>
+        </div>
+
+    </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══ MODAL: SUBJECT ════════════════════════════════════ -->
+<div class="overlay" id="subjOverlay" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-hdr">
+            <h2 class="modal-title" id="subjModalTitle">New Subject</h2>
+            <button class="modal-close" onclick="closeSubjectModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <p class="modal-sub">Fill in the subject details and assign teachers &amp; classes</p>
+        <div class="field-row cols-2">
+            <div class="field"><label class="label">Subject Name</label><input class="form-input" id="sfName" placeholder="e.g. Mathematics Advanced"/></div>
+            <div class="field"><label class="label">Code</label><input class="form-input" id="sfCode" placeholder="MATH301"/></div>
+        </div>
+        <div class="field-row cols-eq" style="margin-top:18px">
+            <div class="field"><label class="label">Department / Field</label><input class="form-input" id="sfDept" placeholder="e.g. Computer Science"/></div>
+            <div class="field"><label class="label">Credits / Hrs per week</label><input class="form-input" id="sfCredits" type="number" min="1" max="40" placeholder="3"/></div>
+        </div>
+        <div class="field" style="margin-top:18px">
+            <label class="label">Colour</label>
+            <div class="color-swatches" id="sfColorSwatches"></div>
+            <div class="color-preview" id="sfColorPreview"><span class="color-dot" id="sfColorDot"></span><span id="sfColorLabel">Preview</span></div>
+        </div>
+        <div class="divider"></div>
+        <div class="field">
+            <label class="label">Assign Teachers <span class="hint">— from admin staff list</span></label>
+            <div class="multi-wrap">
+                <div class="multi-box" id="sfTeacherBox" tabindex="0"><span class="ms-placeholder" id="sfTeacherPh">Select teachers…</span><span class="ms-arrow" id="sfTeacherArrow">▼</span></div>
+                <div class="ms-dropdown" id="sfTeacherDrop"></div>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Assign Classes <span class="hint">— from admin classrooms</span></label>
+            <div class="multi-wrap">
+                <div class="multi-box" id="sfClassBox" tabindex="0"><span class="ms-placeholder" id="sfClassPh">Select classes…</span><span class="ms-arrow" id="sfClassArrow">▼</span></div>
+                <div class="ms-dropdown" id="sfClassDrop"></div>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Description <span class="hint">(optional)</span></label>
+            <textarea class="form-textarea" id="sfDesc" placeholder="Brief description…"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeSubjectModal()">Cancel</button>
+            <button class="btn btn-primary" id="sfSaveBtn" onclick="saveSubject()">Add Subject</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: STUDENT ════════════════════════════════════ -->
+<div class="overlay" id="stuOverlay" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-hdr">
+            <h2 class="modal-title" id="stuModalTitle">Add Student</h2>
+            <button class="modal-close" onclick="closeStuModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="field-row cols-2">
+            <div class="field"><label class="label">Full Name</label><input class="form-input" id="stfName" placeholder="Emma Wilson"/></div>
+            <div class="field"><label class="label">Matricule</label><input class="form-input" id="stfMatricule" placeholder="24/CS/001"/></div>
+        </div>
+        <div class="field" style="margin-top:18px">
+            <label class="label">Class</label>
+            <select class="form-select" id="stfClass"><option value="">— Select class —</option></select>
+        </div>
+        <div class="field-row cols-eq" style="margin-top:18px">
+            <div class="field"><label class="label">Gender</label>
+                <select class="form-select" id="stfGender"><option value="">—</option><option>Male</option><option>Female</option><option>Other</option></select>
+            </div>
+            <div class="field"><label class="label">Date of Birth</label><input class="form-input" id="stfDob" type="date"/></div>
+        </div>
+        <div class="field" style="margin-top:18px"><label class="label">Email <span class="hint">(optional)</span></label><input class="form-input" id="stfEmail" type="email" placeholder="student@school.cm"/></div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeStuModal()">Cancel</button>
+            <button class="btn btn-primary" id="stfSaveBtn" onclick="saveStudent()">Save Student</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: TT SLOT ════════════════════════════════════ -->
+<div class="overlay" id="ttSlotOverlay" role="dialog" aria-modal="true">
+    <div class="modal">
+        <div class="modal-hdr">
+            <h2 class="modal-title" id="ttSlotTitle">Assign Slot</h2>
+            <button class="modal-close" onclick="closeTTSlot()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <p class="modal-sub" id="ttSlotSub"></p>
+        <div class="field"><label class="label">Subject</label><select class="form-select" id="ttSlotSubj"><option value="">— Select subject —</option></select></div>
+        <div class="field"><label class="label">Teacher <span class="hint">(optional)</span></label><select class="form-select" id="ttSlotTchr"><option value="">— No teacher —</option></select></div>
+        <div class="field"><label class="label">Class</label><select class="form-select" id="ttSlotClass"><option value="">— No class —</option></select></div>
+        <div class="field"><label class="label">Duration</label>
+            <select class="form-select" id="ttSlotSpan"><option value="1">1 hour</option><option value="2">2 hours</option><option value="3">3 hours</option><option value="4">4 hours</option></select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeTTSlot()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveTTSlot()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══ MODAL: BULK IMPORT ════════════════════════════════ -->
+<div class="overlay" id="importOverlay" role="dialog" aria-modal="true">
+    <div class="modal modal-wide">
+        <div class="modal-hdr">
+            <h2 class="modal-title">Bulk Import Students</h2>
+            <button class="modal-close" onclick="closeBulkImport()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div id="importStep1">
+            <div class="import-tpl-bar">
+                <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--blue-dk);margin-bottom:2px">Download CSV Template</div>
+                    <div style="font-size:12px;color:var(--text-3)">name, matricule, classId, gender, dob, email</div>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="downloadTemplate()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Template
+                </button>
+            </div>
+            <div id="importClassIds" style="margin-bottom:14px"></div>
+            <div id="importDropZone" class="import-drop" onclick="document.getElementById('importFileInput').click()" ondragover="event.preventDefault()" ondrop="handleImportDrop(event)">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:#93c5fd;margin:0 auto 8px;display:block"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div id="importFileName" style="font-weight:600;font-size:13px;color:var(--text-2)">Drop file or click to browse</div>
+                <div style="font-size:11px;color:var(--text-3);margin-top:3px">.csv, .xlsx, .xls</div>
+            </div>
+            <input type="file" id="importFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(event)"/>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeBulkImport()">Cancel</button>
+                <button class="btn btn-primary" id="importStartBtn" onclick="startImport()" disabled>Start Import</button>
+            </div>
+        </div>
+        <div id="importStep2" style="display:none">
+            <div class="import-res-grid">
+                <div class="import-res-box" style="background:var(--surface-2);border:1px solid var(--border)"><div style="font-size:28px;font-weight:800;color:var(--text)" id="impTotal">0</div><div style="font-size:12px;color:var(--text-2);font-weight:500">Total Rows</div></div>
+                <div class="import-res-box" style="background:var(--green-lt);border:1px solid #6ee7b7"><div style="font-size:28px;font-weight:800;color:#065f46" id="impSuccess">0</div><div style="font-size:12px;color:#065f46;font-weight:500">Succeeded</div></div>
+                <div class="import-res-box" style="background:var(--red-lt);border:1px solid #fca5a5"><div style="font-size:28px;font-weight:800;color:#991b1b" id="impFailed">0</div><div style="font-size:12px;color:#991b1b;font-weight:500">Failed</div></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="document.getElementById('importStep2').style.display='none';document.getElementById('importStep1').style.display=''">Import More</button>
+                <button class="btn btn-primary" onclick="closeBulkImport()">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:src="@{/static/js/attendee.js}" src="../static/js/attendee.js"></script>
+</body>
+</html>
