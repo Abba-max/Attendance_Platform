@@ -1215,6 +1215,10 @@
                             class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
                             Admins
                         </button>
+                        <button onclick="setRoleFilter('STUDENT')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Students
+                        </button>
                     </div>
 
                     <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
@@ -2160,8 +2164,8 @@
                         <h4 class="text-sm font-bold text-emerald-800 mb-2">Instructions</h4>
                         <ul class="text-xs text-emerald-700 space-y-1">
                             <li>• File must be in CSV format.</li>
-                            <li>• Header row is required: <b>username,email,role</b></li>
-                            <li>• Role must be <b>PEDAGOG</b> or <b>SUPERVISOR</b>.</li>
+                            <li>• Header row is required: <b>firstname,lastname,email,role</b></li>
+                            <li>• Role must be <b>PEDAGOG</b>, <b>TEACHER</b> or <b>SUPERVISOR</b>.</li>
                             <li>• Unique passwords will be emailed to each user.</li>
                         </ul>
                     </div>

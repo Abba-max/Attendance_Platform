@@ -16,11 +16,13 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
 
@@ -58,6 +60,8 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/pedagog/**", "/api/pedagog/**").hasRole("PEDAGOG")
                         .anyRequest().authenticated()  // ← doit toujours être en dernier
                 )
 
@@ -72,8 +76,20 @@ public class SecurityConfig {
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
-                            // MODIFIÉ — redirection absolue
-                            response.sendRedirect("/admin/dashboard");
+                            
+                            // Dynamic redirection based on role
+                            boolean isAdmin = authentication.getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                            boolean isPedagog = authentication.getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG"));
+                                    
+                            if (isAdmin) {
+                                response.sendRedirect("/admin/dashboard");
+                            } else if (isPedagog) {
+                                response.sendRedirect("/pedagog/dashboard");
+                            } else {
+                                response.sendRedirect("/"); // Or some default page
+                            }
                         })
                         .failureUrl("/login?error")
                         .permitAll()

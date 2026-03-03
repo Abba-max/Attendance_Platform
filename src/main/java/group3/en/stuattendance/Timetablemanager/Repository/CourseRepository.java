@@ -14,6 +14,8 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
     List<Course> findBySpecialitySpecialityIdAndSemester(Integer specialityId, Integer semester);
 
+    List<Course> findBySpeciality_SpecialityId(Integer specialityId);
+
     List<Course> findByTeachersUserId(Integer teacherId);
 
     boolean existsByCourseNameAndSpecialitySpecialityId(String courseName, Integer specialityId);

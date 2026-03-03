@@ -1,11 +1,726 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pedagogic Assistant Dashboard</title>
+    <title>Attendee - Pedagogic Assistant Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-dashboard.css}">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    
+
+<body class="font-sans antialiased text-slate-800 bg-slate-50">
+    <div class="flex h-screen overflow-hidden relative">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-slate-900/50 z-[55] hidden lg:hidden"
+            onclick="toggleMobileMenu()"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="sidebar fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60] bg-white -translate-x-full lg:translate-x-0">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img th:src="@{/image/logo.png}" alt="Attendee Logo"
+                            class="w-12 h-12 object-contain rounded-xl">
+                        <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
+                    </div>
+                    <button onclick="toggleMobileMenu()"
+                        class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all border border-slate-200 shadow-sm">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="p-4 overflow-y-auto h-[calc(100vh-100px)]">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#"
+                            class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl text-white bg-[#00B0FF] hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="dashboard">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                            <span class="font-medium">Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="courses">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
+                            </svg>
+                            <span class="font-medium">Manage Courses</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="students">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            <span class="font-medium">Manage Students</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="sessions">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="font-medium">Manage Sessions</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="attendance">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-medium">Manage Attendance</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="specialities">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span class="font-medium">Specialities & Classes</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto relative">
+            <!-- Header -->
+            <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10 transition-all duration-300">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4">
+                        <button onclick="toggleMobileMenu()"
+                            class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <div>
+                            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Pedagogic Department</h1>
+                            <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
+                                <span th:text="${departmentName ?: 'Academic Services'}">Department Name</span>
+                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                <span class="text-emerald-600">Administrator View</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="relative group" id="profile-dropdown">
+                            <button id="profile-btn"
+                                class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 rounded-2xl transition-all duration-300">
+                                <div
+                                    class="w-9 h-9 bg-[#00B0FF] rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                                    <span th:text="${#strings.substring(username ?: 'P', 0, 1).toUpperCase()}">P</span>
+                                </div>
+                                <div class="text-left hidden md:block">
+                                    <p class="text-[13px] font-bold text-slate-800 leading-none"
+                                        th:text="${username ?: 'Pedagog'}">Pedagog</p>
+                                    <p class="text-[11px] text-slate-500 font-medium mt-0.5">Staff Account</p>
+                                </div>
+                                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="profile-menu"
+                                class="absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 hidden z-50">
+                                <a th:href="@{/logout}"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                        </path>
+                                    </svg>
+                                    Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="p-8">
+                <!-- Dashboard Overview -->
+                <section id="section-dashboard" class="content-section">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-slate-800">Overview</h2>
+                        <p class="text-slate-500">Department performance and student metrics.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                        <div
+                            class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <div
+                                    class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                    </svg>
+                                </div>
+                                <span class="text-emerald-500 text-xs font-bold">+12%</span>
+                            </div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Students</p>
+                            <h3 class="text-3xl font-black text-slate-800" th:text="${totalStudents ?: 0}">0</h3>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <div
+                                    class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
+                                    </svg>
+                                </div>
+                                <span class="text-slate-400 text-xs font-bold">Stable</span>
+                            </div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Active Courses</p>
+                            <h3 class="text-3xl font-black text-slate-800" th:text="${totalCourses ?: 0}">0</h3>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <div
+                                    class="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                </div>
+                                <span class="text-slate-400 text-xs font-bold"
+                                    th:text="${departmentName ?: 'N/A'}">DEPT</span>
+                            </div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Specialities</p>
+                            <h3 class="text-3xl font-black text-slate-800" th:text="${#lists.size(specialities ?: {})}">
+                                0</h3>
+                        </div>
+
+                        <div
+                            class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition">
+                            <div class="flex items-center justify-between mb-4">
+                                <div
+                                    class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <span class="text-blue-500 text-xs font-bold">Active</span>
+                            </div>
+                            <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Teachers</p>
+                            <h3 class="text-3xl font-black text-slate-800" th:text="${totalTeachers ?: 0}">0</h3>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Students Management -->
+                <section id="section-students" class="content-section hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-800">Student Management</h2>
+                            <p class="text-slate-500">Register and assign students to classrooms.</p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Student Filters -->
+                            <div
+                                class="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
+                                <select id="studentSpecFilter" onchange="applyStudentFilters()"
+                                    class="bg-transparent text-sm font-bold text-slate-600 px-3 py-1.5 focus:outline-none appearance-none cursor-pointer">
+                                    <option value="">All Specialities</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.name}"
+                                        th:text="${spec.name}"></option>
+                                </select>
+                                <div class="w-px h-4 bg-slate-200"></div>
+                                <select id="studentClassFilter" onchange="applyStudentFilters()"
+                                    class="bg-transparent text-sm font-bold text-slate-600 px-3 py-1.5 focus:outline-none appearance-none cursor-pointer">
+                                    <option value="">All Classrooms</option>
+                                    <option th:each="room : ${classrooms}" th:value="${room.name}"
+                                        th:text="${room.name}"></option>
+                                </select>
+                                <div class="w-px h-4 bg-slate-200"></div>
+                                <select id="studentLevelFilter" onchange="applyStudentFilters()"
+                                    class="bg-transparent text-sm font-bold text-slate-600 px-3 py-1.5 focus:outline-none appearance-none cursor-pointer">
+                                    <option value="">All Levels</option>
+                                    <option value="1">Level 1</option>
+                                    <option value="2">Level 2</option>
+                                    <option value="3">Level 3</option>
+                                    <option value="4">Level 4</option>
+                                    <option value="5">Level 5</option>
+                                </select>
+                            </div>
+
+                            <button onclick="openBulkImportModal()"
+                                class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                Bulk Import
+                            </button>
+                            <button onclick="openStudentModal()"
+                                class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Add Student
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50">
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Student</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Matricule</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Classroom & Level</th>
+                                    <th
+                                        class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
+                                        Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody" class="divide-y divide-slate-100">
+                                <tr th:each="student : ${students}"
+                                    th:data-spec="${student.classroom?.speciality?.name ?: 'Common'}"
+                                    th:data-class="${student.classroom?.name ?: 'Unassigned'}"
+                                    th:data-level="${student.classroom?.level ?: 0}"
+                                    class="student-row hover:bg-slate-50/50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 bg-blue-50 text-[#00B0FF] rounded-xl flex items-center justify-center font-bold"
+                                                th:text="${#strings.substring(student.firstName,0,1)}">S</div>
+                                            <div>
+                                                <p class="font-bold text-slate-800"
+                                                    th:text="${student.firstName + ' ' + student.lastName}">Name</p>
+                                                <p class="text-xs text-slate-500" th:text="${student.email}">Email</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-600"
+                                        th:text="${student.matricule}">MAT123</td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-2">
+                                            <span
+                                                class="px-3 py-1 bg-blue-50 text-[#00B0FF] rounded-full text-xs font-bold"
+                                                th:text="${student.classroom?.name ?: 'Unassigned'}">Class</span>
+                                            <span
+                                                class="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase"
+                                                th:text="'L' + ${student.classroom?.level ?: 0}">L1</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="p-2 text-slate-400 hover:text-blue-500 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(students)}">
+                                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 font-medium">No
+                                        students registered in this department yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Specialities & Classes -->
+                <section id="section-specialities" class="content-section hidden">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-slate-800">Specialities & Classrooms</h2>
+                        <p class="text-slate-500">Overview of academic structures in your department.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <!-- Specialities List -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <span class="w-2 h-6 bg-blue-500 rounded-full"></span>
+                                Specialities
+                            </h3>
+                            <div class="grid grid-cols-1 gap-4">
+                                <div th:each="spec : ${specialities}"
+                                    class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between hover:border-blue-200 transition">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl"
+                                            th:text="${#strings.substring(spec.name,0,1)}">S</div>
+                                        <div>
+                                            <h4 class="font-bold text-slate-800" th:text="${spec.name}">Spec Name</h4>
+                                            <p class="text-xs text-slate-500"
+                                                th:text="${#lists.size(spec.classrooms) + ' Classrooms'}">0 Classrooms
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <svg class="w-5 h-5 text-slate-300" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Classrooms List -->
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                <span class="w-2 h-6 bg-emerald-500 rounded-full"></span>
+                                Classrooms
+                            </h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div th:each="room : ${classrooms}"
+                                    class="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:translate-y-[-2px] transition group">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1"
+                                        th:text="${room.speciality?.name}">SPEC</p>
+                                    <h4 class="font-black text-slate-800 text-lg mb-4 group-hover:text-blue-500"
+                                        th:text="${room.name}">ROOM</h4>
+                                    <div class="flex items-center justify-between text-xs font-bold text-slate-500">
+                                        <span>Level <span th:text="${room.level}">1</span></span>
+                                        <span>Cap <span th:text="${room.capacity}">30</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Manage Courses Section -->
+                <section id="section-courses" class="content-section hidden">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold text-slate-800">Course Management</h2>
+                            <p class="text-slate-500">Define and assigned courses to specialities.</p>
+                        </div>
+                        <button onclick="openCourseModal()"
+                            class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create Course
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/50">
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Course Name</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Course Code</th>
+                                    <th class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                        Speciality</th>
+                                    <th
+                                        class="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">
+                                        Action</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr th:each="course : ${courses}" class="hover:bg-slate-50/50 transition">
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center font-bold"
+                                                th:text="${#strings.substring(course.name,0,1)}">C</div>
+                                            <p class="font-bold text-slate-800" th:text="${course.name}">Course Name</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-600"
+                                        th:text="${course.courseCode}">CODE101</td>
+                                    <td class="px-6 py-4">
+                                        <span
+                                            class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-bold"
+                                            th:text="${course.speciality?.name ?: 'Common'}">Spec</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-right">
+                                        <button class="p-2 text-slate-400 hover:text-blue-500 transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr th:if="${#lists.isEmpty(courses)}">
+                                    <td colspan="4" class="px-6 py-12 text-center text-slate-400 font-medium">No courses
+                                        defined in this department yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="section-sessions" class="content-section hidden">
+                    <div class="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
+                        <div
+                            class="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Manage Sessions</h2>
+                        <p class="text-slate-500 mb-8 max-w-sm mx-auto">Track and schedule academic sessions. This
+                            feature is under development.</p>
+                        <button
+                            class="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition">Coming
+                            Soon</button>
+                    </div>
+                </section>
+
+                <section id="section-attendance" class="content-section hidden">
+                    <div class="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
+                        <div
+                            class="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">Manage Attendance</h2>
+                        <p class="text-slate-500 mb-8 max-w-sm mx-auto">Review and audit student attendance records
+                            across the department.</p>
+                        <button
+                            class="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition">Coming
+                            Soon</button>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Student Modal (Individual) -->
+    <div id="studentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="studentModalContent">
+            <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+                <h3 class="text-xl font-bold">Register Individual Student</h3>
+                <button onclick="closeStudentModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createStudentForm" onsubmit="handleCreateStudent(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">First
+                            Name</label>
+                        <input type="text" name="firstName" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition"
+                            placeholder="Student's first name">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Last
+                            Name</label>
+                        <input type="text" name="lastName" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition"
+                            placeholder="Student's last name">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email
+                        Address</label>
+                    <input type="email" name="email" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition"
+                        placeholder="email@institution.com">
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Matricule</label>
+                    <input type="text" name="matricule" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition"
+                        placeholder="Unique ID">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Speciality
+                            Filter</label>
+                        <select id="specFilter" onchange="filterClassrooms(this.value)"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition appearance-none">
+                            <option value="">All Specialities</option>
+                            <option th:each="spec : ${specialities}" th:value="${spec.specialityId}"
+                                th:text="${spec.name}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Classroom</label>
+                        <select name="classroomId" id="classroomSelect" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-[#00B0FF] outline-none text-slate-800 transition appearance-none">
+                            <option value="">Select Classroom</option>
+                            <!-- Options will be filtered by JS if needed -->
+                            <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
+                                th:text="${classroom.name}" th:data-spec="${classroom.speciality.specialityId}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeStudentModal()"
+                        class="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-semibold rounded-lg transition border border-slate-200">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] text-white hover:bg-[#0091D5] font-bold rounded-lg shadow-xl shadow-blue-500/20 transition flex items-center justify-center gap-2">
+                        <span>Register Student</span>
+                        <div id="studentSubmitLoader"
+                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="bulkImportModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-emerald-600 text-white">
+                <h3 class="text-xl font-bold">Bulk Student Import</h3>
+                <button onclick="closeBulkImportModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Target Classroom</label>
+                    <select id="bulkClassroomId"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none">
+                        <option value="">Select Classroom</option>
+                        <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
+                            th:text="${classroom.name}"></option>
+                    </select>
+                </div>
+                <div>
+                    <label
+                        class="block w-full border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-all">
+                        <input type="file" id="studentCsvFile" class="hidden" accept=".csv"
+                            onchange="updateFileName(this)">
+                        <div class="flex flex-col items-center gap-2">
+                            <div
+                                class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                            </div>
+                            <span class="text-sm font-semibold text-slate-700" id="fileNameDisplay">Choose CSV
+                                file</span>
+                        </div>
+                    </label>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeBulkImportModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button onclick="startBulkImport()"
+                        class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                        <span>Start Import</span>
+                        <div id="bulkImportLoader"
+                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Creation Modal -->
+    <div id="courseModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white text-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="courseModalContent">
+            <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+                <h3 class="text-xl font-bold">Create New Course</h3>
+                <button onclick="closeCourseModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="createCourseForm" onsubmit="handleCreateCourse(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
+                        Name</label>
+                    <input type="text" name="courseName" required placeholder="e.g. Advanced Mathematics"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
+                        Code</label>
+                    <input type="text" name="code" required placeholder="e.g. MATH401"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                </div>
+                <div>
+                    <label
+                        class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Speciality</label>
+                    <select name="specialityId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 appearance-none cursor-pointer">
+                        <option value="">Select Speciality</option>
+                        <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}">
+                        </option>
+                    </select>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeCourseModal()"
+                        class="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition">Create
+                        Course</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script th:src="@{/js/pedagog/pedagog-dashboard.js}"></script>
 </body>
+
 </html>

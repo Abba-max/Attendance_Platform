@@ -27,6 +27,11 @@ public class PedagogController {
        return ResponseEntity.ok(userService.registerTeacher(dto));
     }
 
+    @PostMapping("/students")
+    public ResponseEntity<User> createStudent(@RequestBody StudentCreateDto dto) {
+        return ResponseEntity.ok(userService.registerStudent(dto));
+    }
+
     @GetMapping("/teachers")
     public ResponseEntity<List<UserDto>> getAllTeachers() {
         return ResponseEntity.ok(userService.getUsersByRole("TEACHER"));
@@ -43,5 +48,11 @@ public class PedagogController {
     public ResponseEntity<BulkImportResultDto> bulkImportCourses(
             @RequestParam("file") MultipartFile file) {
         return ResponseEntity.ok(courseService.bulkImportCourses(file));
+    }
+
+    @PostMapping("/courses")
+    public ResponseEntity<group3.en.stuattendance.Timetablemanager.DTO.CourseDto> createCourse(
+            @RequestBody group3.en.stuattendance.Timetablemanager.DTO.CourseDto dto) {
+        return ResponseEntity.ok(courseService.createCourse(dto));
     }
 }
