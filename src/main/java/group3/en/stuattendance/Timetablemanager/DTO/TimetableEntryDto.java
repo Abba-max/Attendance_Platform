@@ -5,28 +5,19 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SessionDto {
-
-    private Integer sessionId;
+public class TimetableEntryDto {
+    private Integer entryId;
     private String day;
-    private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
-    private Integer week;
-    private String locationGeographicalCoordinates;
-    private String qrCode;
     private Integer courseId;
     private String courseName;
     private Integer teacherId;
     private String teacherName;
-    private Integer classroomId;
-    private String classroomName;
-    private Boolean isActive;
 }
