@@ -393,16 +393,24 @@ document.addEventListener('click', (e) => {
 window.applyCourseFilters = function () {
     const specName = document.getElementById('courseSpecFilter').value;
     const levelValue = document.getElementById('courseLevelFilter').value;
+    const searchText = document.getElementById('courseSearch').value.toLowerCase();
+    const creditValue = document.getElementById('courseCreditFilter').value;
+
     const rows = document.querySelectorAll('.course-row');
 
     rows.forEach(row => {
         const rowSpec = row.getAttribute('data-spec');
         const rowLevel = row.getAttribute('data-level');
+        const rowName = (row.getAttribute('data-name') || '').toLowerCase();
+        const rowCode = (row.getAttribute('data-code') || '').toLowerCase();
+        const rowCredit = row.getAttribute('data-credit');
 
         const specMatch = !specName || rowSpec === specName;
         const levelMatch = !levelValue || rowLevel === levelValue;
+        const creditMatch = !creditValue || rowCredit === creditValue;
+        const searchMatch = !searchText || rowName.includes(searchText) || rowCode.includes(searchText);
 
-        if (specMatch && levelMatch) {
+        if (specMatch && levelMatch && creditMatch && searchMatch) {
             row.style.display = "";
         } else {
             row.style.display = "none";
@@ -602,19 +610,24 @@ window.loadTTCoursesAndTeachers = async function () {
 
         // Render Courses
         if (courses.length === 0) {
-            coursesList.innerHTML = '<p class="text-center py-4 text-xs text-slate-400">No courses available</p>';
+            coursesList.innerHTML = `<div class="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p class="text-slate-400 text-[11px] font-bold text-center">No courses found for this level</p>
+            </div>`;
         } else {
             coursesList.innerHTML = courses.map(c => `
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-move hover:border-blue-300 transition group relative"
+                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-move hover:border-blue-300 hover:shadow-md transition-all group relative"
                      draggable="true" ondragstart="handleTTDragStart(event)" 
                      data-type="course" data-id="${c.courseId}" data-name="${c.courseName}">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-[10px] font-black">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 bg-blue-50 text-[#00B0FF] rounded-xl flex items-center justify-center text-xs font-black shadow-inner">
                             ${c.courseName.charAt(0)}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-[11px] font-bold text-slate-700 leading-tight truncate">${c.courseName}</p>
-                            <p class="text-[9px] text-slate-400 font-medium">${c.code}</p>
+                            <div class="flex items-center justify-between gap-2 mb-1">
+                                <span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-tight">${c.code}</span>
+                                <span class="text-[10px] font-bold text-blue-500">${c.credits || 0} Cr</span>
+                            </div>
+                            <p class="text-[12px] font-black text-slate-800 leading-tight line-clamp-2">${c.courseName}</p>
                         </div>
                     </div>
                 </div>
@@ -623,19 +636,24 @@ window.loadTTCoursesAndTeachers = async function () {
 
         // Render Teachers
         if (teachers.length === 0) {
-            teachersList.innerHTML = '<p class="text-center py-4 text-xs text-slate-400">No teachers available</p>';
+            teachersList.innerHTML = `<div class="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p class="text-slate-400 text-[11px] font-bold text-center">No teachers assigned to this speciality</p>
+            </div>`;
         } else {
             teachersList.innerHTML = teachers.map(t => `
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 cursor-move hover:border-blue-300 transition group relative"
+                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-move hover:border-blue-300 hover:shadow-md transition-all group relative"
                      draggable="true" ondragstart="handleTTDragStart(event)" 
                      data-type="teacher" data-id="${t.userId}" data-name="${t.username}">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-[10px] font-black">
+                        <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xs font-black shadow-inner">
                             ${t.username.charAt(0)}
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-700">${t.username}</p>
-                            <p class="text-[10px] text-slate-400 font-medium">Lecturer</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[12px] font-black text-slate-800 mb-0.5 truncate">${t.username}</p>
+                            <div class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Lecturer</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -749,39 +767,56 @@ function renderCourseInCell(cell, item) {
     const isEvent = item.isEvent === true || item.isEvent === 'true';
 
     cell.innerHTML = `
-        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none z-0"></div>
-        <div class="h-full rounded-xl p-2 shadow-sm relative group/block tt-block text-white"
+        <div class="h-full rounded-xl p-1 shadow-sm relative group/block tt-block text-white"
              data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
              data-is-event="${isEvent}" data-event-name="${item.name}"
-             style="background-color: ${bgColor}; z-index: 10;">
-            <div class="flex flex-col h-full">
-                <p class="text-[10px] font-black leading-tight mb-1 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${item.name}</p>
-                <div class="mt-auto flex items-center justify-between">
-                    ${isEvent ? '' : `
-                    <div class="teacher-info flex items-center gap-1 opacity-90">
-                        <span class="text-[8px] font-bold">Teacher:</span>
-                        <span class="teacher-name text-[9px] font-black truncate max-w-[60px]">Unassigned</span>
-                    </div>
-                    `}
-                    <button onclick="removeTTBlock(this)" class="opacity-0 group-hover/block:opacity-100 p-1 text-white hover:text-red-200 transition ${isEvent ? 'ml-auto' : ''}">
+             style="background: linear-gradient(135deg, ${bgColor}, ${adjustColor(bgColor, -15)}); border-left-color: ${bgColor};">
+            <div class="flex flex-col h-full relative z-10 px-1">
+                <div class="flex items-start justify-between gap-1 mb-0.5">
+                    <p class="text-[9px] font-black leading-tight overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${item.name}</p>
+                    <button onclick="removeTTBlock(this)" class="opacity-0 group-hover/block:opacity-100 p-0.5 text-white/80 hover:text-white transition-opacity">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
+                <div class="mt-auto">
+                    ${isEvent ? `
+                        <span class="inline-block px-1 py-0.5 bg-white/20 rounded text-[7px] font-black uppercase tracking-widest">Event</span>
+                    ` : `
+                        <div class="teacher-info flex items-center gap-1 py-0.5 px-1 bg-black/10 rounded-md">
+                            <div class="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
+                                <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                            </div>
+                            <span class="teacher-name text-[8px] font-black truncate max-w-[50px]">Unassigned</span>
+                        </div>
+                    `}
+                </div>
             </div>
             <!-- Color Picker -->
-            <div class="absolute -right-2 top-0 bottom-0 flex flex-col justify-center gap-1 opacity-0 group-hover/block:opacity-100 transition-opacity z-20">
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#00B0FF')" class="w-2.5 h-2.5 bg-[#00B0FF] rounded-full shadow-sm border border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#FF5252')" class="w-2.5 h-2.5 bg-[#FF5252] rounded-full shadow-sm border border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#4CAF50')" class="w-2.5 h-2.5 bg-[#4CAF50] rounded-full shadow-sm border border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#FFC107')" class="w-2.5 h-2.5 bg-[#FFC107] rounded-full shadow-sm border border-white cursor-pointer hover:scale-125 transition"></div>
+            <div class="absolute -right-3 top-0 bottom-0 flex flex-col justify-center gap-1 opacity-0 group-hover/block:opacity-100 transition-opacity z-20">
+                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#3b82f6')" class="w-5 h-5 bg-[#3b82f6] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
+                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#ef4444')" class="w-5 h-5 bg-[#ef4444] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
+                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#10b981')" class="w-5 h-5 bg-[#10b981] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
+                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#f59e0b')" class="w-5 h-5 bg-[#f59e0b] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
             </div>
             
             <!-- Resize Handle -->
-            <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-white/20 rounded-b-xl z-20 transition"></div>
+            <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-white/20 rounded-b-xl z-20 transition"></div>
         </div>
     `;
+}
+
+// Helper to darken colors for gradients
+function adjustColor(color, percent) {
+    let num = parseInt(color.replace("#", ""), 16),
+        amt = Math.round(2.55 * percent),
+        R = (num >> 16) + amt,
+        G = (num >> 8 & 0x00FF) + amt,
+        B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 + (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 + (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
 }
 
 
@@ -805,8 +840,7 @@ window.removeTTBlock = function (btn) {
 };
 
 window.setTTBlockColor = function (block, color) {
-    block.style.backgroundColor = color;
-    block.style.borderLeftColor = 'transparent'; // Cleanup old style if present
+    block.style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -15)})`;
     block.setAttribute('data-color', color);
 };
 
@@ -1081,16 +1115,21 @@ window.setActiveTTDay = function (dayIndex) {
 window.applyStudentFilters = function () {
     const specName = document.getElementById('studentSpecFilter')?.value || '';
     const className = document.getElementById('studentClassFilter')?.value || '';
-    const level = document.getElementById('studentLevelFilter')?.value || '';
+    const levelValue = document.getElementById('studentLevelFilter')?.value || '';
+    const searchText = document.getElementById('studentSearch')?.value.toLowerCase() || '';
 
     document.querySelectorAll('.student-row').forEach(row => {
         const rowSpec = row.getAttribute('data-spec') || '';
         const rowClass = row.getAttribute('data-class') || '';
         const rowLevel = row.getAttribute('data-level') || '';
+        const rowName = (row.getAttribute('data-name') || '').toLowerCase();
+        const rowEmail = (row.getAttribute('data-email') || '').toLowerCase();
+        const rowMatricule = (row.getAttribute('data-matricule') || '').toLowerCase();
 
         const match = (!specName || rowSpec === specName)
             && (!className || rowClass === className)
-            && (!level || rowLevel === level);
+            && (!levelValue || rowLevel === levelValue)
+            && (!searchText || rowName.includes(searchText) || rowEmail.includes(searchText) || rowMatricule.includes(searchText));
 
         row.style.display = match ? '' : 'none';
     });
@@ -1122,14 +1161,14 @@ document.addEventListener('mousemove', function (e) {
     if (!ttIsResizing || !ttCurrentBlock) return;
 
     const dy = e.clientY - ttStartY;
-    // Each hour slot is ~82px high.
-    let newDuration = Math.max(1, Math.round((ttStartHeight + dy) / 82));
+    // Each hour slot is ~48px high.
+    let newDuration = Math.max(1, Math.round((ttStartHeight + dy) / 48));
 
-    // Constraints: Can't exceed the end of the day (18:00). Max Start Hour is 17.
+    // Constraints: Can't exceed the end of the day (17:00). Max Start Hour is 16.
     const cell = ttCurrentBlock.closest('.grid-cell');
     const startHour = parseInt(cell.getAttribute('data-hour'));
-    if (startHour + newDuration > 18) {
-        newDuration = 18 - startHour;
+    if (startHour + newDuration > 17) {
+        newDuration = 17 - startHour;
     }
 
     ttCurrentBlock.setAttribute('data-duration', newDuration);
@@ -1186,5 +1225,104 @@ window.setActiveTTDay = function (dayIndex) {
             left: 72 + (dayIndex * dayWidth) - 10,
             behavior: 'smooth'
         });
+    }
+};
+
+// ==========================================
+// EMAIL DISTRIBUTION LOGIC
+// ==========================================
+
+window.openEmailTTModal = function () {
+    const modal = document.getElementById('emailTTModal');
+    const content = document.getElementById('emailTTModalContent');
+    const form = document.getElementById('emailTTForm');
+
+    // reset form
+    form.reset();
+
+    // Prefill speciality and classroom from main filters
+    const currentSpec = document.getElementById('ttSpecSelect').value;
+    const currentClass = document.getElementById('ttClassSelect').value;
+
+    if (currentSpec) {
+        document.getElementById('emailSpecSelect').value = currentSpec;
+        // The global filterClassrooms is defined in pedagog-dashboard.js
+        if (typeof filterClassrooms === 'function') {
+            filterClassrooms(currentSpec, 'emailClassSelect');
+        }
+
+        if (currentClass) {
+            document.getElementById('emailClassSelect').value = currentClass;
+        }
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+};
+
+window.closeEmailTTModal = function () {
+    const modal = document.getElementById('emailTTModal');
+    const content = document.getElementById('emailTTModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+};
+
+window.handleSendEmailTT = async function (event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const loader = document.getElementById('emailTTLoader');
+
+    // Get current week, semester, academicYear from main dashboard
+    const weekInput = document.getElementById('ttStartDate');
+    const week = weekInput.getAttribute('data-week') || 1; // Fallback to 1 if not found
+    const semester = document.getElementById('ttSemesterSelect').value;
+    const academicYearId = document.getElementById('ttAcademicYearSelect').value;
+
+    if (!formData.get('classroomId')) {
+        showNotification('error', 'Please select a classroom first.');
+        return;
+    }
+
+    loader.classList.remove('hidden');
+    const btn = form.querySelector('button[type="submit"]');
+    btn.disabled = true;
+
+    try {
+        const params = new URLSearchParams();
+        params.append('classroomId', formData.get('classroomId'));
+        params.append('week', week);
+        params.append('semester', semester);
+        if (academicYearId) params.append('academicYearId', academicYearId);
+        params.append('subject', formData.get('subject'));
+        params.append('message', formData.get('message'));
+
+        const response = await fetch('/api/timetablecontent/email', {
+            method: 'POST',
+            body: params
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showNotification('success', result.message || 'Timetable emails sent successfully!');
+            closeEmailTTModal();
+        } else {
+            showNotification('error', result.error || 'Failed to send emails.');
+        }
+    } catch (error) {
+        console.error('Email error:', error);
+        showNotification('error', 'Network error while sending emails.');
+    } finally {
+        loader.classList.add('hidden');
+        btn.disabled = false;
     }
 };

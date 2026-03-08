@@ -5,6 +5,10 @@ import group3.en.stuattendance.Timetablemanager.Service.TimetablecontentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import group3.en.stuattendance.Usermanager.Repository.UserRepository;
+import group3.en.stuattendance.Usermanager.Model.User;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +20,9 @@ public class TimetablecontentController {
 
     private final TimetablecontentService timetablecontentService;
     private final group3.en.stuattendance.Timetablemanager.Service.PdfExportService pdfExportService;
+    private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
+    private final group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository classroomRepository;
+    private final group3.en.stuattendance.Usermanager.Repository.UserRepository userRepository;
 
     /**
      * Save (or update) a weekly timetable.
@@ -155,5 +162,65 @@ public class TimetablecontentController {
     @GetMapping
     public ResponseEntity<List<TimetablecontentDto>> getAllTimetablecontents() {
         return ResponseEntity.ok(timetablecontentService.getAllTimetablecontents());
+    }
+
+    /**
+     * Send timetable PDF to all students in a classroom via Email.
+     */
+    @PostMapping("/email")
+    public ResponseEntity<java.util.Map<String, String>> emailTimetableToClassroom(
+            @RequestParam Integer classroomId,
+            @RequestParam(required = false) Long academicYearId,
+            @RequestParam Integer week,
+            @RequestParam Integer semester,
+            @RequestParam String subject,
+            @RequestParam(required = false) String message) {
+
+        // 1. Get Timetable Data
+        TimetablecontentDto dto;
+        try {
+            dto = timetablecontentService.getWeeklyTimetable(classroomId, academicYearId, week, semester);
+        } catch (jakarta.persistence.EntityNotFoundException e) {
+            dto = TimetablecontentDto.builder()
+                    .classroomId(classroomId).week(week).semester(semester)
+                    .entries(java.util.Collections.emptyList())
+                    .build();
+        }
+
+        // 2. Generate PDF bytes
+        java.io.ByteArrayInputStream bis = pdfExportService.exportTimetableToPdf(dto);
+        byte[] pdfBytes = bis.readAllBytes();
+
+        // 3. Find recipients (Students in the classroom)
+        group3.en.stuattendance.Institutionmanager.Model.Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found"));
+
+        List<String> bccList = classroom.getStudents().stream()
+                .map(group3.en.stuattendance.Usermanager.Model.User::getEmail)
+                .filter(email -> email != null && !email.isEmpty())
+                .toList();
+
+        if (bccList.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "The selected classroom has no students with valid email addresses."));
+        }
+
+        // 4. Get Current Pedagog Email
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String fromEmail = null;
+        String senderName = "Attendance System";
+        
+        if (auth != null && auth.isAuthenticated()) {
+            User currentUser = userRepository.findByUsername(auth.getName()).orElse(null);
+            if (currentUser != null && currentUser.getEmail() != null) {
+                fromEmail = currentUser.getEmail();
+                senderName = currentUser.getFirstName() + " " + currentUser.getLastName();
+            }
+        }
+
+        // 5. Send Email
+        String filename = classroom.getName().replaceAll("[^a-zA-Z0-9]", "_") + "_Week" + week + "_Timetable.pdf";
+        emailService.sendTimetableEmail(fromEmail, bccList, subject, message != null ? message : "", pdfBytes, filename, senderName);
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Email distribution started for " + bccList.size() + " students."));
     }
 }

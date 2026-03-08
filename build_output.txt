@@ -1,0 +1,30 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< group3.en:stuattendance >-----------------------
+[INFO] Building stuattendance 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ stuattendance ---
+[INFO] Deleting C:\Users\UsER\Documents\Transversal project\Student Attendance System\stuattendance\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ stuattendance ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 20 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ stuattendance ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 143 source files with javac [debug release 17] to target\classes
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Model/Institution.java:[37,23] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Institutionmanager/Model/Institution.java:[41,29] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Notificationmanager/Model/Notification.java:[40,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Attendancemanager/Model/AttendanceRecord.java:[54,32] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Justificationmanager/Model/Justification.java:[49,33] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Usermanager/DTO/BulkImportResultDto.java:[19,28] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/UsER/Documents/Transversal project/Student Attendance System/stuattendance/src/main/java/group3/en/stuattendance/Timetablemanager/DTO/TimetableEntryDto.java:[27,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  36.857 s
+[INFO] Finished at: 2026-03-08T23:49:39+01:00
+[INFO] ------------------------------------------------------------------------

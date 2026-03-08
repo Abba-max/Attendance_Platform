@@ -21,7 +21,7 @@ public class PdfExportServiceImpl implements PdfExportService {
 
     @Override
     public ByteArrayInputStream exportTimetableToPdf(TimetablecontentDto timetableDto) {
-        Document document = new Document(PageSize.A4);
+        Document document = new Document(PageSize.A4.rotate());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {
@@ -75,9 +75,9 @@ public class PdfExportServiceImpl implements PdfExportService {
                 }
 
                 int[] skipCells = new int[6]; // Tracker for multi-hour blocks
-                for (int hour = 8; hour <= 17; hour++) {
+                for (int hour = 8; hour <= 16; hour++) {
                     // Add Time Column Cell
-                    PdfPCell timeCell = new PdfPCell(new Phrase(String.format("%02d:00", hour), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.DARK_GRAY)));
+                    PdfPCell timeCell = new PdfPCell(new Phrase(String.format("%02d:00-%02d:00", hour, hour + 1), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.DARK_GRAY)));
                     timeCell.setPadding(5);
                     timeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
                     timeCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
