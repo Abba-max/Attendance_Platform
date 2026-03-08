@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendee - Advanced Timetable Creator</title>
+    <style>
+        :root {
+            --primary: #1976d2;
+            --accent: #ffd54f;
+            --bg: #f5f7fa;
+            --cell-height: 80px; /* Represents 1 hour */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Header & Selectors */
+        .header { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); z-index: 100; }
+        .logo-section { display: flex; align-items: center; gap: 12px; }
+        .logo-small { width: 35px; height: 35px; background: linear-gradient(135deg, #64b5f6, #fff59d); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+        
+        .selectors { display: flex; gap: 10px; }
+        .selector { padding: 8px 12px; border: 2px solid #e0e0e0; border-radius: 6px; outline: none; transition: 0.3s; }
+        .selector:focus { border-color: #64b5f6; }
+
+        /* Toolbar */
+        .toolbar { background: white; border-bottom: 1px solid #e0e0e0; padding: 10px 24px; display: flex; justify-content: flex-end; gap: 10px; }
+        .btn { padding: 8px 16px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: #e3f2fd; color: var(--primary); }
+        .btn:hover { transform: translateY(-1px); opacity: 0.9; }
+
+        /* Main Layout */
+        .main-container { flex: 1; display: flex; overflow: hidden; }
+
+        /* Sidebar */
+        .sidebar { width: 300px; background: white; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; }
+        .tabs { display: flex; border-bottom: 1px solid #e0e0e0; }
+        .tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: #757575; font-weight: 600; }
+        .tab.active { color: var(--primary); border-bottom: 3px solid var(--primary); }
+        
+        .list-content { flex: 1; overflow-y: auto; padding: 15px; }
+        .draggable-item { 
+            padding: 12px; border-radius: 8px; margin-bottom: 10px; cursor: grab; 
+            border: 2px solid #eee; border-left: 5px solid #ccc; background: white;
+            transition: 0.2s;
+        }
+        .draggable-item:active { cursor: grabbing; }
+        .draggable-item.math { border-left-color: #e91e63; }
+        .draggable-item.tech { border-left-color: #2196f3; }
+        .draggable-item.teacher { border-left-color: #4caf50; background: #f1f8e9; }
+
+        /* Timetable Grid */
+        .grid-container { flex: 1; overflow: auto; padding: 20px; }
+        .timetable-grid { 
+            display: grid; 
+            grid-template-columns: 80px repeat(5, 1fr); 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            min-width: 800px;
+        }
+
+        .cell { border: 0.5px solid #f0f0f0; min-height: var(--cell-height); position: relative; }
+        .header-cell { background: #64b5f6; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .time-cell { background: #fafafa; color: #757575; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border-right: 2px solid #eee; }
+
+        /* Scheduled Block */
+        .scheduled-course {
+            position: absolute; top: 2px; left: 2%; width: 96%;
+            min-height: calc(var(--cell-height) - 4px);
+            z-index: 10; border-radius: 6px; padding: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-left: 5px solid;
+            pointer-events: auto;
+        }
+        .scheduled-course.math { background: #fce4ec; border-color: #e91e63; }
+        .scheduled-course.tech { background: #e3f2fd; border-color: #2196f3; }
+
+        /* Resize Handle */
+        .resizer {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 8px;
+            cursor: ns-resize; display: flex; justify-content: center; align-items: center;
+        }
+        .resizer::after { content: "•••"; color: rgba(0,0,0,0.2); font-size: 10px; line-height: 0; }
+
+        .t-badge { font-size: 11px; background: rgba(255,255,255,0.7); padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 5px; color: #333; }
+
+        @media print {
+            .sidebar, .toolbar, .header, .resizer, .btn-del { display: none !important; }
+            .grid-container { padding: 0; }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-small">A</div>
+            <span style="font-weight: bold; font-size: 1.2rem;">Attendee Timetable</span>
+        </div>
+        <div class="selectors">
+            <select class="selector" id="specSelect" onchange="switchView()">
+                <option value="CS_Y1">CS - Year 1</option>
+                <option value="CS_Y2">CS - Year 2</option>
+                <option value="BIO_Y1">Biology - Year 1</option>
+            </select>
+            <select class="selector" id="roomSelect" onchange="switchView()">
+                <option value="R101">Room 101</option>
+                <option value="R102">Room 102</option>
+                <option value="Lab_A">Lab A</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn btn-secondary" onclick="window.print()">📄 Export PDF</button>
+        <button class="btn btn-primary" onclick="saveAllData()">💾 Save All Changes</button>
+    </div>
+
+    <div class="main-container">
+        <div class="sidebar">
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('courses', this)">Courses</div>
+                <div class="tab" onclick="switchTab('teachers', this)">Teachers</div>
+            </div>
+
+            <div id="courses-list" class="list-content">
+                <div class="draggable-item math" draggable="true" ondragstart="drag(event, 'course', 'Calculus', 'math')">
+                    <strong>Calculus I</strong><br><small>MATH101</small>
+                </div>
+                <div class="draggable-item tech" draggable="true" ondragstart="drag(event, 'course', 'Database', 'tech')">
+                    <strong>Database Systems</strong><br><small>CS302</small>
+                </div>
+            </div>
+
+            <div id="teachers-list" class="list-content" style="display:none;">
+                <div class="draggable-item teacher" draggable="true" ondragstart="drag(event, 'teacher', 'Prof. Anderson')">
+                    👨‍🏫 Prof. Anderson
+                </div>
+                <div class="draggable-item teacher" draggable="true" ondragstart="drag(event, 'teacher', 'Dr. Miller')">
+                    👩‍🏫 Dr. Miller
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-container">
+            <div class="timetable-grid" id="mainGrid">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Persistence Object
+        let timetableData = JSON.parse(localStorage.getItem('campus_timetables')) || {};
+        
+        const startHour = 8;
+        const endHour = 17;
+
+        // Initialize Grid
+        function initGrid() {
+            const grid = document.getElementById('mainGrid');
+            grid.innerHTML = `
+                <div class="cell time-cell" style="background:#eee">Time</div>
+                <div class="cell header-cell">Monday</div>
+                <div class="cell header-cell">Tuesday</div>
+                <div class="cell header-cell">Wednesday</div>
+                <div class="cell header-cell">Thursday</div>
+                <div class="cell header-cell">Friday</div>
+            `;
+
+            for (let h = startHour; h < endHour; h++) {
+                grid.innerHTML += `<div class="cell time-cell">${h}:00</div>`;
+                for (let d = 0; d < 5; d++) {
+                    grid.innerHTML += `<div class="cell slot" id="slot-${d}-${h}" ondrop="drop(event)" ondragover="allowDrop(event)"></div>`;
+                }
+            }
+            loadView();
+        }
+
+        // Sidebar Tabs
+        function switchTab(type, el) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('courses-list').style.display = (type === 'courses') ? 'block' : 'none';
+            document.getElementById('teachers-list').style.display = (type === 'teachers') ? 'block' : 'none';
+        }
+
+        // Drag & Drop
+        function drag(ev, type, name, color = '') {
+            ev.dataTransfer.setData("type", type);
+            ev.dataTransfer.setData("name", name);
+            ev.dataTransfer.setData("color", color);
+        }
+
+        function allowDrop(ev) { ev.preventDefault(); }
+
+        function drop(ev) {
+            ev.preventDefault();
+            const type = ev.dataTransfer.getData("type");
+            const name = ev.dataTransfer.getData("name");
+            const color = ev.dataTransfer.getData("color");
+            
+            // Handle Drop onto Slot (Course)
+            if (type === 'course') {
+                const targetSlot = ev.target.closest('.slot');
+                if (targetSlot && !targetSlot.querySelector('.scheduled-course')) {
+                    createCourseBlock(targetSlot, name, color);
+                }
+            } 
+            // Handle Drop onto existing Course (Teacher Assignment)
+            else if (type === 'teacher') {
+                const courseBlock = ev.target.closest('.scheduled-course');
+                if (courseBlock) {
+                    courseBlock.querySelector('.t-name').innerHTML = `👤 ${name}`;
+                }
+            }
+        }
+
+        function createCourseBlock(parent, name, color, teacher = "No teacher assigned", height = "76px") {
+            const block = document.createElement('div');
+            block.className = `scheduled-course ${color}`;
+            block.style.height = height;
+            block.innerHTML = `
+                <button class="btn-del" onclick="this.parentElement.remove()" style="float:right; border:none; background:none; cursor:pointer;">✕</button>
+                <strong>${name}</strong><br>
+                <span class="t-badge t-name">${teacher}</span>
+                <div class="resizer" onmousedown="startResizing(event)"></div>
+            `;
+            parent.appendChild(block);
+        }
+
+        // Vertical Extension Logic
+        function startResizing(e) {
+            const block = e.target.parentElement;
+            const startY = e.clientY;
+            const startHeight = block.offsetHeight;
+
+            function doResize(e) {
+                const diff = e.clientY - startY;
+                // Snap to 1-hour increments (80px)
+                const newHeight = Math.max(76, Math.round((startHeight + diff) / 80) * 80 - 4);
+                block.style.height = newHeight + 'px';
+            }
+
+            function stopResize() {
+                window.removeEventListener('mousemove', doResize);
+                window.removeEventListener('mouseup', stopResize);
+            }
+
+            window.addEventListener('mousemove', doResize);
+            window.addEventListener('mouseup', stopResize);
+        }
+
+        // Filter Logic (Save current, then load new)
+        function getContextKey() {
+            return document.getElementById('specSelect').value + "_" + document.getElementById('roomSelect').value;
+        }
+
+        function switchView() {
+            // Internal temporary save
+            saveCurrentToMemory();
+            loadView();
+        }
+
+        function saveCurrentToMemory() {
+            const key = getContextKey();
+            const blocks = [];
+            document.querySelectorAll('.scheduled-course').forEach(b => {
+                blocks.push({
+                    slotId: b.parentElement.id,
+                    name: b.querySelector('strong').innerText,
+                    teacher: b.querySelector('.t-name').innerText,
+                    color: b.classList.contains('math') ? 'math' : 'tech',
+                    h: b.style.height
+                });
+            });
+            timetableData[key] = blocks;
+        }
+
+        function loadView() {
+            document.querySelectorAll('.scheduled-course').forEach(b => b.remove());
+            const data = timetableData[getContextKey()] || [];
+            data.forEach(d => {
+                const parent = document.getElementById(d.slotId);
+                if (parent) createCourseBlock(parent, d.name, d.color, d.teacher, d.h);
+            });
+        }
+
+        function saveAllData() {
+            saveCurrentToMemory();
+            localStorage.setItem('campus_timetables', JSON.stringify(timetableData));
+            alert("All timetables saved successfully!");
+        }
+
+        window.onload = initGrid;
+    </script>
+</body>
+</html>

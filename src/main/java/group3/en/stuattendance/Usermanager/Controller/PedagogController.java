@@ -50,9 +50,34 @@ public class PedagogController {
         return ResponseEntity.ok(courseService.bulkImportCourses(file));
     }
 
+    @GetMapping("/courses/{id}")
+    public ResponseEntity<group3.en.stuattendance.Timetablemanager.DTO.CourseDto> getCourseById(@PathVariable Integer id) {
+        return ResponseEntity.ok(courseService.getCourseById(id));
+    }
+
+    @PutMapping("/courses/{id}")
+    public ResponseEntity<group3.en.stuattendance.Timetablemanager.DTO.CourseDto> updateCourse(
+            @PathVariable Integer id,
+            @RequestBody group3.en.stuattendance.Timetablemanager.DTO.CourseDto dto) {
+        return ResponseEntity.ok(courseService.updateCourse(id, dto));
+    }
+
     @PostMapping("/courses")
     public ResponseEntity<group3.en.stuattendance.Timetablemanager.DTO.CourseDto> createCourse(
             @RequestBody group3.en.stuattendance.Timetablemanager.DTO.CourseDto dto) {
         return ResponseEntity.ok(courseService.createCourse(dto));
+    }
+ 
+    @GetMapping("/courses/filter")
+    public ResponseEntity<List<group3.en.stuattendance.Timetablemanager.DTO.CourseDto>> getCoursesByFilter(
+            @RequestParam Integer specialityId,
+            @RequestParam Integer level) {
+        return ResponseEntity.ok(courseService.getCoursesBySpecialityAndLevel(specialityId, level));
+    }
+ 
+    @GetMapping("/teachers/filter")
+    public ResponseEntity<List<UserDto>> getTeachersByFilter(
+            @RequestParam Integer specialityId) {
+        return ResponseEntity.ok(userService.getTeachersBySpeciality(specialityId));
     }
 }

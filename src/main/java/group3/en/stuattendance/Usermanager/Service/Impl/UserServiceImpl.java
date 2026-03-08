@@ -14,6 +14,7 @@ import group3.en.stuattendance.Usermanager.Repository.PermissionRepository;
 import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.UserService;
+import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
 import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import group3.en.stuattendance.Usermanager.Util.PasswordUtils;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
     private final PermissionRepository permissionRepository;
+    private final CourseRepository courseRepository;
 
     @Override
     @Auditable(action = "USER_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
@@ -394,6 +396,24 @@ public class UserServiceImpl implements UserService {
                 userRepository.save(user);
             });
         });
+    }
+ 
+    @Override
+    public List<UserDto> getTeachersByClassroom(Integer classroomId) {
+        return userRepository.findAll().stream()
+            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("TEACHER")))
+            .filter(u -> u.getStaffClassrooms().stream().anyMatch(c -> c.getClassId().equals(classroomId)))
+            .map(userMapper::toDto)
+            .collect(Collectors.toList());
+    }
+ 
+    @Override
+    public List<UserDto> getTeachersBySpeciality(Integer specialityId) {
+        return courseRepository.findBySpeciality_SpecialityId(specialityId).stream()
+            .flatMap(course -> course.getTeachers().stream())
+            .distinct()
+            .map(userMapper::toDto)
+            .collect(Collectors.toList());
     }
 
     @Override

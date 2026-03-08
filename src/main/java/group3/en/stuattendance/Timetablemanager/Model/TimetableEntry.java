@@ -25,14 +25,29 @@ public class TimetableEntry {
     @Column(length = 20, nullable = false)
     private String day; // MONDAY, TUESDAY, etc.
 
+    /** Numeric day index 0=Monday … 5=Saturday — used by the frontend grid. */
+    @Column(name = "day_of_week")
+    private Integer dayOfWeek;
+
+    /** Hex color chosen by the user for this block (e.g. #00B0FF). */
+    @Column(length = 10)
+    private String color;
+
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
 
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @Column(name = "is_event", nullable = false)
+    @Builder.Default
+    private Boolean isEvent = false;
+
+    @Column(name = "event_name", length = 150)
+    private String eventName;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", nullable = false)
+    @JoinColumn(name = "course_id", nullable = true)
     @JsonIgnore
     private Course course;
 

@@ -13,6 +13,124 @@
     <link rel="stylesheet" th:href="@{/css/main.css}">
     <link rel="stylesheet" th:href="@{/css/admin-dashboard.css}">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .timetable-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: grab;
+        }
+
+        .timetable-card:active {
+            cursor: grabbing;
+            scale: 0.95;
+        }
+
+        .timetable-entry {
+            position: absolute;
+            inset: 4px;
+            z-index: 10;
+            border-radius: 1rem;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .timetable-entry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .color-dot:hover {
+            scale: 1.2;
+        }
+
+        .color-dot.active {
+            border-color: rgba(0, 0, 0, 0.2);
+            scale: 1.2;
+        }
+
+        .grid-cell.dragging-over {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        /* ── Timetable redesign ──────────────────────────── */
+        .tt-drop-cell {
+            transition: background 0.15s ease;
+            cursor: default;
+        }
+
+        .tt-drop-cell.drag-over {
+            background: rgba(0, 176, 255, 0.07) !important;
+        }
+
+        .tt-block {
+            position: absolute;
+            inset: 3px;
+            border-radius: 10px;
+            padding: 6px 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-left-width: 4px;
+            border-left-style: solid;
+            border-left-color: #00B0FF;
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+            border-right: 1px solid rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: box-shadow 0.2s, transform 0.2s;
+            z-index: 5;
+        }
+
+        .tt-block:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+            transform: translateY(-1px);
+        }
+
+        .tt-day-tab {
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+
+        #ttSidePanel {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .tt-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+
+        .tt-color-dot:hover {
+            transform: scale(1.3);
+        }
+    </style>
 </head>
 
 <body class="font-sans antialiased text-slate-800 bg-slate-50">
@@ -27,8 +145,8 @@
             <div class="p-6 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                        <img th:src="@{/image/logo.png}" alt="Attendee Logo"
-                            class="w-12 h-12 object-contain rounded-xl">
+                        <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo"
+                            class="w-20 h-20 object-contain rounded-xl shadow-sm border-2 border-blue-50">
                         <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
                     </div>
                     <button onclick="toggleMobileMenu()"
@@ -109,6 +227,17 @@
                             <span class="font-medium">Specialities & Classes</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200"
+                            data-section="timetable">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="font-medium">Manage Timetable</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </aside>
@@ -116,7 +245,7 @@
         <!-- Main Content -->
         <main class="flex-1 overflow-y-auto relative">
             <!-- Header -->
-            <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10 transition-all duration-300">
+            <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-40 transition-all duration-300">
                 <div class="flex items-center justify-between w-full">
                     <div class="flex items-center gap-4">
                         <button onclick="toggleMobileMenu()"
@@ -191,7 +320,6 @@
                                             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 </div>
-                                <span class="text-emerald-500 text-xs font-bold">+12%</span>
                             </div>
                             <p class="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Total Students</p>
                             <h3 class="text-3xl font-black text-slate-800" th:text="${totalStudents ?: 0}">0</h3>
@@ -287,7 +415,7 @@
                             </div>
 
                             <button onclick="openBulkImportModal()"
-                                class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition active:scale-95">
+                                class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition active:scale-95">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -295,7 +423,7 @@
                                 Bulk Import
                             </button>
                             <button onclick="openStudentModal()"
-                                class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
+                                class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 4v16m8-8H4" />
@@ -433,14 +561,37 @@
                             <h2 class="text-3xl font-bold text-slate-800">Course Management</h2>
                             <p class="text-slate-500">Define and assigned courses to specialities.</p>
                         </div>
-                        <button onclick="openCourseModal()"
-                            class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create Course
-                        </button>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Course Filters -->
+                            <div
+                                class="flex items-center gap-2 bg-white border border-slate-100 p-1.5 rounded-2xl shadow-sm">
+                                <select id="courseSpecFilter" onchange="applyCourseFilters()"
+                                    class="bg-transparent text-sm font-bold text-slate-600 px-3 py-1.5 focus:outline-none appearance-none cursor-pointer">
+                                    <option value="">All Specialities</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.name}"
+                                        th:text="${spec.name}"></option>
+                                </select>
+                                <div class="w-px h-4 bg-slate-200"></div>
+                                <select id="courseLevelFilter" onchange="applyCourseFilters()"
+                                    class="bg-transparent text-sm font-bold text-slate-600 px-3 py-1.5 focus:outline-none appearance-none cursor-pointer">
+                                    <option value="">All Levels</option>
+                                    <option value="1">Level 1</option>
+                                    <option value="2">Level 2</option>
+                                    <option value="3">Level 3</option>
+                                    <option value="4">Level 4</option>
+                                    <option value="5">Level 5</option>
+                                </select>
+                            </div>
+
+                            <button onclick="openCourseModal()"
+                                class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4" />
+                                </svg>
+                                Create Course
+                            </button>
+                        </div>
                     </div>
 
                     <div class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm">
@@ -459,23 +610,26 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
-                                <tr th:each="course : ${courses}" class="hover:bg-slate-50/50 transition">
+                                <tr th:each="course : ${courses}" class="course-row hover:bg-slate-50/50 transition"
+                                    th:data-spec="${course.speciality?.name}" th:data-level="${course.level}">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center font-bold"
-                                                th:text="${#strings.substring(course.name,0,1)}">C</div>
-                                            <p class="font-bold text-slate-800" th:text="${course.name}">Course Name</p>
+                                                th:text="${#strings.substring(course.courseName,0,1)}">C</div>
+                                            <p class="font-bold text-slate-800" th:text="${course.courseName}">Course
+                                                Name</p>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 text-sm font-medium text-slate-600"
-                                        th:text="${course.courseCode}">CODE101</td>
+                                    <td class="px-6 py-4 text-sm font-medium text-slate-600" th:text="${course.code}">
+                                        CODE101</td>
                                     <td class="px-6 py-4">
                                         <span
                                             class="px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-bold"
                                             th:text="${course.speciality?.name ?: 'Common'}">Spec</span>
                                     </td>
                                     <td class="px-6 py-4 text-right">
-                                        <button class="p-2 text-slate-400 hover:text-blue-500 transition">
+                                        <button th:onclick="'editCourse(' + ${course.courseId} + ')'"
+                                            class="p-2 text-slate-400 hover:text-blue-500 transition">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -492,6 +646,7 @@
                     </div>
                 </section>
 
+                <!-- Manage Sessions Section -->
                 <section id="section-sessions" class="content-section hidden">
                     <div class="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
                         <div
@@ -507,6 +662,275 @@
                         <button
                             class="px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition">Coming
                             Soon</button>
+                    </div>
+                </section>
+
+                <!-- Manage Timetable Section -->
+                <section id="section-timetable" class="content-section hidden">
+
+                    <!-- Top Bar -->
+                    <div class="flex items-center justify-between mb-5">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-800">Manage Timetable</h2>
+                            <p class="text-slate-500 text-sm mt-0.5">Drag courses &amp; teachers onto the grid.</p>
+                        </div>
+
+                        <button onclick="toggleTTPanel()" id="ttPanelToggleBtn"
+                            class="xl:hidden flex items-center gap-2 px-4 py-2.5 bg-[#00B0FF] text-white rounded-2xl text-xs font-black shadow-lg shadow-blue-500/20 active:scale-95 transition">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                            </svg>
+                            Filters &amp; Library
+                        </button>
+                    </div>
+                    <!-- Horizontal Context Filters Ribbon -->
+                    <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 items-end">
+                        <div class="flex-1 min-w-[140px]">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Academic
+                                Year</label>
+                            <select id="ttAcademicYearSelect"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onchange="fetchTimetable()">
+                                <option value="">Auto (Active Year)</option>
+                                <option th:each="year : ${academicYears}" th:value="${year.id}"
+                                        th:text="${year.academicYear}" th:selected="${year.status.name() == 'ACTIVE'}">
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[140px]">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Speciality</label>
+                            <select id="ttSpecSelect"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
+                                <option value="">Select Spec</option>
+                                <option th:each="spec : ${specialities}" th:value="${spec.specialityId}"
+                                        th:text="${spec.name}" th:data-name="${spec.name}"></option>
+                            </select>
+                        </div>
+                        <div class="w-24">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Level</label>
+                            <select id="ttLevelSelect"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
+                                <option value="">Lvl</option>
+                                <option value="1">L1</option>
+                                <option value="2">L2</option>
+                                <option value="3">L3</option>
+                                <option value="4">L4</option>
+                                <option value="5">L5</option>
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[140px]">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Classroom</label>
+                            <select id="ttClassSelect"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                    onchange="fetchTimetable()">
+                                <option value="">Select Room</option>
+                                <option th:each="room : ${classrooms}" th:value="${room.classId}"
+                                        th:text="${room.name}" th:data-spec="${room.speciality?.specialityId}"
+                                        th:data-level="${room.level}"></option>
+                            </select>
+                        </div>
+                        <div class="w-[120px]">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Start
+                                Date</label>
+                            <input type="date" id="ttStartDate" onchange="syncTTDates('start'); fetchTimetable();"
+                                   class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div class="w-[120px]">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">End
+                                Date</label>
+                            <input type="date" id="ttEndDate" onchange="syncTTDates('end'); fetchTimetable();"
+                                   class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        </div>
+                        <div class="w-24">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Version</label>
+                            <select id="ttVersionSelect" onchange="fetchTimetableByVersion();"
+                                    class="w-full bg-slate-100 border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-not-allowed"
+                                    disabled>
+                                <option value="latest">Latest Active</option>
+                            </select>
+                        </div>
+                        <div class="w-20">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Semester</label>
+                            <select id="ttSemesterSelect" onchange="fetchTimetable();"
+                                    class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                <option value="1">S1</option>
+                                <option value="2">S2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col xl:flex-row gap-6">
+
+                        <!-- ── SIDEBAR ──────────────────────────── -->
+                        <div id="ttSidePanel" class="xl:w-72 flex-shrink-0 flex-col gap-4 hidden xl:flex">
+
+                            <!-- Library: Courses + Teachers -->
+                            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex-1 overflow-y-auto"
+                                style="max-height:460px">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Library
+                                    </h3>
+                                    <div class="flex bg-slate-100 p-1 rounded-lg gap-1">
+                                        <button onclick="switchTTLibrary('courses')" id="ttLibCoursesBtn"
+                                            class="px-3 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-blue-600 transition">COURSES</button>
+                                        <button onclick="switchTTLibrary('teachers')" id="ttLibTeachersBtn"
+                                            class="px-3 py-1 text-[10px] font-black rounded-md text-slate-400 transition">TEACHERS</button>
+                                    </div>
+                                </div>
+                                <div id="ttCoursesList" class="space-y-2">
+                                    <div class="draggable-course relative border border-slate-200 shadow-sm bg-white p-3 rounded-xl cursor-grab active:cursor-grabbing hover:border-blue-400 hover:shadow-md transition group overflow-hidden"
+                                        draggable="true" data-id="event" data-name="Custom Event" data-type="course"
+                                        data-is-event="true" ondragstart="handleTTDragStart(event)">
+                                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#607D8B]"></div>
+                                        <div class="pl-2 relative z-10 flex gap-2 items-center">
+                                            <div
+                                                class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500">
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                    viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                                    </path>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h4 class="text-[11px] font-black text-slate-700 leading-tight">Custom
+                                                    Event</h4>
+                                                <p class="text-[9px] text-slate-400 font-semibold truncate w-[140px]">
+                                                    Drag to create empty block</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <hr class="border-slate-100 my-2">
+                                    <div id="ttCoursesListContainer" class="space-y-2">
+                                        <p class="text-center py-6 text-slate-400 text-xs font-medium">Select a
+                                            speciality to load courses</p>
+                                    </div>
+                                </div>
+                                <div id="ttTeachersList" class="hidden space-y-2">
+                                    <p class="text-center py-6 text-slate-400 text-xs font-medium">Select a speciality
+                                        to load teachers</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── MAIN GRID ────────────────────────── -->
+                        <div class="flex-1 min-w-0">
+                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+
+                                <!-- Title Bar -->
+                                <div
+                                    class="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                    <div>
+                                        <h3 class="text-lg font-black text-slate-800 tracking-tight" id="ttTitle">Weekly
+                                            Timetable</h3>
+                                        <p class="text-slate-400 text-xs font-bold mt-0.5" id="ttDateRange">— Select a
+                                            classroom —</p>
+                                    </div>
+                                    <div class="flex items-center gap-2 flex-shrink-0">
+                                        <button onclick="saveTimetable()"
+                                            class="flex items-center gap-2 px-5 py-2.5 bg-[#00B0FF] text-white rounded-xl font-bold text-sm hover:bg-blue-600 transition shadow-lg shadow-blue-500/20 active:scale-95">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                                            </svg>
+                                            Save
+                                        </button>
+                                        <button onclick="exportTTPdf()"
+                                            class="p-2.5 bg-slate-50 text-slate-400 hover:text-red-500 rounded-xl transition border border-slate-100">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+
+
+                                <!-- Day Tabs (mobile only, scrollable) -->
+                                <div
+                                    class="sm:hidden flex overflow-x-auto scrollbar-none border-b border-slate-100 bg-slate-50/50">
+                                    <button onclick="setActiveTTDay(0)" data-day-btn="0"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-[#00B0FF] border-b-2 border-[#00B0FF]">Mon</button>
+                                    <button onclick="setActiveTTDay(1)" data-day-btn="1"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-slate-400 border-b-2 border-transparent">Tue</button>
+                                    <button onclick="setActiveTTDay(2)" data-day-btn="2"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-slate-400 border-b-2 border-transparent">Wed</button>
+                                    <button onclick="setActiveTTDay(3)" data-day-btn="3"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-slate-400 border-b-2 border-transparent">Thu</button>
+                                    <button onclick="setActiveTTDay(4)" data-day-btn="4"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-slate-400 border-b-2 border-transparent">Fri</button>
+                                    <button onclick="setActiveTTDay(5)" data-day-btn="5"
+                                        class="tt-day-tab flex-shrink-0 px-5 py-3 text-[11px] font-black text-slate-400 border-b-2 border-transparent">Sat</button>
+                                </div>
+
+                                <!-- Scrollable Grid Wrapper -->
+                                <div class="overflow-x-auto tt-grid-scroll-container">
+                                    <div class="min-w-[620px]">
+                                        <!-- Day Header Row -->
+                                        <div
+                                            class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 bg-slate-50/70">
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">MON</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">TUE</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">WED</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">THU</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">FRI</span>
+                                            </div>
+                                            <div class="py-3 flex items-center justify-center">
+                                                <span
+                                                    class="px-2.5 py-1 rounded-full text-[10px] font-black text-slate-400 bg-slate-100">SAT</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Time Rows -->
+                                        <div id="timetableGrid">
+                                            <div th:each="hour : ${#numbers.sequence(8, 17)}"
+                                                class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
+                                                style="height: 82px;">
+                                                <!-- Time Label -->
+                                                <div
+                                                    class="flex items-start justify-center pt-2 border-r border-slate-100 bg-slate-50/30">
+                                                    <span class="text-[10px] font-black text-slate-400"
+                                                        th:text="${#numbers.formatInteger(hour,2) + ':00'}">08:00</span>
+                                                </div>
+                                                <!-- Day Cells -->
+                                                <div th:each="dayIndex : ${#numbers.sequence(0, 5)}"
+                                                    class="grid-cell tt-drop-cell border-r border-slate-100 last:border-0 relative group"
+                                                    th:data-day-index="${dayIndex}" th:data-hour="${hour}"
+                                                    ondrop="handleTTDrop(event)" ondragover="handleTTDragOver(event)"
+                                                    ondragleave="handleTTDragLeave(event)">
+                                                    <!-- Drop hint ring -->
+                                                    <div
+                                                        class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -536,7 +960,7 @@
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
             id="studentModalContent">
             <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
-                <h3 class="text-xl font-bold">Register Individual Student</h3>
+                <h3 class="text-xl text-white">Register Individual Student</h3>
                 <button onclick="closeStudentModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -620,8 +1044,8 @@
     <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
             id="bulkImportModalContent">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-emerald-600 text-white">
-                <h3 class="text-xl font-bold">Bulk Student Import</h3>
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-emerald-600 ">
+                <h3 class="text-xl text-white">Bulk Student Import</h3>
                 <button onclick="closeBulkImportModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -630,14 +1054,44 @@
                 </button>
             </div>
             <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Target Classroom</label>
-                    <select id="bulkClassroomId"
-                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none">
-                        <option value="">Select Classroom</option>
-                        <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
-                            th:text="${classroom.name}"></option>
-                    </select>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Speciality
+                            Filter</label>
+                        <select onchange="filterClassrooms(this.value, 'bulkClassroomId')"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none appearance-none cursor-pointer text-sm">
+                            <option value="">All Specialities</option>
+                            <option th:each="spec : ${specialities}" th:value="${spec.specialityId}"
+                                th:text="${spec.name}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Target
+                            Classroom</label>
+                        <select id="bulkClassroomId" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none appearance-none cursor-pointer text-sm">
+                            <option value="">Select Classroom</option>
+                            <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
+                                th:text="${classroom.name}" th:data-spec="${classroom.speciality.specialityId}">
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
+                    <h4
+                        class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        CSV Format Requirements
+                    </h4>
+                    <p class="text-xs text-emerald-700 leading-relaxed">
+                        Ensure your CSV has exactly these 4 columns in order:<br>
+                        <code
+                            class="bg-white/50 px-1 text-emerald-700 rounded font-bold">firstName, lastName, email, matricule</code>
+                    </p>
                 </div>
                 <div>
                     <label
@@ -661,7 +1115,7 @@
                     <button type="button" onclick="closeBulkImportModal()"
                         class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
                     <button onclick="startBulkImport()"
-                        class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-lg transition flex items-center justify-center gap-2">
+                        class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white  rounded-lg shadow-lg transition flex items-center justify-center gap-2">
                         <span>Start Import</span>
                         <div id="bulkImportLoader"
                             class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
@@ -672,12 +1126,15 @@
         </div>
     </div>
 
-    <!-- Course Creation Modal -->
+    <!-- Course Creation Modal (Enhanced) -->
     <div id="courseModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
         <div class="bg-white text-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
             id="courseModalContent">
             <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
-                <h3 class="text-xl font-bold">Create New Course</h3>
+                <div>
+                    <h3 id="courseModalTitle" class="text-xl text-white">Create New Course</h3>
+                    <p class="text-blue-100 text-xs mt-1">Define course details and assign teachers</p>
+                </div>
                 <button onclick="closeCourseModal()" class="text-white/80 hover:text-white transition">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
@@ -685,19 +1142,53 @@
                     </svg>
                 </button>
             </div>
-            <form id="createCourseForm" onsubmit="handleCreateCourse(event)" class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
-                        Name</label>
-                    <input type="text" name="courseName" required placeholder="e.g. Advanced Mathematics"
-                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+            <form id="createCourseForm" onsubmit="handleCreateCourse(event)"
+                class="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+                <input type="hidden" name="courseId">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
+                            Name</label>
+                        <input type="text" name="courseName" required placeholder="e.g. Advanced Mathematics"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
+                            Code</label>
+                        <input type="text" name="code" required placeholder="e.g. MATH401"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Course
-                        Code</label>
-                    <input type="text" name="code" required placeholder="e.g. MATH401"
-                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label
+                            class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Credits</label>
+                        <input type="number" name="credits" min="1" max="40" placeholder="e.g. 3"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total
+                            Hours</label>
+                        <input type="number" name="totalHours" required min="1" placeholder="e.g. 40"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                    </div>
                 </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Target
+                        Level</label>
+                    <select name="level"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 appearance-none cursor-pointer">
+                        <option value="">Any level</option>
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                        <option value="4">Level 4</option>
+                        <option value="5">Level 5</option>
+                    </select>
+                </div>
+
                 <div>
                     <label
                         class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Speciality</label>
@@ -708,12 +1199,83 @@
                         </option>
                     </select>
                 </div>
+
+                <!-- Teacher Selection -->
+                <div class="relative">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Assign
+                        Teacher(s)</label>
+                    <div id="cfTeacherWrap"
+                        class="w-full min-h-[44px] px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg flex flex-wrap gap-2 items-center cursor-pointer transition focus-within:ring-2 focus-within:ring-[#00B0FF]/20 focus-within:border-[#00B0FF]"
+                        onclick="toggleTeacherDropdown()">
+                        <span id="cfTeacherPlaceholder" class="text-sm text-slate-400">Click to select teachers…</span>
+                        <div id="cfTeacherChips" class="flex flex-wrap gap-1.5"></div>
+                        <svg class="ml-auto w-4 h-4 text-slate-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+
+                    <div id="cfTeacherDrop"
+                        class="hidden absolute top-full left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl z-[60] max-h-48 overflow-y-auto">
+                        <div id="cfTeacherOptions" class="p-1">
+                            <!-- Teachers populated via JS -->
+                            <div class="p-4 text-center text-xs text-slate-400">Loading teachers...</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="cfTeacherIds" name="teacherIds">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Description
+                        (Optional)</label>
+                    <textarea name="description" rows="3" placeholder="Brief course description..."
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition resize-none"></textarea>
+                </div>
+
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeCourseModal()"
                         class="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition">Cancel</button>
+                    <button type="submit" id="cfSaveBtn"
+                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition flex items-center justify-center gap-2">
+                        <span>Create Course</span>
+                        <div id="courseSubmitLoader"
+                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Event Creation Modal -->
+    <div id="eventModal"
+        class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] items-center justify-center p-4">
+        <div id="eventModalContent"
+            class="bg-white rounded-2xl w-full max-w-sm shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="text-lg font-black text-slate-800">Custom Event</h3>
+                <button type="button" onclick="cancelEventCreation()"
+                    class="p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 rounded-xl transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <form id="createEventForm" onsubmit="confirmEventCreation(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Event
+                        Title</label>
+                    <input type="text" id="eventTitleInput" required placeholder="e.g. School Assembly"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] outline-none text-slate-800 transition">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="cancelEventCreation()"
+                        class="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition">Cancel</button>
                     <button type="submit"
-                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition">Create
-                        Course</button>
+                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition font-bold">
+                        Add Event
+                    </button>
                 </div>
             </form>
         </div>

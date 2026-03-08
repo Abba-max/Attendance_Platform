@@ -13,11 +13,24 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class TimetableEntryDto {
     private Integer entryId;
+
+    /** Numeric day index: 0=Monday … 5=Saturday.  Used by the frontend grid. */
+    private Integer dayOfWeek;
+
+    /** Day name (MONDAY, TUESDAY, …).  Used by the PDF export / legacy code. */
     private String day;
+
     private LocalTime startTime;
     private LocalTime endTime;
+    
+    private Boolean isEvent;
+    private String eventName;
+    
     private Integer courseId;
     private String courseName;
     private Integer teacherId;
     private String teacherName;
+
+    /** Hex color code (e.g. #00B0FF) chosen by the user for the block. */
+    private String color;
 }

@@ -16,8 +16,7 @@ public class CourseDto {
     private String code;
     private String description;
     private Integer credits;
-    private Integer hoursPerWeek;
-    private Integer semester;
+    private Integer totalHours;
     private Integer level;
     private Integer specialityId;
     private String specialityName;

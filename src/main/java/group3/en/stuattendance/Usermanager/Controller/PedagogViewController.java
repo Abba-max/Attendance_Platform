@@ -6,6 +6,7 @@ import group3.en.stuattendance.Institutionmanager.Model.Speciality;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Institutionmanager.Repository.DepartmentRepository;
 import group3.en.stuattendance.Institutionmanager.Repository.SpecialityRepository;
+import group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository;
 import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
@@ -31,6 +32,7 @@ public class PedagogViewController {
     private final SpecialityRepository specialityRepository;
     private final ClassroomRepository classroomRepository;
     private final CourseRepository courseRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     @GetMapping("/dashboard")
     public String dashboard(Model model, Principal principal) {
@@ -85,6 +87,7 @@ public class PedagogViewController {
         model.addAttribute("departments", departments);
         model.addAttribute("students", departmentStudents);
         model.addAttribute("courses", departmentCourses);
+        model.addAttribute("academicYears", academicYearRepository.findAll());
 
         return "dashboards/pedagog/pedagog";
     }

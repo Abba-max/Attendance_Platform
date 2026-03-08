@@ -40,6 +40,10 @@ public interface UserService {
     // Teacher Specific
     Optional<User> getUserByJoinCode(String joinCode);
     void assignStaffToClassroom(Integer userId, Integer classroomId);
+ 
+    List<UserDto> getTeachersByClassroom(Integer classroomId);
+ 
+    List<UserDto> getTeachersBySpeciality(Integer specialityId);
     
     // Auth related
     void resetPassword(Integer userId, String newPassword);

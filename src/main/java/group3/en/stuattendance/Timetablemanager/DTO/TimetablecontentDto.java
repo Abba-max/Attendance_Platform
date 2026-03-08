@@ -24,5 +24,7 @@ public class TimetablecontentDto {
     private Integer semester;
     private LocalDate startDate;
     private LocalDate endDate;
+    private Integer version;
+    private Boolean isActive;
     private List<TimetableEntryDto> entries;
 }

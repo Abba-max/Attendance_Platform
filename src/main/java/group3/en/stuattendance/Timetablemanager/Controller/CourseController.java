@@ -42,11 +42,10 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
-    @GetMapping("/speciality/{specialityId}/semester/{semester}")
-    public ResponseEntity<List<CourseDto>> getCoursesBySpecialityAndSemester(
-            @PathVariable Integer specialityId,
-            @PathVariable Integer semester) {
-        return ResponseEntity.ok(courseService.getCoursesBySpecialityAndSemester(specialityId, semester));
+    @GetMapping("/speciality/{specialityId}")
+    public ResponseEntity<List<CourseDto>> getCoursesBySpeciality(
+            @PathVariable Integer specialityId) {
+        return ResponseEntity.ok(courseService.getCoursesBySpeciality(specialityId));
     }
 
     @PutMapping("/{courseId}/speciality/{specialityId}")

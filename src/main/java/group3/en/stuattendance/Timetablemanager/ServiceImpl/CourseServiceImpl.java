@@ -53,9 +53,8 @@ public class CourseServiceImpl implements CourseService {
         existing.setCourseName(courseDto.getCourseName());
         existing.setCode(courseDto.getCode());
         existing.setCredits(courseDto.getCredits());
-        existing.setHoursPerWeek(courseDto.getHoursPerWeek());
+        existing.setTotalHours(courseDto.getTotalHours());
         existing.setDescription(courseDto.getDescription());
-        existing.setSemester(courseDto.getSemester());
         existing.setLevel(courseDto.getLevel());
 
         if (courseDto.getSpecialityId() != null) {
@@ -97,9 +96,18 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
-    public List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester) {
-        return courseRepository.findBySpecialitySpecialityIdAndSemester(specialityId, semester)
+    public List<CourseDto> getCoursesBySpeciality(Integer specialityId) {
+        return courseRepository.findBySpeciality_SpecialityId(specialityId)
                 .stream()
+                .map(courseMapper::toDto)
+                .collect(Collectors.toList());
+    }
+ 
+    @Override
+    public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
+        return courseRepository.findBySpeciality_SpecialityId(specialityId)
+                .stream()
+                .filter(c -> c.getLevel() != null && c.getLevel().equals(level))
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -186,8 +194,8 @@ public class CourseServiceImpl implements CourseService {
                 String[] row = rows.get(i);
                 int rowNum = i + 1;
 
-                if (row.length < 5) {
-                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: courseName, code, hoursPerWeek, semester, level, [specialityId]"));
+                if (row.length < 4) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: courseName, code, totalHours, level, [specialityId]"));
                     result.setFailureCount(result.getFailureCount() + 1);
                     continue;
                 }
@@ -196,10 +204,9 @@ public class CourseServiceImpl implements CourseService {
                 String code = row[1].trim();
                 
                 try {
-                    Integer hoursPerWeek = Integer.parseInt(row[2].trim());
-                    Integer semester = Integer.parseInt(row[3].trim());
-                    Integer level = Integer.parseInt(row[4].trim());
-                    Integer specialityId = (row.length > 5 && !row[5].trim().isEmpty()) ? Integer.parseInt(row[5].trim()) : null;
+                    Integer totalHours = Integer.parseInt(row[2].trim());
+                    Integer level = Integer.parseInt(row[3].trim());
+                    Integer specialityId = (row.length > 4 && !row[4].trim().isEmpty()) ? Integer.parseInt(row[4].trim()) : null;
 
                     if (courseRepository.findByCourseName(courseName).isPresent()) {
                          result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Course already exists"));
@@ -210,8 +217,7 @@ public class CourseServiceImpl implements CourseService {
                     CourseDto dto = CourseDto.builder()
                             .courseName(courseName)
                             .code(code)
-                            .hoursPerWeek(hoursPerWeek)
-                            .semester(semester)
+                            .totalHours(totalHours)
                             .level(level)
                             .specialityId(specialityId)
                             .credits(3)

@@ -24,6 +24,8 @@ public class TimetablecontentMapper {
                 .semester(entity.getSemester())
                 .startDate(entity.getStartDate())
                 .endDate(entity.getEndDate())
+                .version(entity.getVersion())
+                .isActive(entity.getIsActive())
                 .entries(entity.getEntries() != null ? entity.getEntries().stream()
                         .map(this::toEntryDto)
                         .collect(Collectors.toList()) : null)
@@ -34,13 +36,17 @@ public class TimetablecontentMapper {
         if (entity == null) return null;
         return TimetableEntryDto.builder()
                 .entryId(entity.getEntryId())
+                .dayOfWeek(entity.getDayOfWeek())
                 .day(entity.getDay())
                 .startTime(entity.getStartTime())
                 .endTime(entity.getEndTime())
+                .isEvent(entity.getIsEvent())
+                .eventName(entity.getEventName())
                 .courseId(entity.getCourse() != null ? entity.getCourse().getCourseId() : null)
                 .courseName(entity.getCourse() != null ? entity.getCourse().getCourseName() : null)
                 .teacherId(entity.getTeacher() != null ? entity.getTeacher().getUserId() : null)
                 .teacherName(entity.getTeacher() != null ? entity.getTeacher().getUsername() : null)
+                .color(entity.getColor())
                 .build();
     }
 
@@ -51,6 +57,8 @@ public class TimetablecontentMapper {
                 .week(dto.getWeek())
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
+                .version(dto.getVersion() != null ? dto.getVersion() : 1)
+                .isActive(dto.getIsActive() != null ? dto.getIsActive() : true)
                 .build();
     }
 
@@ -58,9 +66,20 @@ public class TimetablecontentMapper {
         if (dto == null) return null;
         return TimetableEntry.builder()
                 .entryId(dto.getEntryId())
-                .day(dto.getDay())
+                .dayOfWeek(dto.getDayOfWeek())
+                .day(dto.getDay() != null ? dto.getDay() : dayIndexToName(dto.getDayOfWeek()))
                 .startTime(dto.getStartTime())
                 .endTime(dto.getEndTime())
+                .isEvent(dto.getIsEvent() != null ? dto.getIsEvent() : false)
+                .eventName(dto.getEventName())
+                .color(dto.getColor())
                 .build();
+    }
+
+    /** Converts a 0-based day index (0=Monday … 5=Saturday) to the day name stored in the DB. */
+    public static String dayIndexToName(Integer dayOfWeek) {
+        if (dayOfWeek == null) return "MONDAY";
+        String[] names = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"};
+        return dayOfWeek >= 0 && dayOfWeek < names.length ? names[dayOfWeek] : "MONDAY";
     }
 }
