@@ -690,29 +690,29 @@
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Academic
                                 Year</label>
                             <select id="ttAcademicYearSelect"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    onchange="fetchTimetable()">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                onchange="fetchTimetable()">
                                 <option value="">Auto (Active Year)</option>
                                 <option th:each="year : ${academicYears}" th:value="${year.id}"
-                                        th:text="${year.academicYear}" th:selected="${year.status.name() == 'ACTIVE'}">
+                                    th:text="${year.academicYear}" th:selected="${year.status.name() == 'ACTIVE'}">
                                 </option>
                             </select>
                         </div>
                         <div class="flex-1 min-w-[140px]">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Speciality</label>
                             <select id="ttSpecSelect"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
                                 <option value="">Select Spec</option>
                                 <option th:each="spec : ${specialities}" th:value="${spec.specialityId}"
-                                        th:text="${spec.name}" th:data-name="${spec.name}"></option>
+                                    th:text="${spec.name}" th:data-name="${spec.name}"></option>
                             </select>
                         </div>
                         <div class="w-24">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Level</label>
                             <select id="ttLevelSelect"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                onchange="filterTTClassrooms(); loadTTCoursesAndTeachers();">
                                 <option value="">Lvl</option>
                                 <option value="1">L1</option>
                                 <option value="2">L2</option>
@@ -724,38 +724,38 @@
                         <div class="flex-1 min-w-[140px]">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Classroom</label>
                             <select id="ttClassSelect"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                    onchange="fetchTimetable()">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                onchange="fetchTimetable()">
                                 <option value="">Select Room</option>
-                                <option th:each="room : ${classrooms}" th:value="${room.classId}"
-                                        th:text="${room.name}" th:data-spec="${room.speciality?.specialityId}"
-                                        th:data-level="${room.level}"></option>
+                                <option th:each="room : ${classrooms}" th:value="${room.classId}" th:text="${room.name}"
+                                    th:data-spec="${room.speciality?.specialityId}" th:data-level="${room.level}">
+                                </option>
                             </select>
                         </div>
                         <div class="w-[120px]">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Start
                                 Date</label>
                             <input type="date" id="ttStartDate" onchange="syncTTDates('start'); fetchTimetable();"
-                                   class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
                         </div>
                         <div class="w-[120px]">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">End
                                 Date</label>
                             <input type="date" id="ttEndDate" onchange="syncTTDates('end'); fetchTimetable();"
-                                   class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
                         </div>
                         <div class="w-24">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Version</label>
                             <select id="ttVersionSelect" onchange="fetchTimetableByVersion();"
-                                    class="w-full bg-slate-100 border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-not-allowed"
-                                    disabled>
+                                class="w-full bg-slate-100 border border-slate-200 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-not-allowed"
+                                disabled>
                                 <option value="latest">Latest Active</option>
                             </select>
                         </div>
                         <div class="w-20">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Semester</label>
                             <select id="ttSemesterSelect" onchange="fetchTimetable();"
-                                    class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                                class="w-full bg-white border border-slate-200 rounded-xl px-2 py-2 text-xs font-bold text-slate-700 mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400">
                                 <option value="1">S1</option>
                                 <option value="2">S2</option>
                             </select>
@@ -781,14 +781,16 @@
                                     </div>
                                 </div>
                                 <div id="ttCoursesList" class="space-y-2">
-                                    <div class="draggable-course relative border border-slate-200 shadow-sm bg-white p-3 rounded-xl cursor-grab active:cursor-grabbing hover:border-blue-400 hover:shadow-md transition group overflow-hidden"
+                                    <div class="draggable-course relative border border-slate-200/60 shadow-[0_4px_20px_rgb(0,0,0,0.03)] bg-white p-3.5 rounded-2xl cursor-grab active:cursor-grabbing hover:border-blue-300 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group overflow-hidden"
                                         draggable="true" data-id="event" data-name="Custom Event" data-type="course"
                                         data-is-event="true" ondragstart="handleTTDragStart(event)">
-                                        <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#607D8B]"></div>
-                                        <div class="pl-2 relative z-10 flex gap-2 items-center">
+                                        <div
+                                            class="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-[#00B0FF] via-[#FFC107] to-[#FF5252]">
+                                        </div>
+                                        <div class="pl-3 relative z-10 flex gap-3 items-center">
                                             <div
-                                                class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0 text-slate-500">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-50 to-red-50 flex items-center justify-center flex-shrink-0 text-slate-700 shadow-inner">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor"
                                                     viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
@@ -797,9 +799,10 @@
                                                 </svg>
                                             </div>
                                             <div>
-                                                <h4 class="text-[11px] font-black text-slate-700 leading-tight">Custom
+                                                <h4 class="text-[12px] font-black text-slate-800 leading-tight">Custom
                                                     Event</h4>
-                                                <p class="text-[9px] text-slate-400 font-semibold truncate w-[140px]">
+                                                <p
+                                                    class="text-[10px] text-slate-400 font-semibold truncate w-[140px] mt-0.5">
                                                     Drag to create empty block</p>
                                             </div>
                                         </div>
@@ -819,13 +822,15 @@
 
                         <!-- ── MAIN GRID ────────────────────────── -->
                         <div class="flex-1 min-w-0">
-                            <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div class="bg-white rounded-2xl border-2 border-transparent bg-clip-border shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden relative"
+                                style="background-image: linear-gradient(white, white), linear-gradient(135deg, #00B0FF20, #FFC10720); background-origin: border-box; background-clip: padding-box, border-box;">
 
                                 <!-- Title Bar -->
                                 <div
-                                    class="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+                                    class="px-6 py-5 border-b border-slate-100/60 flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-white relative z-10">
                                     <div>
-                                        <h3 class="text-lg font-black text-slate-800 tracking-tight" id="ttTitle">Weekly
+                                        <h3 class="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#00B0FF] to-blue-600"
+                                            id="ttTitle">Weekly
                                             Timetable</h3>
                                         <p class="text-slate-400 text-xs font-bold mt-0.5" id="ttDateRange">— Select a
                                             classroom —</p>
@@ -872,7 +877,7 @@
                                     <div class="min-w-[620px]">
                                         <!-- Day Header Row -->
                                         <div
-                                            class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 bg-slate-50/70">
+                                            class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80">
                                             <div class="py-3 flex items-center justify-center">
                                                 <span
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time</span>

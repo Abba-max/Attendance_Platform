@@ -57,7 +57,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
             // Archive the existing one instead of modifying it
             existingTimetable.setIsActive(false);
             timetablecontentRepository.save(existingTimetable);
-            newVersion = existingTimetable.getVersion() + 1;
+            newVersion = (existingTimetable.getVersion() != null ? existingTimetable.getVersion() : 0) + 1;
         }
 
         // Create a completely new instance for the updated timetable

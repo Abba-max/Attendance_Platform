@@ -529,7 +529,7 @@ function showNotification(message, type = 'info') {
         info: 'bg-blue-500 text-white'
     };
 
-    notification.className = `fixed top-20 right-8 px-6 py-4 rounded-xl shadow-lg z-50 transform transition-all duration-300 ${colors[type]}`;
+    notification.className = `fixed top-20 right-8 px-6 py-4 rounded-xl shadow-lg ${colors[type]}`;
     notification.textContent = message;
     notification.style.transform = 'translateX(0)';
     notification.style.opacity = '1';
@@ -583,7 +583,7 @@ window.switchTTLibrary = function (type) {
 window.loadTTCoursesAndTeachers = async function () {
     const specId = document.getElementById('ttSpecSelect').value;
     const level = document.getElementById('ttLevelSelect').value;
-    const coursesList = document.getElementById('ttCoursesList');
+    const coursesList = document.getElementById('ttCoursesListContainer');
     const teachersList = document.getElementById('ttTeachersList');
 
     if (!specId || !level) return;
@@ -612,9 +612,9 @@ window.loadTTCoursesAndTeachers = async function () {
                         <div class="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-[10px] font-black">
                             ${c.courseName.charAt(0)}
                         </div>
-                        <div>
-                            <p class="text-xs font-bold text-slate-700">${c.courseName}</p>
-                            <p class="text-[10px] text-slate-400 font-medium">${c.code}</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[11px] font-bold text-slate-700 leading-tight truncate">${c.courseName}</p>
+                            <p class="text-[9px] text-slate-400 font-medium">${c.code}</p>
                         </div>
                     </div>
                 </div>
@@ -746,20 +746,24 @@ window.confirmEventCreation = function (e) {
 
 function renderCourseInCell(cell, item) {
     const bgColor = item.color || '#00B0FF';
+    const isEvent = item.isEvent === true || item.isEvent === 'true';
+
     cell.innerHTML = `
         <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none z-0"></div>
         <div class="h-full rounded-xl p-2 shadow-sm relative group/block tt-block text-white"
              data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
-             data-is-event="${item.isEvent || 'false'}" data-event-name="${item.name}"
+             data-is-event="${isEvent}" data-event-name="${item.name}"
              style="background-color: ${bgColor}; z-index: 10;">
             <div class="flex flex-col h-full">
-                <p class="text-[10px] font-black leading-tight mb-1 truncate">${item.name}</p>
+                <p class="text-[10px] font-black leading-tight mb-1 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${item.name}</p>
                 <div class="mt-auto flex items-center justify-between">
+                    ${isEvent ? '' : `
                     <div class="teacher-info flex items-center gap-1 opacity-90">
                         <span class="text-[8px] font-bold">Teacher:</span>
                         <span class="teacher-name text-[9px] font-black truncate max-w-[60px]">Unassigned</span>
                     </div>
-                    <button onclick="removeTTBlock(this)" class="opacity-0 group-hover/block:opacity-100 p-1 text-white hover:text-red-200 transition">
+                    `}
+                    <button onclick="removeTTBlock(this)" class="opacity-0 group-hover/block:opacity-100 p-1 text-white hover:text-red-200 transition ${isEvent ? 'ml-auto' : ''}">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
@@ -775,7 +779,7 @@ function renderCourseInCell(cell, item) {
             </div>
             
             <!-- Resize Handle -->
-            <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-slate-200 rounded-b-xl z-20"></div>
+            <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-2 cursor-s-resize hover:bg-white/20 rounded-b-xl z-20 transition"></div>
         </div>
     `;
 }
@@ -1026,7 +1030,7 @@ window.exportTTPdf = function () {
         return;
     }
 
-    let url = `/ api / timetablecontent /export/pdf?classroomId=${classroomId}&week=${week}&semester=${semester}`;
+    let url = `/api/timetablecontent/export/pdf?classroomId=${classroomId}&week=${week}&semester=${semester}`;
     if (academicYearId) {
         url += `&academicYearId=${academicYearId}`;
     }
@@ -1144,3 +1148,43 @@ document.addEventListener('mouseup', function (e) {
         document.body.style.cursor = '';
     }
 });
+
+// ── Mobile Responsiveness Handlers ────────────────────────────
+
+window.toggleTTPanel = function () {
+    const panel = document.getElementById('ttSidePanel');
+    if (panel) {
+        if (panel.classList.contains('hidden')) {
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
+            // Force it to take up full width on mobile
+            panel.classList.add('w-full', 'mb-6');
+        } else {
+            panel.classList.add('hidden');
+            panel.classList.remove('flex', 'w-full', 'mb-6');
+        }
+    }
+};
+
+window.setActiveTTDay = function (dayIndex) {
+    document.querySelectorAll('.tt-day-tab').forEach(tab => {
+        if (parseInt(tab.getAttribute('data-day-btn')) === dayIndex) {
+            tab.classList.remove('text-slate-400', 'border-transparent');
+            tab.classList.add('text-[#00B0FF]', 'border-[#00B0FF]');
+        } else {
+            tab.classList.add('text-slate-400', 'border-transparent');
+            tab.classList.remove('text-[#00B0FF]', 'border-[#00B0FF]');
+        }
+    });
+
+    const gridContainer = document.querySelector('.tt-grid-scroll-container');
+    if (gridContainer) {
+        const minWidthElement = gridContainer.querySelector('.min-w-\\[620px\\]');
+        const totalWidth = minWidthElement ? minWidthElement.offsetWidth : 620;
+        const dayWidth = (totalWidth - 72) / 6;
+        gridContainer.scrollTo({
+            left: 72 + (dayIndex * dayWidth) - 10,
+            behavior: 'smooth'
+        });
+    }
+};

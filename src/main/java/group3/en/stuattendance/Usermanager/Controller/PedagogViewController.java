@@ -51,6 +51,7 @@ public class PedagogViewController {
         long totalTeachers = 0;
 
         List<group3.en.stuattendance.Timetablemanager.Model.Course> departmentCourses = new ArrayList<>();
+        java.util.Set<User> departmentTeachers = new java.util.HashSet<>();
         for (Department dept : departments) {
             List<Speciality> specialities = specialityRepository.findByDepartment_DepartmentId(dept.getDepartmentId());
             departmentSpecialities.addAll(specialities);
@@ -62,11 +63,19 @@ public class PedagogViewController {
                 List<group3.en.stuattendance.Timetablemanager.Model.Course> courses = courseRepository.findBySpeciality_SpecialityId(spec.getSpecialityId());
                 departmentCourses.addAll(courses);
                 
+                for (group3.en.stuattendance.Timetablemanager.Model.Course course : courses) {
+                    if (course.getTeachers() != null) {
+                        departmentTeachers.addAll(course.getTeachers());
+                    }
+                }
+                
                 for (Classroom classroom : classrooms) {
                     totalStudents += classroom.getStudents().size();
                 }
             }
         }
+        
+        totalTeachers = departmentTeachers.size();
 
         List<User> departmentStudents = new ArrayList<>();
         for (Classroom classroom : departmentClassrooms) {

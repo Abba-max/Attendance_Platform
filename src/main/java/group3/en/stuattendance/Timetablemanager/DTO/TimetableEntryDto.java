@@ -23,7 +23,8 @@ public class TimetableEntryDto {
     private LocalTime startTime;
     private LocalTime endTime;
     
-    private Boolean isEvent;
+    @com.fasterxml.jackson.annotation.JsonProperty("isEvent")
+    private Boolean isEvent = false;
     private String eventName;
     
     private Integer courseId;

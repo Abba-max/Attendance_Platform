@@ -39,6 +39,7 @@ public class TimetableEntry {
     @Column(name = "end_time", nullable = false)
     private LocalTime endTime;
 
+    @com.fasterxml.jackson.annotation.JsonProperty("isEvent")
     @Column(name = "is_event", nullable = false)
     @Builder.Default
     private Boolean isEvent = false;

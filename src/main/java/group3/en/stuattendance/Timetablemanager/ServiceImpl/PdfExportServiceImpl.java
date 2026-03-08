@@ -65,25 +65,25 @@ public class PdfExportServiceImpl implements PdfExportService {
                 // Add Header Row
                 String[] headers = {"Time", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
                 for (String h : headers) {
-                    PdfPCell cell = new PdfPCell(new Phrase(h, tableHeadFont));
+                    PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.WHITE)));
                     cell.setPadding(5);
                     cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    cell.setBackgroundColor(new java.awt.Color(240, 244, 248)); // Slate-50 approx
+                    cell.setBackgroundColor(java.awt.Color.decode("#00B0FF")); // Logo Blue
                     cell.setBorderWidth(1.1f);
-                    cell.setBorderColor(java.awt.Color.DARK_GRAY);
+                    cell.setBorderColor(java.awt.Color.decode("#0081C6")); // Darker Logo Blue
                     table.addCell(cell);
                 }
 
                 int[] skipCells = new int[6]; // Tracker for multi-hour blocks
                 for (int hour = 8; hour <= 17; hour++) {
                     // Add Time Column Cell
-                    PdfPCell timeCell = new PdfPCell(new Phrase(String.format("%02d:00", hour), tableHeadFont));
+                    PdfPCell timeCell = new PdfPCell(new Phrase(String.format("%02d:00", hour), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.DARK_GRAY)));
                     timeCell.setPadding(5);
                     timeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
                     timeCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                    timeCell.setBackgroundColor(new java.awt.Color(248, 250, 252));
+                    timeCell.setBackgroundColor(java.awt.Color.decode("#F8FAFC"));
                     timeCell.setBorderWidth(1.5f);
-                    timeCell.setBorderColor(java.awt.Color.DARK_GRAY);
+                    timeCell.setBorderColor(java.awt.Color.decode("#E2E8F0"));
                     table.addCell(timeCell);
 
                     for (int dayIndex = 0; dayIndex <= 5; dayIndex++) {
@@ -128,7 +128,7 @@ public class PdfExportServiceImpl implements PdfExportService {
                                 text = entry.getCourseName() + "\n\n" + (entry.getTeacherName() != null ? entry.getTeacherName() : "");
                             }
                             
-                            java.awt.Color bgColor = new java.awt.Color(224, 242, 254); // Light Blue fallback
+                            java.awt.Color bgColor = java.awt.Color.decode("#E0F2FE"); // Light Blue fallback
                             java.awt.Color textColor = java.awt.Color.BLACK;
                             
                             if (entry.getColor() != null && entry.getColor().startsWith("#")) {
@@ -148,14 +148,14 @@ public class PdfExportServiceImpl implements PdfExportService {
                             
                             // For visual pop, we give it a thicker border
                             cell.setBorderWidth(2.0f);
-                            cell.setBorderColor(java.awt.Color.DARK_GRAY);
+                            cell.setBorderColor(java.awt.Color.decode("#0284C7"));
                             
                             table.addCell(cell);
                         } else {
                             // Empty Drop Zone Cell
                             PdfPCell emptyCell = new PdfPCell(new Phrase(""));
-                            emptyCell.setBorderWidth(1.5f);
-                            emptyCell.setBorderColor(java.awt.Color.GRAY);
+                            emptyCell.setBorderWidth(1.0f);
+                            emptyCell.setBorderColor(java.awt.Color.decode("#E2E8F0"));
                             table.addCell(emptyCell);
                         }
                     }
