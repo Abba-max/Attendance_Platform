@@ -10,7 +10,7 @@ import java.util.Optional;
 @Repository
 public interface TimetablecontentRepository extends JpaRepository<Timetablecontent, Integer> {
 
-    Optional<Timetablecontent> findByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(Integer classroomId, Long academicYearId, Integer week, Integer semester);
+    Optional<Timetablecontent> findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
     boolean existsByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 

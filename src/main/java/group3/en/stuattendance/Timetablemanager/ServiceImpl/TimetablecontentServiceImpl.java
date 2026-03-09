@@ -49,7 +49,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
 
         // Check if a timetable already exists for this classroom, academic year, week, and semester
         Timetablecontent existingTimetable = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(dto.getClassroomId(), academicYear.getId(), dto.getWeek(), dto.getSemester())
+                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(dto.getClassroomId(), academicYear.getId(), dto.getWeek(), dto.getSemester())
                 .orElse(null);
 
         Integer newVersion = 1;
@@ -148,7 +148,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         
         final Long finalYearId = yearId;
         Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(classroomId, finalYearId, week, semester)
+                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, finalYearId, week, semester)
                 .orElseThrow(() -> new EntityNotFoundException("Active Timetable not found for classroom " + classroomId + ", year " + finalYearId + ", week " + week + " and semester " + semester));
         return timetablecontentMapper.toDto(timetablecontent);
     }
@@ -172,7 +172,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
 
     @Override
     public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
-        timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(classroomId, academicYearId, week, semester)
+        timetablecontentRepository.findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, academicYearId, week, semester)
                 .ifPresent(timetablecontentRepository::delete);
     }
 
