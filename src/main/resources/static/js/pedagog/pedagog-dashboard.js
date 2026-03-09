@@ -956,7 +956,9 @@ window.renderTimetableData = function (data) {
 
     if (data && data.entries) {
         data.entries.forEach(entry => {
-            const cell = document.querySelector(`.grid-cell[data-day-index="${entry.dayOfWeek}"][data-hour="${entry.startTime.split(':')[0]}"]`);
+            const startHourStr = entry.startTime.split(':')[0];
+            const startHour = parseInt(startHourStr);
+            const cell = document.querySelector(`.grid-cell[data-day-index="${entry.dayOfWeek}"][data-hour="${startHour}"]`);
             if (cell) {
                 renderCourseInCell(cell, {
                     id: entry.courseId,
@@ -971,13 +973,8 @@ window.renderTimetableData = function (data) {
 
                 const block = cell.querySelector('.tt-block');
                 if (block) {
-                    if (entry.color) {
-                        block.style.backgroundColor = entry.color;
-                        block.setAttribute('data-color', entry.color);
-                    }
-                    const startH = parseInt(entry.startTime.split(':')[0]);
                     const endH = parseInt(entry.endTime.split(':')[0]);
-                    const duration = Math.max(1, endH - startH);
+                    const duration = Math.max(1, endH - startHour);
                     if (duration > 1) {
                         block.setAttribute('data-duration', duration);
                         block.style.position = 'absolute';
@@ -1103,8 +1100,8 @@ window.setActiveTTDay = function (dayIndex) {
 
     const container = document.querySelector('.tt-grid-scroll-container');
     if (container) {
-        // Time column is 72px wide; each of the 6 day columns takes equal share of the rest
-        const timeColWidth = 72;
+        // Time column is 100px wide; each of the 6 day columns takes equal share of the rest
+        const timeColWidth = 100;
         const totalScrollWidth = container.scrollWidth;
         const dayColWidth = (totalScrollWidth - timeColWidth) / 6;
         container.scrollTo({ left: timeColWidth + dayIndex * dayColWidth, behavior: 'smooth' });
@@ -1220,9 +1217,9 @@ window.setActiveTTDay = function (dayIndex) {
     if (gridContainer) {
         const minWidthElement = gridContainer.querySelector('.min-w-\\[620px\\]');
         const totalWidth = minWidthElement ? minWidthElement.offsetWidth : 620;
-        const dayWidth = (totalWidth - 72) / 6;
+        const dayWidth = (totalWidth - 100) / 6;
         gridContainer.scrollTo({
-            left: 72 + (dayIndex * dayWidth) - 10,
+            left: 100 + (dayIndex * dayWidth) - 10,
             behavior: 'smooth'
         });
     }
@@ -1283,7 +1280,10 @@ window.handleSendEmailTT = async function (event) {
 
     // Get current week, semester, academicYear from main dashboard
     const weekInput = document.getElementById('ttStartDate');
-    const week = weekInput.getAttribute('data-week') || 1; // Fallback to 1 if not found
+    let week = 1;
+    if (weekInput && weekInput.value) {
+        week = getISOWeek(new Date(weekInput.value));
+    }
     const semester = document.getElementById('ttSemesterSelect').value;
     const academicYearId = document.getElementById('ttAcademicYearSelect').value;
 

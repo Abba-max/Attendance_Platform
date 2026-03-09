@@ -344,8 +344,7 @@
                             <div class="flex items-center justify-between mb-4">
                                 <div
                                     class="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
                                     </svg>
@@ -948,8 +947,9 @@
                                     <div class="min-w-[620px]">
                                         <!-- Day Header Row -->
                                         <div
-                                            class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80">
-                                            <div class="py-3 flex items-center justify-center">
+                                            class="grid grid-cols-[100px_repeat(6,1fr)] border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80">
+                                            <div
+                                                class="py-3 flex items-center justify-center border-r-2 border-slate-100 bg-slate-50/50">
                                                 <span
                                                     class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Time</span>
                                             </div>
@@ -972,7 +972,7 @@
                                             <div class="py-3 flex items-center justify-center">
                                                 <span
                                                     class="px-2.5 py-1 rounded-full text-[10px] font-black text-[#00B0FF] bg-blue-50">FRI</span>
-                                            </div>
+                                git a            </div>
                                             <div class="py-3 flex items-center justify-center">
                                                 <span
                                                     class="px-2.5 py-1 rounded-full text-[10px] font-black text-slate-400 bg-slate-100">SAT</span>
@@ -982,11 +982,11 @@
                                         <!-- Time Rows -->
                                         <div id="timetableGrid">
                                             <div th:each="hour : ${#numbers.sequence(8, 16)}"
-                                                class="grid grid-cols-[72px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
+                                                class="grid grid-cols-[100px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
                                                 style="height: 48px;">
                                                 <!-- Time Label -->
                                                 <div
-                                                    class="flex items-start justify-center pt-2 border-r border-slate-100 bg-slate-50/30">
+                                                    class="flex items-center justify-center border-r-2 border-slate-200 bg-slate-50/50">
                                                     <span class="text-[10px] font-black text-slate-400"
                                                         th:text="${#numbers.formatInteger(hour,2) + ':00-' + #numbers.formatInteger(hour+1,2) + ':00'}">08:00-09:00</span>
                                                 </div>
