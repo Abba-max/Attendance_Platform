@@ -1,16 +1,18 @@
 package group3.en.stuattendance.Usermanager.Service.Impl;
 
-import group3.en.stuattendance.Usermanager.Model.Role;
+import group3.en.stuattendance.Usermanager.DTO.RoleDto;
+import group3.en.stuattendance.Usermanager.Mapper.RoleMapper;
 import group3.en.stuattendance.Usermanager.Model.Permission;
-import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
+import group3.en.stuattendance.Usermanager.Model.Role;
 import group3.en.stuattendance.Usermanager.Repository.PermissionRepository;
+import group3.en.stuattendance.Usermanager.Repository.RoleRepository;
 import group3.en.stuattendance.Usermanager.Service.RoleService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,56 +23,76 @@ public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final RoleMapper roleMapper;
 
     @Override
-    public List<Role> getAllRoles() {
-        return roleRepository.findAll();
+    public List<RoleDto> getAllRoles() {
+        return roleRepository.findAll()
+                .stream()
+                .map(roleMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Optional<Role> getRoleById(Integer roleId) {
-        return roleRepository.findById(roleId);
+    public RoleDto getRoleById(Integer roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+        return roleMapper.toDto(role);
     }
 
     @Override
-    public Optional<Role> getRoleByName(String name) {
-        return roleRepository.findByName(name);
+    public RoleDto getRoleByName(String name) {
+        Role role = roleRepository.findByName(name)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with name: " + name));
+        return roleMapper.toDto(role);
     }
 
     @Override
-    public Role createRole(group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+    public RoleDto createRole(RoleDto dto) {
         Role role = Role.builder()
                 .name(dto.getName())
                 .description(dto.getDescription())
                 .build();
-        return roleRepository.save(role);
+        Role saved = roleRepository.save(role);
+        return roleMapper.toDto(saved);
     }
 
     @Override
-    public Role updateRole(Integer id, group3.en.stuattendance.Usermanager.DTO.RoleDto dto) {
+    public RoleDto updateRole(Integer id, RoleDto dto) {
         Role role = roleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + id));
         role.setName(dto.getName());
         role.setDescription(dto.getDescription());
-        return roleRepository.save(role);
+        Role updated = roleRepository.save(role);
+        return roleMapper.toDto(updated);
     }
 
     @Override
     public void deleteRole(Integer id) {
+        if (!roleRepository.existsById(id)) {
+            throw new EntityNotFoundException("Role not found with id: " + id);
+        }
         roleRepository.deleteById(id);
     }
 
     @Override
-    public void syncRolePermissions(String roleName, java.util.Set<String> permissionNames) {
+    public void syncRolePermissions(String roleName, Set<String> permissionNames) {
         Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
-        
+                .orElseThrow(() -> new EntityNotFoundException("Role not found: " + roleName));
+
         Set<Permission> permissions = permissionNames.stream()
                 .map(name -> permissionRepository.findByName(name)
-                        .orElseThrow(() -> new RuntimeException("Permission not found: " + name)))
+                        .orElseThrow(() -> new EntityNotFoundException("Permission not found: " + name)))
                 .collect(Collectors.toSet());
-        
+
         role.setPermissions(permissions);
         roleRepository.save(role);
+    }
+
+    @Override
+    public RoleDto getRoleWithPermissions(Integer roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new EntityNotFoundException("Role not found with id: " + roleId));
+        return roleMapper.toDto(role);
     }
 }

@@ -15,5 +15,5 @@ public class RoleDto {
     private Integer roleId;
     private String name;
     private String description;
-    private Set<Integer> permissionIds;
+    private Set<PermissionDto> permissions;
 }
