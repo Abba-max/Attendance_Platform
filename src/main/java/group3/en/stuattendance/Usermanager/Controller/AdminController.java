@@ -31,7 +31,7 @@ public class AdminController {
             .username(existingUser.getUsername())
             .email(existingUser.getEmail())
             .roleIds(roleIds)
-            .isActive(existingUser.getIsActive())
+            .isActive(Boolean.TRUE.equals(existingUser.getIsActive()))
             .build();
             
         userService.updateUser(id, dto);

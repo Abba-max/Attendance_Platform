@@ -1,8 +1,11 @@
 package group3.en.stuattendance.Institutionmanager.Controller;
 
+import group3.en.stuattendance.Institutionmanager.DTO.CycleDto;
+import group3.en.stuattendance.Institutionmanager.Mapper.CycleMapper;
 import group3.en.stuattendance.Institutionmanager.Model.Cycle;
 import group3.en.stuattendance.Institutionmanager.Service.CycleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -16,6 +19,9 @@ public class CycleController {
 
     @Autowired
     private CycleService cycleService;
+
+    @Autowired
+    private CycleMapper cycleMapper;
 
     /**
      * Update existing cycle
@@ -83,5 +89,11 @@ public class CycleController {
         } catch (Exception e) {
             return "error";
         }
+    }
+
+    @GetMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<CycleDto> getCycleById(@PathVariable Integer id) {
+        return ResponseEntity.ok(cycleService.getCycleDtoById(id));
     }
 }

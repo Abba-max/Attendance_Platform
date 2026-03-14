@@ -30,6 +30,12 @@ public class DepartmentDto {
     @Builder.Default
     private java.util.Set<Integer> supervisorIds = new java.util.HashSet<>();
 
+    private String cycleName;
+    private String institutionName;
+
+    private Integer pedagogicAssistantCount;
+    private Integer supervisorCount;
+
     @Builder.Default
     private java.util.Set<SpecialityDto> specialities = new java.util.HashSet<>();
 }

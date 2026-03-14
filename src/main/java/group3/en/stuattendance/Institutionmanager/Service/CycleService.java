@@ -8,4 +8,5 @@ public interface CycleService {
     Cycle findById(Integer id);
     List<Cycle> getAllCycles();
     void deleteById(Integer id);
+    group3.en.stuattendance.Institutionmanager.DTO.CycleDto getCycleDtoById(Integer id);
 }

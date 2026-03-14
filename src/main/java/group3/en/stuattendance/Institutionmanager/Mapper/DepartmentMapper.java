@@ -18,8 +18,11 @@ public class DepartmentMapper {
                 .departmentId(department.getDepartmentId())
                 .name(department.getName())
                 .chief(department.getChief())
-                .chief(department.getChief())
                 .cycleId(department.getCycle() != null ? department.getCycle().getCycleId() : null)
+                .cycleName(department.getCycle() != null ? department.getCycle().getName() : "Common")
+                .institutionName(department.getInstitution() != null ? department.getInstitution().getName() : "N/A")
+                .pedagogicAssistantCount(department.getPedagogicAssistants() != null ? department.getPedagogicAssistants().size() : 0)
+                .supervisorCount(department.getSupervisors() != null ? department.getSupervisors().size() : 0)
                 .pedagogicAssistantIds(department.getPedagogicAssistants() != null ? 
                     department.getPedagogicAssistants().stream().map(u -> u.getUserId()).collect(java.util.stream.Collectors.toSet()) : new java.util.HashSet<>())
                 .supervisorIds(department.getSupervisors() != null ? 

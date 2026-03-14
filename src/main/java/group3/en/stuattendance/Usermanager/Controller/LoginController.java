@@ -85,7 +85,13 @@ public class LoginController {
 //            );
 //
 //            // 2. Générer le token JWT
-//            String token = jwtUtil.generateToken(authentication.getName());
+//            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+//            String token = jwtUtil.generateToken(
+//                    userDetails.getUsername(),
+//                    userDetails.getUserId(),
+//                    userDetails.getFirstName(),
+//                    userDetails.getLastName()
+//            );
 //
 //            // 3. Stocker le token dans un cookie HttpOnly
 //            Cookie jwtCookie = new Cookie(cookieName, token);

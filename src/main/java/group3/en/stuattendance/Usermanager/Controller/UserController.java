@@ -15,27 +15,31 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody UserDto dto) {
-        return ResponseEntity.ok(userService.registerUser(dto));
+    public ResponseEntity<UserDto> registerUser(@RequestBody UserDto dto) {
+        return ResponseEntity.ok(userMapper.toDto(userService.registerUser(dto)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
+    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
+                .map(userMapper::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers().stream()
+                .map(userMapper::toDto)
+                .collect(java.util.stream.Collectors.toList()));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
-        return ResponseEntity.ok(userService.updateUser(id, dto));
+    public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
+        return ResponseEntity.ok(userMapper.toDto(userService.updateUser(id, dto)));
     }
 
     @DeleteMapping("/{id}")

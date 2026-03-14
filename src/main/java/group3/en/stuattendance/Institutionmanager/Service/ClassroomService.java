@@ -11,4 +11,5 @@ public interface ClassroomService {
 
     List<ClassroomDto> findBySpecialityId(Integer specialityId);
     void deleteById(Integer id);
+    ClassroomDto getClassroomDtoById(Integer id);
 }

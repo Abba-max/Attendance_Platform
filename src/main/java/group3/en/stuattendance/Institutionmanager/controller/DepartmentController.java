@@ -1,5 +1,6 @@
 package group3.en.stuattendance.Institutionmanager.Controller;
 
+import group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto;
 import group3.en.stuattendance.Institutionmanager.Model.Cycle;
 import group3.en.stuattendance.Institutionmanager.Model.Department;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
@@ -7,6 +8,7 @@ import group3.en.stuattendance.Institutionmanager.Service.CycleService;
 import group3.en.stuattendance.Institutionmanager.Service.DepartmentService;
 import group3.en.stuattendance.Institutionmanager.Service.InstitutionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -130,5 +132,11 @@ public class DepartmentController {
         } catch (Exception e) {
             return "error";
         }
+    }
+
+    @GetMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<DepartmentDto> getDepartmentById(@PathVariable Integer id) {
+        return ResponseEntity.ok(departmentService.getDepartmentDtoById(id));
     }
 }

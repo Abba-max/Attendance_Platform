@@ -1,5 +1,6 @@
 package group3.en.stuattendance.SecurityManager;
 
+import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.Authentication.JwtAuthenticationFilter;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetailsService;
 import group3.en.stuattendance.Usermanager.Authentication.JwtUtil;
@@ -71,15 +72,19 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
-                            String token = jwtUtil.generateToken(authentication.getName());
+                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                            String token = jwtUtil.generateToken(
+                                    userDetails.getUsername(),
+                                    userDetails.getUserId(),
+                                    userDetails.getFirstName(),
+                                    userDetails.getLastName()
+                            );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
                             jwtCookie.setSecure(false);
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
-                            
-                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
                             
                             // Check if password change is required
                             if (!userDetails.isPasswordChanged()) {

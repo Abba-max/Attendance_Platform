@@ -23,7 +23,7 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())
-                .isActive(user.getIsActive())
+                .isActive(Boolean.TRUE.equals(user.getIsActive()))
                 .institutionId(user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null)
                 .roleIds(user.getRoles().stream().map(Role::getRoleId).collect(Collectors.toSet()))
                 .roleNames(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
@@ -36,6 +36,9 @@ public class UserMapper {
                 
                 .effectivePermissionIds(calculateEffectivePermissionIds(user))
                 .effectivePermissionNames(calculateEffectivePermissionNames(user))
+                
+                .availablePermissionIds(calculateAvailablePermissionIds(user))
+                .availablePermissionNames(calculateAvailablePermissionNames(user))
                 
                 .classroomId(user.getClassroom() != null ? user.getClassroom().getClassId() : null)
                 .matricule(user.getMatricule())
@@ -55,7 +58,7 @@ public class UserMapper {
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
                 .password(dto.getPassword())
-                .isActive(dto.getIsActive())
+                .isActive(Boolean.TRUE.equals(dto.getIsActive()))
                 .institution(institution)
                 .roles(roles != null ? roles : new HashSet<>())
                 .additionalPermissions(additionalPermissions != null ? additionalPermissions : new HashSet<>())
@@ -98,5 +101,21 @@ public class UserMapper {
                 .filter(p -> !deniedIds.contains(p.getPermissionId()))
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
+    }
+
+    private Set<Integer> calculateAvailablePermissionIds(User user) {
+        Set<Integer> permissions = new HashSet<>();
+        user.getRoles().forEach(role -> 
+            role.getPermissions().forEach(p -> permissions.add(p.getPermissionId()))
+        );
+        return permissions;
+    }
+
+    private Set<String> calculateAvailablePermissionNames(User user) {
+        Set<String> permissions = new HashSet<>();
+        user.getRoles().forEach(role -> 
+            role.getPermissions().forEach(p -> permissions.add(p.getName()))
+        );
+        return permissions;
     }
 }

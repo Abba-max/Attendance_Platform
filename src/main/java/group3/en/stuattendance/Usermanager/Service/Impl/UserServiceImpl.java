@@ -272,6 +272,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void grantPermission(Integer userId, Integer permissionId) {
         userRepository.findById(userId).ifPresent(user -> {
+            // Check if permission is in role scope
+            boolean inScope = user.getRoles().stream()
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
+            if (!inScope) {
+                throw new RuntimeException("Permission is outside of user's role scope");
+            }
+
             permissionRepository.findById(permissionId).ifPresent(perm -> {
                 user.getAdditionalPermissions().add(perm);
                 user.getDeniedPermissions().remove(perm); // Ensure it's not also denied
@@ -283,6 +292,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void revokePermission(Integer userId, Integer permissionId) {
         userRepository.findById(userId).ifPresent(user -> {
+            // Check if permission is in role scope
+            boolean inScope = user.getRoles().stream()
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
+            if (!inScope) {
+                throw new RuntimeException("Permission is outside of user's role scope");
+            }
+
             permissionRepository.findById(permissionId).ifPresent(perm -> {
                 user.getDeniedPermissions().add(perm);
                 user.getAdditionalPermissions().remove(perm); // Ensure it's not also granted

@@ -1,11 +1,13 @@
 package group3.en.stuattendance.Institutionmanager.Controller;
 
+import group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Model.Department;
 import group3.en.stuattendance.Institutionmanager.Service.ClassroomService;
 import group3.en.stuattendance.Institutionmanager.Service.DepartmentService;
 import group3.en.stuattendance.Institutionmanager.Service.SpecialityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -109,5 +111,11 @@ public class ClassroomController {
         } catch (Exception e) {
             return "error";
         }
+    }
+
+    @GetMapping("/{id}")
+    @ResponseBody
+    public ResponseEntity<ClassroomDto> getClassroomById(@PathVariable Integer id) {
+        return ResponseEntity.ok(classroomService.getClassroomDtoById(id));
     }
 }

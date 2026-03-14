@@ -43,6 +43,10 @@ public class UserDto {
     private Set<Integer> effectivePermissionIds;
     private Set<String> effectivePermissionNames;
 
+    // Available permissions (Union of all permissions from assigned roles)
+    private Set<Integer> availablePermissionIds;
+    private Set<String> availablePermissionNames;
+
     // Student specific
     private Integer classroomId;
     private String matricule;

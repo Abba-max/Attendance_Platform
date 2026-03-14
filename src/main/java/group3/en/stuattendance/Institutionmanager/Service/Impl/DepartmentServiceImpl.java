@@ -23,9 +23,25 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Mapper.DepartmentMapper departmentMapper;
+
     @Override
     public Department save(Department department) {
         return departmentRepository.save(department);
+    }
+
+    @Override
+    public group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto getDepartmentDtoById(Integer id) {
+        Department dept = findById(id);
+        // Force initialization of lazy collections/entities for mapping
+        if (dept.getCycle() != null) dept.getCycle().getName();
+        if (dept.getInstitution() != null) dept.getInstitution().getName();
+        dept.getPedagogicAssistants().size();
+        dept.getSupervisors().size();
+        dept.getSpecialities().size();
+        
+        return departmentMapper.toDto(dept);
     }
 
     @Override
