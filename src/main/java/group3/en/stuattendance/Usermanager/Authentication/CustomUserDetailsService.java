@@ -54,15 +54,16 @@ public class CustomUserDetailsService implements UserDetailsService {
             authorities.remove(new SimpleGrantedAuthority(perm.getName()));
         });
 
-        // 3. Retourner un UserDetails Spring Security
-        return new org.springframework.security.core.userdetails.User(
+        // 3. Retourner un CustomUserDetails
+        return new CustomUserDetails(
                 user.getUsername(),
                 user.getPassword(),
                 user.getIsActive(), // isEnabled → ton champ isActive
                 true,               // accountNonExpired
                 true,               // credentialsNonExpired
                 true,               // accountNonLocked
-                authorities
+                authorities,
+                user.getPasswordChanged()
         );
     }
 }

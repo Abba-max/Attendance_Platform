@@ -46,6 +46,8 @@ public interface UserService {
     List<UserDto> getTeachersBySpeciality(Integer specialityId);
     
     // Auth related
+    void changePassword(String currentPassword, String newPassword);
+    void requestPasswordReset(String email);
     void resetPassword(Integer userId, String newPassword);
 
     // Bulk Operations

@@ -41,6 +41,7 @@ public class AdminViewController {
     private final SpecialityService specialityService;
     private final AcademicYearService academicYearService;
     private final AcademicYearScheduleService academicYearScheduleService;
+    private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
 
     @GetMapping("")
     public String adminRoot() {
@@ -63,9 +64,14 @@ public class AdminViewController {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         String currentUsername = (auth != null) ? auth.getName() : "Administrator";
         
+        // Add pending password reset requests
+        List<group3.en.stuattendance.Usermanager.Model.PasswordResetRequest> pendingResets = 
+            passwordResetRequestRepository.findByStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.PENDING);
+        model.addAttribute("pendingResets", pendingResets);
+        
         // Add missing attributes for the overview section
         model.addAttribute("adminName", currentUsername);
-        model.addAttribute("notifications", 0);
+        model.addAttribute("notifications", pendingResets.size());
         
         java.util.List<group3.en.stuattendance.Usermanager.Model.User> allStaff = userService.getAllStaff();
         model.addAttribute("pedagogicAssistants", allStaff.stream()

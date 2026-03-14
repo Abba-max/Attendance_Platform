@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
@@ -283,6 +283,51 @@
                     <div class="mb-8">
                         <h2 class="text-3xl font-bold text-gray-800 mb-2">Dashboard Overview</h2>
                         <p class="text-gray-600">Welcome back! Here's what's happening with your system today.</p>
+                    </div>
+
+                    <!-- Password Reset Requests Section -->
+                    <div th:if="${pendingResets != null and !pendingResets.isEmpty()}" class="mb-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <span class="w-2 h-8 bg-amber-500 rounded-full"></span>
+                                Security Requests
+                                <span class="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-bold rounded-full" th:text="${pendingResets.size()}">0</span>
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="request : ${pendingResets}" 
+                                 class="bg-white border-2 border-amber-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 font-bold">
+                                            <span th:text="${#strings.substring(request.user.username, 0, 1).toUpperCase()}">U</span>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-slate-800" th:text="${request.user.username}">Username</div>
+                                            <div class="text-xs text-slate-500" th:text="${request.user.email}">user@example.com</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[10px] font-bold text-amber-500 uppercase bg-amber-50 px-2 py-1 rounded-lg">Pending</div>
+                                </div>
+                                <div class="text-xs text-slate-500 mb-4 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Requested <span th:text="${#temporals.format(request.createdAt, 'MMM dd, HH:mm')}">Time</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button th:onclick="'openApproveResetModal(' + ${request.id} + ', \'' + ${request.user.username} + '\')'"
+                                            class="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all">
+                                        Approve
+                                    </button>
+                                    <button th:onclick="'handleRejectRequest(' + ${request.id} + ')'"
+                                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-all">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- System Statistics -->
@@ -1223,11 +1268,15 @@
                                         <th
                                             class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                             Roles</th>
+
                                         <th
                                             class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
                                             Status</th>
                                         <th
-                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                                                class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center ">
+                                            Speciality</th>
+                                        <th
+                                            class="px-8 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
                                             Actions</th>
                                     </tr>
                                 </thead>
@@ -2123,6 +2172,39 @@
                         Changes</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Approve Password Reset Modal -->
+    <div id="approveResetModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-amber-500 text-white">
+                <h3 class="text-xl font-bold text-white">Approve Reset Request</h3>
+                <button onclick="closeApproveResetModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600">
+                    You are approving a password reset for <span id="resetTargetUser" class="font-bold text-slate-800"></span>. 
+                    Please provide a temporary password that will be sent to the user via email.
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Temporary Password</label>
+                    <input type="text" id="tempPassword" placeholder="Enter temporary password"
+                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all outline-none">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeApproveResetModal()"
+                            class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition">Cancel</button>
+                    <button id="confirmApproveBtn" onclick="submitApproveReset()"
+                            class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+                        Send Notification
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

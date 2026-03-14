@@ -24,4 +24,14 @@ public interface EmailService {
      * @param senderName         Display name of the sender.
      */
     void sendTimetableEmail(String fromEmail, java.util.List<String> bccRecipients, String subject, String messageText, byte[] pdfAttachment, String attachmentFilename, String senderName);
+
+    /**
+     * Sends an email notification to a user when an admin resets their password.
+     *
+     * @param to          Recipient email address.
+     * @param newPassword The new temporary password.
+     * @param adminEmail  The email address of the admin who performed the reset.
+     * @param adminName   The name of the admin.
+     */
+    void sendPasswordResetNotification(String to, String newPassword, String adminEmail, String adminName);
 }

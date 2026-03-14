@@ -218,6 +218,11 @@ function renderUserTable(users) {
                     ${user.isActive ? 'Active' : 'Inactive'}
                 </span>
             </td>
+            <td class="px-6 py-4 text-center">
+                                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                     ${user.isActive ? 'Active' : 'Inactive'}
+                                 </span>
+                             </td>
             <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                     <button onclick="handleResetPassword(${user.userId})" class="p-2 text-gray-400 hover:text-[#00B0FF] transition-colors" title="Reset Password">
@@ -3166,3 +3171,77 @@ window.handleUpdateUserRole = handleUpdateUserRole;
 window.handlePermissionCycle = handlePermissionCycle;
 
 console.log('Scheduling Grid module loaded');
+
+/**
+ * Password Reset Request Handlers
+ */
+let currentResetRequestId = null;
+
+function openApproveResetModal(id, username) {
+    currentResetRequestId = id;
+    document.getElementById('resetTargetUser').textContent = username;
+    document.getElementById('tempPassword').value = '';
+    document.getElementById('approveResetModal').classList.remove('hidden');
+    document.getElementById('approveResetModal').classList.add('flex');
+}
+
+function closeApproveResetModal() {
+    document.getElementById('approveResetModal').classList.add('hidden');
+    document.getElementById('approveResetModal').classList.remove('flex');
+    currentResetRequestId = null;
+}
+
+async function submitApproveReset() {
+    const tempPassword = document.getElementById('tempPassword').value;
+    if (!tempPassword) {
+        showNotification('Please enter a temporary password', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('confirmApproveBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+        const response = await fetch(`/api/admin/password-requests/${currentResetRequestId}?action=APPROVE`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: tempPassword
+        });
+
+        if (response.ok) {
+            showNotification('Password reset approved and notification sent', 'success');
+            closeApproveResetModal();
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            throw new Error('Failed to approve request');
+        }
+    } catch (error) {
+        console.error('Error approving reset:', error);
+        showNotification('Error approving reset request', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+async function handleRejectRequest(id) {
+    if (!confirm('Are you sure you want to reject this password reset request?')) return;
+
+    try {
+        const response = await fetch(`/api/admin/password-requests/${id}?action=REJECT`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showNotification('Request rejected', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            throw new Error('Failed to reject request');
+        }
+    } catch (error) {
+        console.error('Error rejecting reset:', error);
+        showNotification('Error rejecting reset request', 'error');
+    }
+}

@@ -767,7 +767,7 @@ function renderCourseInCell(cell, item) {
     const isEvent = item.isEvent === true || item.isEvent === 'true';
 
     cell.innerHTML = `
-        <div class="h-full rounded-xl p-1 shadow-sm relative group/block tt-block text-white"
+        <div class="rounded-xl p-1 shadow-sm group/block tt-block text-white"
              data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
              data-is-event="${isEvent}" data-event-name="${item.name}"
              style="background: linear-gradient(135deg, ${bgColor}, ${adjustColor(bgColor, -15)}); border-left-color: ${bgColor};">
@@ -835,7 +835,7 @@ window.removeTTBlock = function (btn) {
     const day = cell.getAttribute('data-day-index');
     const hour = cell.getAttribute('data-hour');
     cell.innerHTML = `
-        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>
+        <div class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
     `;
 };
 
@@ -951,7 +951,7 @@ window.fetchTimetableByVersion = function () {
 window.renderTimetableData = function (data) {
     // Reset grid
     document.querySelectorAll('.grid-cell').forEach(cell => {
-        cell.innerHTML = '<div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>';
+        cell.innerHTML = '<div class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>';
     });
 
     if (data && data.entries) {
@@ -977,11 +977,7 @@ window.renderTimetableData = function (data) {
                     const duration = Math.max(1, endH - startHour);
                     if (duration > 1) {
                         block.setAttribute('data-duration', duration);
-                        block.style.position = 'absolute';
-                        block.style.top = '0';
-                        block.style.left = '0';
-                        block.style.right = '0';
-                        block.style.height = `calc(${duration * 100}% + ${duration - 1}px)`;
+                        block.style.height = `calc(${duration * 100}% + ${duration - 1}px - 6px)`;
                         block.style.zIndex = '15';
                     }
                 }
@@ -1169,11 +1165,7 @@ document.addEventListener('mousemove', function (e) {
     }
 
     ttCurrentBlock.setAttribute('data-duration', newDuration);
-    ttCurrentBlock.style.position = 'absolute';
-    ttCurrentBlock.style.top = '0';
-    ttCurrentBlock.style.left = '0';
-    ttCurrentBlock.style.right = '0';
-    ttCurrentBlock.style.height = `calc(${newDuration * 100}% + ${newDuration - 1}px)`;
+    ttCurrentBlock.style.height = `calc(${newDuration * 100}% + ${newDuration - 1}px - 6px)`;
 });
 
 document.addEventListener('mouseup', function (e) {

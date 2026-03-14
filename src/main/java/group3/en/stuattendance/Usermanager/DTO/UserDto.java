@@ -49,6 +49,7 @@ public class UserDto {
     private String externalEmail;
 
     // Staff specific
-    private Set<Integer> staffClassroomIds;
+    private Set<Integer> 
+            staffClassroomIds;
     private String joinCode;
 }

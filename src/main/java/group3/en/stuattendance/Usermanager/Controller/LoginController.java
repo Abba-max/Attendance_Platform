@@ -30,9 +30,44 @@ public class LoginController {
     @Value("${jwt.cookie-name}")
     private String cookieName;
 
+    @Autowired
+    private group3.en.stuattendance.Usermanager.Service.UserService userService;
+
     @GetMapping("/login")
     public String loginPage() {
         return "login"; // → src/main/resources/templates/login.html
+    }
+
+    @GetMapping("/change-password")
+    public String changePasswordPage() {
+        return "auth/change-password";
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/change-password")
+    public String handleChangePassword(@org.springframework.web.bind.annotation.RequestParam("currentPassword") String currentPassword,
+                                       @org.springframework.web.bind.annotation.RequestParam("newPassword") String newPassword,
+                                       @org.springframework.web.bind.annotation.RequestParam("confirmPassword") String confirmPassword,
+                                       org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        if (!newPassword.equals(confirmPassword)) {
+            redirectAttributes.addFlashAttribute("error", "Passwords do not match");
+            return "redirect:/change-password";
+        }
+
+        try {
+            userService.changePassword(currentPassword, newPassword);
+            return "redirect:/login?passwordChanged";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+            return "redirect:/change-password";
+        }
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/forgot-password")
+    public String handleForgotPassword(@org.springframework.web.bind.annotation.RequestParam("email") String email,
+                                       org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        userService.requestPasswordReset(email);
+        redirectAttributes.addFlashAttribute("message", "If an account exists with that email, the administrator has been notified.");
+        return "redirect:/login";
     }
 
     @GetMapping("/")

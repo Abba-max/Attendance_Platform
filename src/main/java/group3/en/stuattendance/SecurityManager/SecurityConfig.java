@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/login",
+                                "/change-password",
+                                "/forgot-password/**",
                                 "/css/**",
                                 "/js/**",
                                 "/image/**",
@@ -77,6 +79,14 @@ public class SecurityConfig {
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
                             
+                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                            
+                            // Check if password change is required
+                            if (!userDetails.isPasswordChanged()) {
+                                response.sendRedirect("/change-password");
+                                return;
+                            }
+
                             // Dynamic redirection based on role
                             boolean isAdmin = authentication.getAuthorities().stream()
                                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
