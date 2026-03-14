@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Data
@@ -29,13 +31,17 @@ public class UserDto {
     private String password;
 
     private Boolean isActive;
+
+    // Institution details
     private Integer institutionId;
-    
+    private String institutionName;
+
     // RBAC
     private Set<Integer> roleIds;
     private Set<String> roleNames;
+    private Set<RoleDto> roles;
 
-    // Permission Overrides (Names for display, IDs for updates)
+    // Permission Overrides
     private Set<Integer> additionalPermissionIds;
     private Set<String> additionalPermissionNames;
     private Set<Integer> deniedPermissionIds;
@@ -45,10 +51,18 @@ public class UserDto {
 
     // Student specific
     private Integer classroomId;
+    private String classroomName;
     private String matricule;
     private String externalEmail;
+    private Integer specialityId;
+    private String specialityName;
 
     // Staff specific
     private Set<Integer> staffClassroomIds;
+    private Set<String> staffClassroomNames;
     private String joinCode;
+
+    // Audit
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
