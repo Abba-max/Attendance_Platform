@@ -22,13 +22,16 @@
 
         <!-- Sidebar -->
         <aside id="sidebar"
-            class="sidebar fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60]">
-            <div class="p-6 border-b border-gray-200">
+            class="sidebar glass-panel fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60]">
+            <div class="p-6 border-b border-white/10">
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-4">
                         <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo"
-                            class="w-20 h-20 object-contain rounded-xl shadow-sm border-2 border-blue-50">
-                        <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
+                            class="w-16 h-16 object-contain rounded-2xl shadow-indigo-100/50 shadow-xl border border-white/20">
+                        <div>
+                            <span class="text-2xl font-black text-slate-800 tracking-tighter block leading-none">ATTENDEE</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Management</span>
+                        </div>
                     </div>
                     <!-- Sidebar Close Button (Mobile Only) -->
                     <button onclick="toggleMobileMenu()"
@@ -46,7 +49,7 @@
                 <ul class="space-y-2">
                     <li>
                         <a href="#"
-                            class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl text-white bg-[#00B0FF] hover:bg-[#0091D5] transition-all duration-200"
+                            class="nav-item active flex items-center gap-4 px-6 py-4 rounded-2xl text-white transition-all duration-300"
                             data-section="dashboard">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -120,10 +123,10 @@
             </nav>
         </aside>
 
-        <!-- Main Content -->
-        <main class="flex-1 overflow-y-auto">
-            <!-- Header -->
-            <header class="bg-white shadow-sm px-8 py-4 sticky top-0 z-10 transition-all duration-300">
+        <!-- Main Content (Glass scroll container) -->
+        <main id="main-content" class="flex-1 overflow-y-auto custom-scrollbar relative">
+            <!-- Header (Floating Glass) -->
+            <header class="sticky top-4 mx-4 my-4 rounded-premium glass-panel z-50 px-8 py-4 flex items-center justify-between shadow-premium border border-white/30">
                 <div class="flex items-center justify-between w-full">
                     <div class="flex items-center gap-4">
                         <!-- Mobile Menu Toggle -->
@@ -342,45 +345,35 @@
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <!-- Total Users Card (Blue) -->
-                            <div
-                                class="group bg-blue-50/60 backdrop-blur-md border-2 border-blue-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
-                                <div
-                                    class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors">
-                                </div>
+                            <!-- Stat Card: Users -->
+                            <div class="card-premium p-6 group relative overflow-hidden">
+                                <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
                                 <div class="flex items-start justify-between mb-6 relative z-10">
                                     <div class="space-y-1">
-                                        <p class="text-blue-700/70 text-sm font-semibold uppercase tracking-tight">Total
-                                            Users</p>
+                                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">Total Users</p>
                                         <div class="flex items-baseline gap-2">
-                                            <p class="text-4xl font-black text-blue-900 tracking-tight" id="totalUsers"
+                                            <p class="text-4xl font-black text-slate-800 tracking-tight" id="totalUsers"
                                                 th:text="${stats != null and stats.totalUsers != null ? #numbers.formatInteger(stats.totalUsers, 1, 'COMMA') : '0'}">
                                                 0</p>
-                                            <span
-                                                class="text-xs font-bold text-blue-600 bg-blue-100/50 px-2 py-0.5 rounded-full"
+                                            <span class="text-[10px] font-black text-blue-600 bg-blue-100/50 px-2.5 py-1 rounded-full uppercase tracking-wider"
                                                 id="userGrowth"
                                                 th:text="${stats != null and stats.userGrowth != null ? stats.userGrowth : '+0%'}"></span>
                                         </div>
                                     </div>
-                                    <div
-                                        class="w-12 h-12 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-110 transition-transform duration-500">
-                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    <div class="w-12 h-12 bg-blue-100/50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                         </svg>
                                     </div>
                                 </div>
-                                <div class="grid grid-cols-2 gap-3 relative z-10 pt-2 border-t border-blue-100/50">
+                                <div class="grid grid-cols-2 gap-3 relative z-10 pt-4 border-t border-slate-100">
                                     <div class="flex flex-col">
-                                        <span class="text-[10px] uppercase font-bold text-blue-400">Students</span>
-                                        <span class="text-sm font-bold text-blue-800" id="studentCount"
-                                            th:text="${stats?.studentCount ?: 0}">0</span>
+                                        <span class="text-[9px] uppercase font-black text-slate-400 tracking-wider">Students</span>
+                                        <span class="text-sm font-black text-slate-700" id="studentCount" th:text="${stats?.studentCount ?: 0}">0</span>
                                     </div>
                                     <div class="flex flex-col">
-                                        <span class="text-[10px] uppercase font-bold text-blue-400">Admins</span>
-                                        <span class="text-sm font-bold text-blue-800" id="adminCount"
-                                            th:text="${stats?.adminCount ?: 0}">0</span>
+                                        <span class="text-[9px] uppercase font-black text-slate-400 tracking-wider">Admins</span>
+                                        <span class="text-sm font-black text-slate-700" id="adminCount" th:text="${stats?.adminCount ?: 0}">0</span>
                                     </div>
                                 </div>
                             </div>

@@ -94,6 +94,15 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    public List<group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto> getDepartmentDtosByCycleId(Integer cycleId) {
+        List<Department> departments = findByCycleId(cycleId);
+        // Mapping inside @Transactional ensures lazy fields are loaded
+        return departments.stream()
+                .map(departmentMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public void deleteById(Integer id) {
         departmentRepository.deleteById(id);
     }

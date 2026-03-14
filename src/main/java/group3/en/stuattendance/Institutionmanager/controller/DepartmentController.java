@@ -36,9 +36,7 @@ public class DepartmentController {
     @GetMapping("/by-cycle/{cycleId}")
     @ResponseBody
     public java.util.List<group3.en.stuattendance.Institutionmanager.DTO.DepartmentDto> getDepartmentsByCycle(@PathVariable Integer cycleId) {
-        return departmentService.findByCycleId(cycleId).stream()
-                .map(departmentMapper::toDto)
-                .collect(java.util.stream.Collectors.toList());
+        return departmentService.getDepartmentDtosByCycleId(cycleId);
     }
 
     /**

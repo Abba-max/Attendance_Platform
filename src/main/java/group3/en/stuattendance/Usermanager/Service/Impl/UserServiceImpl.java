@@ -208,6 +208,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserDto getUserDtoById(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Mapping inside @Transactional method ensures lazy collections are loaded
+        return userMapper.toDto(user);
+    }
+
+    @Override
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
     }

@@ -24,17 +24,12 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
-        return userService.getUserById(id)
-                .map(userMapper::toDto)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(userService.getUserDtoById(id));
     }
 
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers().stream()
-                .map(userMapper::toDto)
-                .collect(java.util.stream.Collectors.toList()));
+        return ResponseEntity.ok(userService.getAllUserDtos());
     }
 
     @PutMapping("/{id}")
