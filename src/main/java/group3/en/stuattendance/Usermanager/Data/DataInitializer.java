@@ -35,7 +35,6 @@ public class DataInitializer implements CommandLineRunner {
         seedInstitutions();
         seedRoles();
         seedPermissions();
-        seedAdminUser();
     }
 
     private void seedInstitutions() {
@@ -73,30 +72,6 @@ public class DataInitializer implements CommandLineRunner {
                         .description("System permission to " + permName.toLowerCase().replace("_", " "))
                         .build());
             }
-        }
-    }
-    private void seedAdminUser(){
-        if (userRepository.findByUsername("admin").isEmpty()){
-
-            Role adminrole = roleRepository.findByName("ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Role ADMIN introuvable"));
-            Institution institution = institutionRepository.findById(1).orElseThrow(() -> new RuntimeException("Insttitution introuvable"));
-
-            User admin = User.builder()
-                    .username("admin")
-                    .email("admin@attendee.com")
-                    .password(passwordEncoder.encode("admin123"))
-                    .isActive(true)
-                    .roles(new HashSet<>(java.util.Collections.singleton(adminrole)))
-                    .institution(institution)
-                    .build();
-
-                    userRepository.save(admin);
-                    System.out.println(" User  created.");
-                    System.out.println(" Username : admin");
-                    System.out.println(" Password : admin123");
-        }else {
-            System.out.println(" User admin present in BDD");
         }
     }
 }
