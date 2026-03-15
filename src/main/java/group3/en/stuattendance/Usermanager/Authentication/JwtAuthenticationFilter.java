@@ -65,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
 
                 } catch (Exception e) {
-                    // 🚨 IMPORTANT: Si l'utilisateur est introuvable (ex: vieux cookie ou BDD vide),
+                    // IMPORTANT: Si l'utilisateur est introuvable (ex: vieux cookie ou BDD vide),
                     // on ne crashe pas l'appli. On vide simplement le contexte.
                     SecurityContextHolder.clearContext();
                     // On laisse filterChain.doFilter() s'exécuter à la fin.

@@ -36,10 +36,10 @@ public class AdminDataInitialiser implements CommandLineRunner {
     }
 
     @Override
-    @Transactional // 🔴 CRUCIAL : Garde la session Hibernate ouverte pour lier le rôle
+    @Transactional //
     public void run(String... args) {
 
-        System.out.println("⏳ Vérification de l'administrateur par défaut...");
+        System.out.println("Vérification de l'administrateur par défaut...");
 
         // 1. On vérifie si l'admin existe déjà via son email
         if (userRepository.findByEmail(adminEmail).isEmpty()) {
@@ -72,13 +72,13 @@ public class AdminDataInitialiser implements CommandLineRunner {
             // 5. Sauvegarder l'utilisateur (la table de liaison user_roles sera mise à jour auto)
             userRepository.save(admin);
 
-            System.out.println("✅ SUCCÈS : Compte Admin créé avec succès !");
-            System.out.println("👤 Nom d'utilisateur : super_user");
-            System.out.println("📧 Email : " + adminEmail);
-            System.out.println("🛡️ Rôle attribué : ADMIN");
+            System.out.println("SUCCÈS : Compte Admin créé avec succès !");
+            System.out.println("Nom d'utilisateur : super_user");
+            System.out.println("Email : " + adminEmail);
+            System.out.println("Rôle attribué : ADMIN");
 
         } else {
-            System.out.println("ℹ️ INFO : Le compte Admin existe déjà dans la base de données. Initialisation ignorée.");
+            System.out.println("INFO : Le compte Admin existe déjà dans la base de données. Initialisation ignorée.");
         }
     }
 }
