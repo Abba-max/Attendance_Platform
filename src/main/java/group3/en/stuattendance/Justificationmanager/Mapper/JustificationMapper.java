@@ -14,7 +14,7 @@ public class JustificationMapper {
         return JustificationDto.builder()
                 .justificationId(justification.getJustificationId())
                 .studentId(justification.getUser() != null ? justification.getUser().getUserId() : null)
-                .attendanceId(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getAttendanceId() : null)
+                .attendanceDate(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getTimestamp() : null)
                 .documentPath(justification.getDocumentPath())
                 .reason(justification.getReason())
                 .status(justification.getStatus())
