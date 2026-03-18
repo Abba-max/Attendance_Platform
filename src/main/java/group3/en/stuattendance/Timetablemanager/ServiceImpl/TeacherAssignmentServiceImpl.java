@@ -29,7 +29,7 @@ public class TeacherAssignmentServiceImpl implements TeacherAssignmentService {
 
     @Override
     public AssignTeacherDto assignTeacherToCourse(Integer teacherId, Integer courseId) {
-        Teacher teacher = userRepository.findById(teacherId)
+        User teacher = userRepository.findById(teacherId)
                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + teacherId));
 
         Course course = courseRepository.findById(courseId)
@@ -79,5 +79,13 @@ public class TeacherAssignmentServiceImpl implements TeacherAssignmentService {
     @Override
     public boolean isTeacherAssignedToCourse(Integer teacherId, Integer courseId) {
         return assignmentRepository.existsByTeacherUserIdAndCourseCourseId(teacherId, courseId);
+    }
+
+    @Override
+    public List<AssignTeacherDto> searchTeachersByCourseAndName(Integer courseId, String name) {
+        return assignmentRepository.searchTeachersByCourseAndName(courseId, name)
+                .stream()
+                .map(assignTeacherMapper::toDto)
+                .collect(Collectors.toList());
     }
 }

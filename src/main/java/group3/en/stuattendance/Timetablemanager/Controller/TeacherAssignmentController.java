@@ -37,6 +37,13 @@ public class TeacherAssignmentController {
         return ResponseEntity.ok(teacherAssignmentService.getTeachersByCourse(courseId));
     }
 
+    @GetMapping("/course/{courseId}/teachers/search")
+    public ResponseEntity<List<AssignTeacherDto>> searchTeachersByCourseAndName(
+            @PathVariable Integer courseId,
+            @RequestParam String name) {
+        return ResponseEntity.ok(teacherAssignmentService.searchTeachersByCourseAndName(courseId, name));
+    }
+
     @GetMapping("/teacher/{teacherId}/courses")
     public ResponseEntity<List<AssignTeacherDto>> getCoursesByTeacher(@PathVariable Integer teacherId) {
         return ResponseEntity.ok(teacherAssignmentService.getCoursesByTeacher(teacherId));

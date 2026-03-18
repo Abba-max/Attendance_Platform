@@ -14,4 +14,6 @@ public interface TeacherAssignmentService {
     List<AssignTeacherDto> getCoursesByTeacher(Integer teacherId);
 
     boolean isTeacherAssignedToCourse(Integer teacherId, Integer courseId);
+
+    List<AssignTeacherDto> searchTeachersByCourseAndName(Integer courseId, String name);
 }
