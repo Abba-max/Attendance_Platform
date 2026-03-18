@@ -20,6 +20,7 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
     private final AcademicYearRepository academicYearRepository;
     private final CycleRepository cycleRepository;
     private final DepartmentRepository departmentRepository;
+    private final SpecialityRepository specialityRepository;
     private final ClassroomRepository classroomRepository;
     private final AcademicYearScheduleMapper scheduleMapper;
 
@@ -54,17 +55,28 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
 
         Cycle cycle = null;
         Department department = null;
-        Classroom classroom = null;
+        Speciality speciality = null;
+        Classroom scheduleClassroom = null;
         int startYear = dto.getStartDate().getYear();
 
         if (dto.getClassroomId() != null) {
             // Classroom-scoped schedule
-            classroom = classroomRepository.findById(dto.getClassroomId())
+            scheduleClassroom = classroomRepository.findById(dto.getClassroomId())
                     .orElseThrow(() -> new RuntimeException("Classroom not found"));
-            List<AcademicYearSchedule> conflicts = scheduleRepository.findSchedulesByClassroomAndYear(classroom.getClassId(), startYear);
+            List<AcademicYearSchedule> conflicts = scheduleRepository.findSchedulesByClassroomAndYear(scheduleClassroom.getClassId(), startYear);
             if (!conflicts.isEmpty()) {
                 throw new IllegalStateException(
-                    "Classroom '" + classroom.getName() + "' already has a schedule starting in " + startYear + ". An entity cannot start in two different academic years within the same calendar year."
+                    "Classroom '" + scheduleClassroom.getName() + "' already has a schedule starting in " + startYear + "."
+                );
+            }
+        } else if (dto.getSpecialityId() != null) {
+            // Speciality-scoped schedule
+            speciality = specialityRepository.findById(dto.getSpecialityId())
+                    .orElseThrow(() -> new RuntimeException("Speciality not found"));
+            List<AcademicYearSchedule> conflicts = scheduleRepository.findSchedulesBySpecialityAndYear(speciality.getSpecialityId(), startYear);
+            if (!conflicts.isEmpty()) {
+                throw new IllegalStateException(
+                    "Speciality '" + speciality.getName() + "' already has a schedule starting in " + startYear + ". An entity cannot start in two different academic years within the same calendar year."
                 );
             }
         } else if (dto.getDepartmentId() != null) {
@@ -101,7 +113,8 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
                 .academicYear(academicYear)
                 .cycle(cycle)
                 .department(department)
-                .classroom(classroom)
+                .speciality(speciality)
+                .classroom(scheduleClassroom)
                 .startDate(dto.getStartDate())
                 .endDate(dto.getEndDate())
                 .status(AcademicYearStatus.ACTIVE)
@@ -166,6 +179,23 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
     }
 
     @Override
+    public AcademicYearScheduleDto resolveActiveScheduleForSpeciality(Integer specialityId) {
+        Speciality speciality = specialityRepository.findById(specialityId)
+                .orElseThrow(() -> new RuntimeException("Speciality not found"));
+
+        // 1) Specific Speciality schedule
+        return scheduleRepository.findActiveScheduleBySpeciality(specialityId)
+                .map(scheduleMapper::toDto)
+                .orElseGet(() -> {
+                    // 2) Fallback to Department hierarchy
+                    if (speciality.getDepartment() != null) {
+                        return findActiveInHierarchy(speciality.getDepartment());
+                    }
+                    return resolveDefault();
+                });
+    }
+
+    @Override
     public AcademicYearScheduleDto resolveActiveScheduleForClassroom(Integer classroomId) {
         Classroom classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new RuntimeException("Classroom not found"));
@@ -174,11 +204,8 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
         return scheduleRepository.findActiveScheduleByClassroom(classroomId)
                 .map(scheduleMapper::toDto)
                 .orElseGet(() -> {
-                    // 2) Fallback to Department hierarchy
-                    if (classroom.getSpeciality() != null && classroom.getSpeciality().getDepartment() != null) {
-                        return findActiveInHierarchy(classroom.getSpeciality().getDepartment());
-                    }
-                    return resolveDefault();
+                    // 2) Fallback to Speciality hierarchy
+                    return resolveActiveScheduleForSpeciality(classroom.getSpeciality().getSpecialityId());
                 });
     }
 
@@ -216,6 +243,12 @@ public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleServ
     private void deactivateScopeConflict(AcademicYearSchedule incoming) {
         if (incoming.getClassroom() != null) {
             scheduleRepository.findActiveScheduleByClassroom(incoming.getClassroom().getClassId())
+                    .ifPresent(existing -> {
+                        existing.setStatus(AcademicYearStatus.CLOSED);
+                        scheduleRepository.save(existing);
+                    });
+        } else if (incoming.getSpeciality() != null) {
+            scheduleRepository.findActiveScheduleBySpeciality(incoming.getSpeciality().getSpecialityId())
                     .ifPresent(existing -> {
                         existing.setStatus(AcademicYearStatus.CLOSED);
                         scheduleRepository.save(existing);

@@ -23,6 +23,8 @@ public class AcademicYearScheduleDto {
     private String departmentName;
     private Integer specialityId;
     private String specialityName;
+    private Integer classroomId;
+    private String classroomName;
 
     private LocalDate startDate;
     private LocalDate endDate;

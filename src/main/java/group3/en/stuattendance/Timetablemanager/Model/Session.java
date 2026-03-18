@@ -5,11 +5,16 @@ import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -17,10 +22,12 @@ import java.util.Set;
         @Index(name = "idx_session_date", columnList = "date"),
         @Index(name = "idx_qr_code", columnList = "qr_code")
 })
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EntityListeners(AuditingEntityListener.class)
 public class Session {
 
     @Id
@@ -64,7 +71,16 @@ public class Session {
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
+
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     public boolean isActive() {
         LocalTime now = LocalTime.now();
@@ -72,5 +88,18 @@ public class Session {
         return this.date != null && this.date.equals(today) &&
                 now.isAfter(startTime.minusMinutes(15)) &&
                 now.isBefore(endTime.plusMinutes(15));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Session session = (Session) o;
+        return Objects.equals(sessionId, session.sessionId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(sessionId);
     }
 }

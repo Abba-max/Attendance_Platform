@@ -23,6 +23,10 @@ public class SessionDto {
     private String locationGeographicalCoordinates;
     private String qrCode;
     private Integer courseId;
+    private String courseName;
     private Integer teacherId;
+    private String teacherName;
     private Integer classroomId;
+    private String classroomName;
+    private Boolean isActive;
 }

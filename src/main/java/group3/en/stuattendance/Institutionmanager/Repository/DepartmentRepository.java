@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DepartmentRepository extends JpaRepository<Department, Integer> {
     java.util.List<Department> findByCycle_CycleId(Integer cycleId);
+    java.util.List<Department> findByPedagogicAssistants_UserId(Integer userId);
 }

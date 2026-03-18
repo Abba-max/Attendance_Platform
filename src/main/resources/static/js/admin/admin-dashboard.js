@@ -16,6 +16,47 @@ let allPermissions = [];
 // Hierarchy Filter State
 let currentCycleFilter = 'all';
 let currentDeptFilter = 'all';
+let currentRoleFilter = 'ALL';
+
+/**
+ * Toggle custom dropdown
+ */
+function toggleUserDropdown(id, event) {
+    if (event) event.stopPropagation();
+
+    const dropdown = document.getElementById(id);
+    if (!dropdown) return;
+
+    const isHidden = dropdown.classList.contains('hidden');
+
+    // Close all other user dropdowns
+    document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+
+    if (isHidden) {
+        dropdown.classList.remove('hidden');
+    }
+}
+
+// Global click listener to close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    // Check if click is inside any dropdown or its trigger
+    if (!e.target.closest('[id^="dropdown-"]') && !e.target.closest('button[onclick*="toggleUserDropdown"]')) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(el => el.classList.add('hidden'));
+    }
+});
+
+/**
+ * Escape HTML
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('Dashboard initializing... v20260216-2'); // Version check
@@ -139,7 +180,17 @@ function renderUserTable(users) {
         return;
     }
 
-    tableBody.innerHTML = users.map(user => `
+    // Apply role filter on the already filtered/searched list
+    const filteredByRole = currentRoleFilter === 'ALL'
+        ? users
+        : users.filter(user => (user.roleNames || []).includes(currentRoleFilter));
+
+    if (filteredByRole.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500">No users match this role filter</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = filteredByRole.map(user => `
         <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 text-sm font-medium text-gray-400 text-center">#${user.userId}</td>
             <td class="px-6 py-4">
@@ -155,9 +206,9 @@ function renderUserTable(users) {
             </td>
             <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    ${user.roles.map(role => `
+                    ${(user.roleNames || []).map(roleName => `
                         <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-tight">
-                            ${escapeHtml(role.name)}
+                            ${escapeHtml(roleName)}
                         </span>
                     `).join('')}
                 </div>
@@ -184,49 +235,82 @@ function renderUserTable(users) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                     </button>
-                    <div class="relative group">
-                        <button class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
+                    <!-- Roles Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleUserDropdown('dropdown-roles-${user.userId}', event)" 
+                                class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                             </svg>
                         </button>
-                        <div class="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
+                        <div id="dropdown-roles-${user.userId}" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden" onclick="event.stopPropagation()">
                             <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Assign Role</div>
-                            ${allRoles.map(role => {
-        const hasRole = user.roles.some(r => r.roleId === role.roleId);
+                            <div class="max-h-60 overflow-y-auto">
+                                ${allRoles.map(role => {
+        const hasRole = (user.roleIds || []).includes(role.roleId);
         return `
-                                    <button onclick="handleUpdateUserRole(${user.userId}, ${role.roleId}, ${!hasRole})" 
-                                        class="w-full text-left px-4 py-2 text-sm ${hasRole ? 'text-[#00B0FF] bg-blue-50' : 'text-gray-600 hover:bg-gray-50'} transition-colors flex items-center justify-between">
-                                        ${escapeHtml(role.name)}
-                                        ${hasRole ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
-                                    </button>
-                                `;
+                                        <button onclick="handleUpdateUserRole(${user.userId}, ${role.roleId}, ${!hasRole})" 
+                                            class="w-full text-left px-4 py-2 text-sm ${hasRole ? 'text-[#00B0FF] bg-blue-50' : 'text-gray-600 hover:bg-gray-50'} transition-colors flex items-center justify-between">
+                                            ${escapeHtml(role.name)}
+                                            ${hasRole ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
+                                        </button>
+                                    `;
     }).join('')}
+                            </div>
                         </div>
                     </div>
-                    <!-- Permissions Dropdown -->
-                    <div class="relative group">
-                        <button class="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title="View Permissions">
+                    <!-- Manual Overrides Dropdown -->
+                    <div class="relative">
+                        <button onclick="toggleUserDropdown('dropdown-perms-${user.userId}', event)" 
+                                class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Permission Overrides">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
                             </svg>
                         </button>
-                        <div class="hidden group-hover:block absolute right-0 mt-2 w-64 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden">
-                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50 italic">Effective Permissions</div>
-                            <div class="max-h-60 overflow-y-auto">
-                                ${(() => {
-            const userPermissions = new Set();
-            user.roles.forEach(role => {
-                (role.permissions || []).forEach(p => userPermissions.add(p.name));
-            });
-            if (userPermissions.size === 0) return '<div class="p-4 text-xs text-gray-400 text-center italic">No permissions granted</div>';
-            return Array.from(userPermissions).sort().map(pName => `
-                                        <div class="px-4 py-2 text-xs text-emerald-600 flex items-center gap-2 border-b border-gray-50 last:border-0 hover:bg-emerald-50">
-                                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>
-                                            ${escapeHtml(pName)}
+                        <div id="dropdown-perms-${user.userId}" class="hidden absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden" onclick="event.stopPropagation()">
+                            <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Manage Permissions</div>
+                            <div class="max-h-60 overflow-y-auto p-2 space-y-1">
+                                ${allPermissions.map(perm => {
+        // Use pre-calculated effective permissions from DTO
+        const isExplicitlyGranted = (user.additionalPermissionIds || []).includes(perm.permissionId);
+        const isExplicitlyDenied = (user.deniedPermissionIds || []).includes(perm.permissionId);
+        const hasPermission = (user.effectivePermissionIds || []).includes(perm.permissionId);
+
+        let state = 'default';
+        if (isExplicitlyGranted) state = 'granted';
+        else if (isExplicitlyDenied) state = 'denied';
+
+        // Permission is inherited if the user has it but hasn't explicitly granted it
+        // (This covers the case where a role provides it)
+        const isInherited = hasPermission && !isExplicitlyGranted;
+
+        return `
+                                        <div class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 text-xs transition-colors">
+                                            <span class="font-medium ${hasPermission ? 'text-green-600' : (state === 'denied' ? 'text-red-600' : 'text-gray-700')}">
+                                                ${escapeHtml(perm.name)}
+                                                ${isInherited ? '<span class="ml-1 text-[10px] text-gray-400 italic">(inherited)</span>' : ''}
+                                            </span>
+                                            <button onclick="handlePermissionCycle(${user.userId}, ${perm.permissionId}, '${state}')" 
+                                                class="flex items-center justify-center p-1.5 rounded-lg border-2 transition-all ${state === 'granted' ? 'bg-green-500 border-green-500 text-white shadow-sm' :
+                state === 'denied' ? 'bg-red-500 border-red-500 text-white shadow-sm' :
+                    'bg-white border-gray-200 text-gray-300 hover:border-blue-400 hover:text-blue-400'
+            }" 
+                                                title="${state === 'granted' ? 'Explicitly Granted' : state === 'denied' ? 'Explicitly Denied' : 'Default (Inherited)'}">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    ${state === 'granted' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>' :
+                state === 'denied' ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path>' :
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" opacity="0.3"></path>'}
+                                                </svg>
+                                            </button>
                                         </div>
-                                    `).join('');
-        })()}
+                                    `;
+    }).join('')}
+                                <div class="pt-2 border-t border-gray-50">
+                                    <button onclick="handleClearOverrides(${user.userId})" 
+                                        class="w-full py-2 text-[10px] font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 uppercase tracking-widest transition-colors">
+                                        Clear Manual Overrides
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -283,7 +367,7 @@ async function handleUpdateUserRole(userId, roleId, add) {
         const user = allUsers.find(u => u.userId === userId);
         if (!user) return;
 
-        let roleIds = user.roles.map(r => r.roleId);
+        let roleIds = [...(user.roleIds || [])];
         if (add) {
             roleIds.push(roleId);
         } else {
@@ -305,6 +389,141 @@ async function handleUpdateUserRole(userId, roleId, add) {
     } catch (error) {
         console.error('Error updating user roles:', error);
         showNotification('Error updating roles', 'error');
+    }
+}
+
+/**
+ * Handle Permission Cycle (Default -> Granted -> Revoked -> Default)
+ */
+async function handlePermissionCycle(userId, permissionId, currentState) {
+    let action;
+    let endpoint;
+
+    if (currentState === 'default') {
+        action = 'grant';
+        endpoint = `/api/admin/users/${userId}/permissions/grant/${permissionId}`;
+    } else if (currentState === 'granted') {
+        action = 'revoke';
+        endpoint = `/api/admin/users/${userId}/permissions/revoke/${permissionId}`;
+    } else {
+        action = 'clear';
+        endpoint = `/api/admin/users/${userId}/permissions/clear/${permissionId}`;
+    }
+
+    try {
+        const response = await fetch(endpoint, { method: 'POST' });
+
+        if (response.ok) {
+            showNotification(`Permission ${action}${action.endsWith('e') ? 'd' : 'ed'} successfully`, 'success');
+            loadUsers(); // Refresh cache and table immediately
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || `Failed to ${action} permission`);
+        }
+    } catch (error) {
+        console.error(`Error cycling permission:`, error);
+        showNotification(error.message || `Error updating permission`, 'error');
+    }
+}
+
+/**
+ * Handle Permission Override (Grant/Revoke) - Deprecated by cycle but kept for safety
+ */
+async function handleOverridePermission(userId, permissionId, action) {
+    // ... code omitted ...
+}
+
+/**
+ * Handle Clear Overrides
+ */
+async function handleClearOverrides(userId) {
+    if (!confirm('Are you sure you want to clear all permission overrides for this user?')) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/permissions/clear`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('Permission overrides cleared', 'success');
+            loadUsers();
+        } else {
+            throw new Error('Failed to clear overrides');
+        }
+    } catch (error) {
+        console.error('Error clearing overrides:', error);
+        showNotification('Error clearing overrides', 'error');
+    }
+}
+
+/**
+ * Handle Toggle User Status (Deactivate/Activate)
+ */
+async function handleToggleStatus(userId, currentIsActive) {
+    const action = currentIsActive ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    try {
+        const response = await fetch(`/api/users/${userId}/${action}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showNotification(`User ${action}d successfully`, 'success');
+            loadUsers();
+        } else {
+            throw new Error(`Failed to ${action} user`);
+        }
+    } catch (error) {
+        console.error(`Error ${action}ing user:`, error);
+        showNotification(`Error ${action}ing user`, 'error');
+    }
+}
+
+/**
+ * Handle Reset Password
+ */
+async function handleResetPassword(userId) {
+    const newPassword = prompt("Enter new password for this user:");
+    if (!newPassword) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+            method: 'POST',
+            body: newPassword
+        });
+
+        if (response.ok) {
+            showNotification('Password reset successfully', 'success');
+        } else {
+            throw new Error('Failed to reset password');
+        }
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        showNotification('Error resetting password', 'error');
+    }
+}
+
+/**
+ * Handle Delete User
+ */
+async function handleDeleteUser(userId) {
+    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showNotification('User deleted successfully', 'success');
+            loadUsers();
+        } else {
+            throw new Error('Failed to delete user');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showNotification('Error deleting user', 'error');
     }
 }
 
@@ -413,76 +632,6 @@ async function handleToggleRolePermission(roleName, permissionName, add) {
     }
 }
 
-/**
- * Handle Reset Password
- */
-async function handleResetPassword(userId) {
-    const newPassword = prompt("Enter new password for this user:");
-    if (!newPassword) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
-            method: 'POST',
-            body: newPassword
-        });
-
-        if (response.ok) {
-            showNotification('Password reset successfully', 'success');
-        } else {
-            throw new Error('Failed to reset password');
-        }
-    } catch (error) {
-        console.error('Error resetting password:', error);
-        showNotification('Error resetting password', 'error');
-    }
-}
-
-/**
- * Handle Toggle User Status (Deactivate/Activate)
- */
-async function handleToggleStatus(userId, currentIsActive) {
-    const action = currentIsActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
-
-    try {
-        const response = await fetch(`/api/users/${userId}/${action}`, {
-            method: 'POST'
-        });
-
-        if (response.ok) {
-            showNotification(`User ${action}d successfully`, 'success');
-            loadUsers(); // Reload to update UI
-        } else {
-            throw new Error(`Failed to ${action} user`);
-        }
-    } catch (error) {
-        console.error(`Error ${action}ing user:`, error);
-        showNotification(`Error ${action}ing user`, 'error');
-    }
-}
-
-/**
- * Handle Delete User
- */
-async function handleDeleteUser(userId) {
-    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
-
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            showNotification('User deleted successfully', 'success');
-            loadUsers();
-        } else {
-            throw new Error('Failed to delete user');
-        }
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        showNotification('Error deleting user', 'error');
-    }
-}
 
 /**
  * Setup User Search
@@ -500,6 +649,28 @@ function setupUserSearch() {
         });
     }
 }
+
+/**
+ * Filter users by role
+ */
+function setRoleFilter(role) {
+    currentRoleFilter = role;
+
+    // Update UI
+    document.querySelectorAll('.role-filter-btn').forEach(btn => {
+        if ((role === 'ALL' && btn.textContent.trim() === 'All') ||
+            (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(`'${role}'`))) {
+            btn.classList.add('active', 'bg-[#00B0FF]', 'text-white');
+            btn.classList.remove('bg-white', 'text-slate-600');
+        } else {
+            btn.classList.remove('active', 'bg-[#00B0FF]', 'text-white');
+            btn.classList.add('bg-white', 'text-slate-600');
+        }
+    });
+
+    renderUserTable(allUsers);
+}
+
 
 /**
  * Manual Refresh Users
@@ -995,7 +1166,8 @@ async function handleCreateStaff(e) {
     const roleNames = Array.from(form.querySelector('select[name="roleNames"]').selectedOptions).map(opt => opt.value);
 
     const payload = {
-        username: formData.get('username'),
+        firstName: formData.get('firstName'),
+        lastName: formData.get('lastName'),
         email: formData.get('email'),
         roleNames: roleNames,
         institutionId: 1, // Default single institution
@@ -2745,6 +2917,7 @@ function handleSchedScopeChange() {
     document.getElementById('schedCycleDirectStep').classList.toggle('hidden', scope !== 'cycle_direct');
     document.getElementById('schedCycleStep').classList.toggle('hidden', scope !== 'cycle');
     document.getElementById('schedDeptStep').classList.toggle('hidden', scope !== 'department');
+    document.getElementById('schedSpecStep').classList.toggle('hidden', scope !== 'speciality');
 
     // Reset selections when scope changes
     if (scope !== 'cycle') {
@@ -2754,8 +2927,13 @@ function handleSchedScopeChange() {
     }
     if (scope !== 'department') {
         document.getElementById('schedDeptSelector').value = '';
-        document.getElementById('schedClassListWrapper').classList.add('hidden');
-        document.getElementById('schedClassCheckboxes').innerHTML = '';
+        if (document.getElementById('schedSpecListWrapper')) document.getElementById('schedSpecListWrapper').classList.add('hidden');
+        if (document.getElementById('schedSpecCheckboxes')) document.getElementById('schedSpecCheckboxes').innerHTML = '';
+    }
+    if (scope !== 'speciality') {
+        if (document.getElementById('schedSpecSelector')) document.getElementById('schedSpecSelector').value = '';
+        if (document.getElementById('schedClassBySpecListWrapper')) document.getElementById('schedClassBySpecListWrapper').classList.add('hidden');
+        if (document.getElementById('schedClassBySpecCheckboxes')) document.getElementById('schedClassBySpecCheckboxes').innerHTML = '';
     }
 }
 
@@ -2796,27 +2974,68 @@ async function handleCycleSelectionChange() {
  */
 async function handleDeptSelectionChange() {
     const deptId = document.getElementById('schedDeptSelector').value;
-    const wrapper = document.getElementById('schedClassListWrapper');
-    const container = document.getElementById('schedClassCheckboxes');
+    const scope = document.getElementById('schedScopeType').value;
 
-    if (!deptId) {
-        wrapper.classList.add('hidden');
+    // If scope is 'department', we show Specialities to select
+    if (scope === 'department') {
+        const wrapper = document.getElementById('schedSpecListWrapper');
+        const container = document.getElementById('schedSpecCheckboxes');
+
+        if (!deptId) {
+            if (wrapper) wrapper.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const resp = await fetch(`/admin/specialities/by-department/${deptId}`);
+            if (!resp.ok) throw new Error("Failed to fetch specialities");
+            const specs = await resp.json();
+
+            if (container) {
+                container.innerHTML = specs.map(s => `
+                    <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                        <input type="checkbox" name="schedSpecIds" value="${s.specialityId}" id="ss_${s.specialityId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                        <label for="ss_${s.specialityId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${s.name}</label>
+                    </div>
+                `).join('');
+            }
+
+            if (wrapper) wrapper.classList.remove('hidden');
+        } catch (err) {
+            console.error(err);
+            showNotification("Error loading specialities", "error");
+        }
+    }
+}
+
+/**
+ * Fetch and show classrooms for the selected speciality.
+ */
+async function handleSpecSelectionChange() {
+    const specId = document.getElementById('schedSpecSelector').value;
+    const wrapper = document.getElementById('schedClassBySpecListWrapper');
+    const container = document.getElementById('schedClassBySpecCheckboxes');
+
+    if (!specId) {
+        if (wrapper) wrapper.classList.add('hidden');
         return;
     }
 
     try {
-        const resp = await fetch(`/admin/classrooms/by-department/${deptId}`);
+        const resp = await fetch(`/admin/classrooms/by-speciality/${specId}`);
         if (!resp.ok) throw new Error("Failed to fetch classrooms");
         const classes = await resp.json();
 
-        container.innerHTML = classes.map(c => `
-            <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
-                <input type="checkbox" name="schedClassIds" value="${c.classId}" id="sc_${c.classId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
-                <label for="sc_${c.classId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${c.name}</label>
-            </div>
-        `).join('');
+        if (container) {
+            container.innerHTML = classes.map(c => `
+                <div class="flex items-center gap-2 px-3 py-2 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                    <input type="checkbox" name="schedClassIds" value="${c.classId}" id="scs_${c.classId}" class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                    <label for="scs_${c.classId}" class="text-xs font-bold text-slate-700 cursor-pointer truncate">${c.name}</label>
+                </div>
+            `).join('');
+        }
 
-        wrapper.classList.remove('hidden');
+        if (wrapper) wrapper.classList.remove('hidden');
     } catch (err) {
         console.error(err);
         showNotification("Error loading classrooms", "error");
@@ -2869,6 +3088,14 @@ async function saveSchedule() {
         }
         checkedDepts.forEach(id => payloads.push({ ...basePayload, departmentId: id }));
     } else if (scope === 'department') {
+        const checkedSpecs = Array.from(document.querySelectorAll('input[name="schedSpecIds"]:checked')).map(el => parseInt(el.value));
+        if (checkedSpecs.length === 0) {
+            errTxt.textContent = 'Please select at least one speciality.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        checkedSpecs.forEach(id => payloads.push({ ...basePayload, specialityId: id }));
+    } else if (scope === 'speciality') {
         const checkedClasses = Array.from(document.querySelectorAll('input[name="schedClassIds"]:checked')).map(el => parseInt(el.value));
         if (checkedClasses.length === 0) {
             errTxt.textContent = 'Please select at least one classroom.';
@@ -2922,8 +3149,20 @@ document.addEventListener('DOMContentLoaded', function () {
 window.openAddScheduleModal = openAddScheduleModal;
 window.closeAddScheduleModal = closeAddScheduleModal;
 window.handleSchedScopeChange = handleSchedScopeChange;
+window.handleCycleSelectionChange = handleCycleSelectionChange;
+window.handleDeptSelectionChange = handleDeptSelectionChange;
+window.handleSpecSelectionChange = handleSpecSelectionChange;
 window.saveSchedule = saveSchedule;
 window.scheduleAction = scheduleAction;
 window.loadScheduleGrid = loadScheduleGrid;
+window.handleOverridePermission = handleOverridePermission;
+window.handleClearOverrides = handleClearOverrides;
+window.handleToggleStatus = handleToggleStatus;
+window.handleResetPassword = handleResetPassword;
+window.handleDeleteUser = handleDeleteUser;
+window.toggleUserDropdown = toggleUserDropdown;
+window.setRoleFilter = setRoleFilter;
+window.handleUpdateUserRole = handleUpdateUserRole;
+window.handlePermissionCycle = handlePermissionCycle;
 
 console.log('Scheduling Grid module loaded');
