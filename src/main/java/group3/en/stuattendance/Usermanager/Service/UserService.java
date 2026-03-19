@@ -6,6 +6,8 @@ import group3.en.stuattendance.Usermanager.DTO.StudentCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -25,6 +27,8 @@ public interface UserService {
     Optional<User> getUserByEmail(String email);
     List<User> getAllUsers();
     List<UserDto> getAllUserDtos();
+    Page<UserDto> getAllUsersPaginated(Pageable pageable);
+    Page<UserDto> getAllStaffPaginated(Pageable pageable);
     UserDto updateUser(Integer userId, UserDto dto);
     void deleteUser(Integer userId);
     void deactivateUser(Integer userId);

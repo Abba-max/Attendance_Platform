@@ -23,6 +23,8 @@ import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import group3.en.stuattendance.Usermanager.Util.PasswordUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -225,6 +227,16 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll().stream()
                 .map(userMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<UserDto> getAllUsersPaginated(Pageable pageable) {
+        return userRepository.findAll(pageable).map(userMapper::toDto);
+    }
+
+    @Override
+    public Page<UserDto> getAllStaffPaginated(Pageable pageable) {
+        return userRepository.findAllStaff(pageable).map(userMapper::toDto);
     }
 
     @Override
