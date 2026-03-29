@@ -4,6 +4,7 @@ import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Institutionmanager.Repository.InstitutionRepository;
+import group3.en.stuattendance.Timetablemanager.Model.Course;
 import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
 import group3.en.stuattendance.Usermanager.DTO.StaffCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.StudentCreateDto;
@@ -423,8 +424,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> getTeachersBySpeciality(Integer specialityId) {
-        return courseRepository.findBySpecialitySpecialityId(specialityId).stream()
-                .map(course -> course.getTeacher())
+        List<Course> courses = courseRepository.findBySpecialitySpecialityId(specialityId);
+        return courses.stream()
+                .flatMap(course -> course.getTeachers().stream())
                 .filter(teacher -> teacher != null)
                 .distinct()
                 .map(userMapper::toDto)

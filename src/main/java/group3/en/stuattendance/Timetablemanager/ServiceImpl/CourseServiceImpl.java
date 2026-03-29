@@ -97,7 +97,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseDto> getCoursesBySpeciality(Integer specialityId) {
-        return courseRepository.findBySpeciality_SpecialityId(specialityId)
+        return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
@@ -105,7 +105,7 @@ public class CourseServiceImpl implements CourseService {
  
     @Override
     public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
-        return courseRepository.findBySpeciality_SpecialityId(specialityId)
+        return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
                 .filter(c -> c.getLevel() != null && c.getLevel().equals(level))
                 .map(courseMapper::toDto)

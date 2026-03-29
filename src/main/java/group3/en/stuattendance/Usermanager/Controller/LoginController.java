@@ -19,9 +19,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.Set;
-import java.util.stream.Collectors;
-
 @Controller
 @RequiredArgsConstructor
 public class LoginController {
@@ -52,69 +49,32 @@ public class LoginController {
                                @RequestParam("password") String password,
                                HttpServletResponse response) {
         try {
-            // 1. Authentifier les credentials
+            // 1. Authenticate credentials
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
             );
 
-            // 2. Charger l'utilisateur depuis la BDD
+            // 2. Load user from database
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 3. Extraire les roles
-            Set<String> roles = user.getRoles().stream()
-                    .map(role -> role.getName())
-                    .collect(Collectors.toSet());
-
-            // 4. Extraire les permissions effectives
-            Set<String> permissions = user.getRoles().stream()
-                    .flatMap(role -> role.getPermissions().stream())
-                    .map(permission -> permission.getName())
-                    .collect(Collectors.toSet());
-
-            // Add additional permissions
-            user.getAdditionalPermissions().forEach(p -> permissions.add(p.getName()));
-
-            // Remove denied permissions
-            Set<String> deniedPermissions = user.getDeniedPermissions().stream()
-                    .map(p -> p.getName())
-                    .collect(Collectors.toSet());
-            permissions.removeAll(deniedPermissions);
-
-            // 5. Déterminer le dashboard selon le rôle
-            String dashboard = determineDashboard(roles);
-
-            // 6. Récupérer l'année académique active
-            AcademicYear activeYear = academicYearRepository.findActiveAcademicYear()
-                    .orElse(null);
+            // 3. Get active academic year ID
+            AcademicYear activeYear = academicYearRepository.findActiveAcademicYear().orElse(null);
             Long academicYearId = activeYear != null ? activeYear.getId() : null;
-            String academicYearName = activeYear != null ? activeYear.getAcademicYear() : null;
 
-            // 7. Extraire le niveau de l'utilisateur
-            Integer level = extractLevel(user);
+            // 4. Generate token using the existing JwtUtil method
+            String token = jwtUtil.generateToken(user, academicYearId);
 
-            // 8. Générer le token JWT avec toutes les informations
-            String token = jwtUtil.generateToken(
-                    authentication.getName(),
-                    roles,
-                    permissions,
-                    academicYearId,
-                    academicYearName,
-                    level,
-                    dashboard
-            );
-
-            // 9. Stocker le token dans un cookie HttpOnly
+            // 5. Store token in HttpOnly cookie
             Cookie jwtCookie = new Cookie(cookieName, token);
             jwtCookie.setHttpOnly(true);
-            jwtCookie.setSecure(false); // mettre true en production (HTTPS)
+            jwtCookie.setSecure(false); // set to true in production
             jwtCookie.setPath("/");
             jwtCookie.setMaxAge(jwtExpiration / 1000);
-
             response.addCookie(jwtCookie);
 
-            // 10. Rediriger vers le dashboard approprié
-            return "redirect:/" + dashboard;
+            // 6. Redirect to appropriate dashboard based on role
+            return determineDashboard(user);
 
         } catch (BadCredentialsException e) {
             return "redirect:/login?error";
@@ -125,18 +85,16 @@ public class LoginController {
         }
     }
 
-    private String determineDashboard(Set<String> roles) {
-        if (roles.contains("ADMIN")) return "dashboard/admin";
-        if (roles.contains("TEACHER")) return "dashboard/teacher";
-        if (roles.contains("STUDENT")) return "dashboard/student";
-        if (roles.contains("PEDAGOGIC_ASSISTANT")) return "dashboard/pedagogic";
-        return "dashboard";
-    }
+    private String determineDashboard(User user) {
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN"));
+        boolean isTeacher = user.getRoles().stream().anyMatch(r -> r.getName().equals("TEACHER"));
+        boolean isStudent = user.getRoles().stream().anyMatch(r -> r.getName().equals("STUDENT"));
+        boolean isPedag = user.getRoles().stream().anyMatch(r -> r.getName().equals("PEDAGOG"));
 
-    private Integer extractLevel(User user) {
-        if (user.getClassroom() != null) {
-            return user.getClassroom().getLevel();
-        }
-        return null;
+        if (isAdmin) return "redirect:/admin/dashboard";
+        if (isPedag) return "redirect:/pedagog/dashboard";
+        if (isTeacher) return "redirect:/teacher/dashboard";
+        if (isStudent) return "redirect:/student/dashboard";
+        return "redirect:/dashboard";
     }
 }

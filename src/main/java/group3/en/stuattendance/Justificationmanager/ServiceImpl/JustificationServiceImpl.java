@@ -106,7 +106,7 @@ public class JustificationServiceImpl implements JustificationService {
     public JustificationDto approveJustification(Integer id) {
         Justification justification = justificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Justification not found with id: " + id));
-        justification.setStatus(JustificationStatus.APPROVED);
+        justification.setStatus(JustificationStatus.ACCEPTED);
         justification.setReasonForRejection(null);
         Justification saved = justificationRepository.save(justification);
         return justificationMapper.toDto(saved);
