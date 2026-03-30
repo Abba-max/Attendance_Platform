@@ -55,6 +55,10 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "password_changed")
+    @Builder.Default
+    private Boolean passwordChanged = false;
+
     // RBAC
     @ManyToMany
     @JoinTable(

@@ -1,5 +1,6 @@
 package group3.en.stuattendance.SecurityManager;
 
+import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.Authentication.JwtAuthenticationFilter;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetailsService;
 import group3.en.stuattendance.Usermanager.Authentication.JwtUtil;
@@ -52,6 +53,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/login",
+                                "/change-password",
+                                "/forgot-password/**",
                                 "/css/**",
                                 "/js/**",
                                 "/image/**",
@@ -69,35 +72,38 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
-                            // 🕵️ Les mouchards pour la console
-                            System.out.println("✅ SUCCÈS LOGIN POUR : " + authentication.getName());
-                            System.out.println("🔑 RÔLES DÉTECTÉS : " + authentication.getAuthorities());
-
-                            String token = jwtUtil.generateToken(authentication.getName());
+                            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                            String token = jwtUtil.generateToken(
+                                    userDetails.getUsername(),
+                                    userDetails.getUserId(),
+                                    userDetails.getFirstName(),
+                                    userDetails.getLastName()
+                            );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
-                            jwtCookie.setSecure(false); // Doit être true en production (HTTPS)
+                            jwtCookie.setSecure(false);
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
+                            
+                            // Check if password change is required
+                            if (!userDetails.isPasswordChanged()) {
+                                response.sendRedirect("/change-password");
+                                return;
+                            }
 
-                            // On vérifie avec OU sans le préfixe ROLE_ pour être sûr
+                            // Dynamic redirection based on role
                             boolean isAdmin = authentication.getAuthorities().stream()
-                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
                             boolean isPedagog = authentication.getAuthorities().stream()
-                                    .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG") || a.getAuthority().equals("PEDAGOG"));
-
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG"));
+                                    
                             if (isAdmin) {
-                                System.out.println("🔀 Redirection vers /admin/dashboard");
                                 response.sendRedirect("/admin/dashboard");
-                            }
-                            else if (isPedagog) {
-                                System.out.println("🔀 Redirection vers /pedagog/dashboard");
+                            } else if (isPedagog) {
                                 response.sendRedirect("/pedagog/dashboard");
-                            }
-                            else {
-                                System.out.println("⚠️ Rôle non reconnu, redirection vers /");
-                                response.sendRedirect("/");
+                            } else {
+                                response.sendRedirect("/"); // Or some default page
                             }
                         })
                         .failureUrl("/login?error")

@@ -132,4 +132,40 @@ public class EmailServiceImpl implements EmailService {
             log.error("Unexpected error while sending timetable email", e);
         }
     }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendPasswordResetNotification(String to, String newPassword, String adminEmail, String adminName) {
+        log.info("Sending password reset notification from admin {} to user {}", adminEmail, to);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            Context context = new Context();
+            context.setVariable("newPassword", newPassword);
+            context.setVariable("adminName", adminName);
+            context.setVariable("loginUrl", baseUrl + "/login");
+
+            String html = templateEngine.process("mail/password-reset-notification", context);
+            String text = String.format(
+                "Hello,\n\nYour password has been reset by %s.\n\n" +
+                "New Temporary Password: %s\n\n" +
+                "Please login and change your password immediately.\n\n" +
+                "Login here: %s\n\n" +
+                "Regards,\n%s", adminName, newPassword, baseUrl + "/login", adminName);
+
+            helper.setTo(to);
+            helper.setSubject("Attendee - Your Password Has Been Reset");
+            helper.setText(text, html);
+            helper.setFrom(adminName + " <" + adminEmail + ">");
+            helper.setReplyTo(adminEmail);
+
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
+
+            mailSender.send(message);
+            log.info("Password reset notification sent successfully to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send password reset notification to {}", to, e);
+        }
+    }
 }

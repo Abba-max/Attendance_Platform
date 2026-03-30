@@ -16,9 +16,17 @@ public class CycleServiceImpl implements CycleService {
     @Autowired
     private CycleRepository cycleRepository;
 
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Mapper.CycleMapper cycleMapper;
+
     @Override
     public Cycle save(Cycle cycle) {
         return cycleRepository.save(cycle);
+    }
+
+    @Override
+    public group3.en.stuattendance.Institutionmanager.DTO.CycleDto getCycleDtoById(Integer id) {
+        return cycleMapper.toDto(findById(id));
     }
 
     @Override

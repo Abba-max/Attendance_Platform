@@ -1,9 +1,9 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
+import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,20 +15,16 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerUser(dto));
+        return ResponseEntity.ok(userMapper.toDto(userService.registerUser(dto)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
-        return ResponseEntity.ok(userService.getUserById(id));
-    }
-
-    @GetMapping("/{id}/details")
-    public ResponseEntity<UserDto> getUserDetails(@PathVariable Integer id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+        return ResponseEntity.ok(userService.getUserDtoById(id));
     }
 
     @GetMapping
@@ -38,13 +34,13 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
-        return ResponseEntity.ok(userService.updateUser(id, dto));
+        return ResponseEntity.ok(userMapper.toDto(userService.updateUser(id, dto)));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Integer id) {
         userService.deleteUser(id);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/deactivate")

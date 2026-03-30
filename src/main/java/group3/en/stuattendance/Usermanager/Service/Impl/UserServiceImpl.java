@@ -54,6 +54,7 @@ public class UserServiceImpl implements UserService {
     private final EmailService emailService;
     private final PermissionRepository permissionRepository;
     private final CourseRepository courseRepository;
+    private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
 
     @Override
     @Auditable(action = "USER_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
@@ -209,6 +210,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public UserDto getUserDtoById(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        // Mapping inside @Transactional method ensures lazy collections are loaded
+        return userMapper.toDto(user);
+    }
+
+    @Override
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
     }
@@ -283,6 +292,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void grantPermission(Integer userId, Integer permissionId) {
         userRepository.findById(userId).ifPresent(user -> {
+            // Check if permission is in role scope
+            boolean inScope = user.getRoles().stream()
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
+            if (!inScope) {
+                throw new RuntimeException("Permission is outside of user's role scope");
+            }
+
             permissionRepository.findById(permissionId).ifPresent(perm -> {
                 user.getAdditionalPermissions().add(perm);
                 user.getDeniedPermissions().remove(perm);
@@ -294,6 +312,15 @@ public class UserServiceImpl implements UserService {
     @Override
     public void revokePermission(Integer userId, Integer permissionId) {
         userRepository.findById(userId).ifPresent(user -> {
+            // Check if permission is in role scope
+            boolean inScope = user.getRoles().stream()
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
+            if (!inScope) {
+                throw new RuntimeException("Permission is outside of user's role scope");
+            }
+
             permissionRepository.findById(permissionId).ifPresent(perm -> {
                 user.getDeniedPermissions().add(perm);
                 user.getAdditionalPermissions().remove(perm);
@@ -434,10 +461,38 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void requestPasswordReset(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            group3.en.stuattendance.Usermanager.Model.PasswordResetRequest request = group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.builder()
+                    .user(user)
+                    .status(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.PENDING)
+                    .build();
+            passwordResetRequestRepository.save(request);
+        });
+    }
+
+    @Override
+    @Auditable(action = "PASSWORD_CHANGE", category = "SECURITY", severity = "INFO")
+    public void changePassword(String currentPassword, String newPassword) {
+        String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("Current password does not match");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordChanged(true);
+        userRepository.save(user);
+    }
+
+    @Override
     @Auditable(action = "PASSWORD_RESET", category = "SECURITY", severity = "WARNING")
     public void resetPassword(Integer userId, String newPassword) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setPassword(passwordEncoder.encode(newPassword));
+            user.setPasswordChanged(false); // Force them to change it again
             userRepository.save(user);
         });
     }

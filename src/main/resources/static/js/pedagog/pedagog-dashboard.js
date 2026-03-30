@@ -767,7 +767,7 @@ function renderCourseInCell(cell, item) {
     const isEvent = item.isEvent === true || item.isEvent === 'true';
 
     cell.innerHTML = `
-        <div class="h-full rounded-xl p-1 shadow-sm relative group/block tt-block text-white"
+        <div class="rounded-xl p-1 shadow-sm group/block tt-block text-white"
              data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
              data-is-event="${isEvent}" data-event-name="${item.name}"
              style="background: linear-gradient(135deg, ${bgColor}, ${adjustColor(bgColor, -15)}); border-left-color: ${bgColor};">
@@ -835,7 +835,7 @@ window.removeTTBlock = function (btn) {
     const day = cell.getAttribute('data-day-index');
     const hour = cell.getAttribute('data-hour');
     cell.innerHTML = `
-        <div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>
+        <div class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
     `;
 };
 
@@ -951,7 +951,7 @@ window.fetchTimetableByVersion = function () {
 window.renderTimetableData = function (data) {
     // Reset grid
     document.querySelectorAll('.grid-cell').forEach(cell => {
-        cell.innerHTML = '<div class="absolute inset-0 bg-blue-500/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl pointer-events-none"></div>';
+        cell.innerHTML = '<div class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>';
     });
 
     if (data && data.entries) {
@@ -977,11 +977,7 @@ window.renderTimetableData = function (data) {
                     const duration = Math.max(1, endH - startHour);
                     if (duration > 1) {
                         block.setAttribute('data-duration', duration);
-                        block.style.position = 'absolute';
-                        block.style.top = '0';
-                        block.style.left = '0';
-                        block.style.right = '0';
-                        block.style.height = `calc(${duration * 100}% + ${duration - 1}px)`;
+                        block.style.height = `calc(${duration * 100}% + ${duration - 1}px - 6px)`;
                         block.style.zIndex = '15';
                     }
                 }
@@ -1169,11 +1165,7 @@ document.addEventListener('mousemove', function (e) {
     }
 
     ttCurrentBlock.setAttribute('data-duration', newDuration);
-    ttCurrentBlock.style.position = 'absolute';
-    ttCurrentBlock.style.top = '0';
-    ttCurrentBlock.style.left = '0';
-    ttCurrentBlock.style.right = '0';
-    ttCurrentBlock.style.height = `calc(${newDuration * 100}% + ${newDuration - 1}px)`;
+    ttCurrentBlock.style.height = `calc(${newDuration * 100}% + ${newDuration - 1}px - 6px)`;
 });
 
 document.addEventListener('mouseup', function (e) {
@@ -1326,3 +1318,246 @@ window.handleSendEmailTT = async function (event) {
         btn.disabled = false;
     }
 };
+
+/* --- Detail View Modal Handlers --- */
+
+/**
+ * Open Detail Modal
+ */
+window.openDetailModal = function(title, subtitle = 'Viewing detailed information') {
+    const modal = document.getElementById('detailViewModal');
+    const content = document.getElementById('detailViewModalContent');
+    const titleEl = document.getElementById('detailModalTitle');
+    const subtitleEl = document.getElementById('detailModalSubtitle');
+    const bodyEl = document.getElementById('detailModalBody');
+
+    if (!modal) return;
+
+    titleEl.textContent = title;
+    subtitleEl.textContent = subtitle;
+    bodyEl.innerHTML = `
+        <div class="flex items-center justify-center py-10">
+            <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    `;
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+};
+
+/**
+ * Close Detail Modal
+ */
+window.closeDetailModal = function() {
+    const modal = document.getElementById('detailViewModal');
+    const content = document.getElementById('detailViewModalContent');
+
+    if (!modal) return;
+
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+};
+
+/**
+ * Handle View Student Details
+ */
+window.handleViewStudent = async function(studentId) {
+    openDetailModal('Student Details', `Profile for student #${studentId}`);
+    
+    try {
+        const response = await fetch(`/api/pedagog/students/${studentId}`);
+        if (!response.ok) throw new Error('Failed to fetch student details');
+        const student = await response.json();
+        
+        const bodyEl = document.getElementById('detailModalBody');
+        bodyEl.innerHTML = `
+            <div class="space-y-6 text-slate-700">
+                <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
+                    <div class="w-16 h-16 bg-[#00B0FF] bg-opacity-10 rounded-2xl flex items-center justify-center text-[#00B0FF] text-2xl font-bold">
+                        ${student.firstName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(student.firstName)} ${escapeHtml(student.lastName)}</h4>
+                        <p class="text-slate-500">${escapeHtml(student.email || 'No email')}</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Matricule</p>
+                        <p class="font-bold text-slate-800">${escapeHtml(student.matricule)}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Speciality</p>
+                        <p class="font-bold text-slate-800">${escapeHtml(student.specialityName || 'Common')}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Classroom</p>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs font-bold">${escapeHtml(student.classroomName || 'Unassigned')}</span>
+                            <span class="text-[10px] font-bold text-slate-400">Level ${student.level || 0}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Contact Information</p>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
+                        <div class="flex items-center gap-2 text-sm">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            <span>${escapeHtml(student.email)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error viewing student:', error);
+        document.getElementById('detailModalBody').innerHTML = `
+            <div class="p-8 text-center text-red-500">
+                <p class="font-bold">Error loading student details</p>
+                <p class="text-sm mt-1">${error.message}</p>
+            </div>
+        `;
+    }
+};
+
+/**
+ * Handle View Course Details
+ */
+window.handleViewCourse = async function(courseId) {
+    openDetailModal('Course Details', `Information for course #${courseId}`);
+    
+    try {
+        const response = await fetch(`/api/pedagog/courses/${courseId}`);
+        if (!response.ok) throw new Error('Failed to fetch course details');
+        const course = await response.json();
+        
+        const bodyEl = document.getElementById('detailModalBody');
+        bodyEl.innerHTML = `
+            <div class="space-y-6 text-slate-700">
+                <div class="flex items-center gap-4 p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                    <div class="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-2xl font-black">
+                        ${course.courseName.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(course.courseName)}</h4>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-black uppercase tracking-tight">${escapeHtml(course.code)}</span>
+                            <span class="text-xs font-bold text-purple-600">${course.credits || 0} Credits</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Target Speciality</p>
+                        <p class="font-bold text-slate-800">${escapeHtml(course.specialityName || 'Common')}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Level</p>
+                        <p class="font-bold text-slate-800">Level ${course.level || 0}</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Hours</p>
+                        <p class="font-bold text-slate-800">${course.totalHours || 0} hrs</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Assigned Teachers</p>
+                    <div class="space-y-2 mt-2">
+                        ${(course.teacherNames || []).map(name => `
+                            <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <div class="w-8 h-8 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center text-xs font-bold">
+                                    ${name.charAt(0).toUpperCase()}
+                                </div>
+                                <span class="text-sm font-bold text-slate-700">${escapeHtml(name)}</span>
+                            </div>
+                        `).join('') || '<p class="text-sm text-slate-400 italic py-2">No teachers assigned yet</p>'}
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Course Description</p>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <p class="text-sm leading-relaxed">${escapeHtml(course.description || 'No description provided for this course.')}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error viewing course:', error);
+        document.getElementById('detailModalBody').innerHTML = `
+            <div class="p-8 text-center text-red-500">
+                <p class="font-bold">Error loading course details</p>
+                <p class="text-sm mt-1">${error.message}</p>
+            </div>
+        `;
+    }
+};
+
+/**
+ * Filter Teachers in searchable dropdown
+ */
+window.filterTeachers = function(input) {
+    const term = input.value.toLowerCase();
+    const options = document.querySelectorAll('#cfTeacherOptions > div[onclick]');
+    
+    options.forEach(opt => {
+        const name = opt.textContent.trim().toLowerCase();
+        if (name.includes(term)) {
+            opt.classList.remove('hidden');
+        } else {
+            opt.classList.add('hidden');
+        }
+    });
+
+    // Check if any results
+    const container = document.getElementById('cfTeacherOptions');
+    const existingNoResults = container.querySelector('.no-results-msg');
+    
+    const hasVisible = Array.from(options).some(opt => !opt.classList.contains('hidden'));
+    
+    if (!hasVisible) {
+        if (!existingNoResults) {
+            const msg = document.createElement('div');
+            msg.className = 'no-results-msg p-4 text-center text-xs text-slate-400 italic';
+            msg.textContent = 'No teachers match your search';
+            container.appendChild(msg);
+        }
+    } else if (existingNoResults) {
+        existingNoResults.remove();
+    }
+};
+
+/**
+ * Escape HTML Helper
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.toString()
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
