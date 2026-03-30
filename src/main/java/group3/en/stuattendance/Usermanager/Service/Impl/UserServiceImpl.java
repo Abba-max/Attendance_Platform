@@ -211,6 +211,36 @@ public class UserServiceImpl implements UserService {
     public UserDto getUserDtoById(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Force initialization of lazy associations for students/staff/teachers
+        if (user.getClassroom() != null) {
+            user.getClassroom().getName();
+            if (user.getClassroom().getSpeciality() != null) {
+                user.getClassroom().getSpeciality().getName();
+            }
+        }
+        
+        // Initialize roles and their permissions for effective permissions calculation
+        user.getRoles().forEach(role -> {
+            role.getPermissions().size();
+        });
+        
+        // Initialize associations for Pedagogic Assistants / Supervisors
+        user.getStaffClassrooms().forEach(classroom -> {
+            classroom.getName();
+            if (classroom.getSpeciality() != null) {
+                classroom.getSpeciality().getName();
+                if (classroom.getSpeciality().getDepartment() != null) {
+                    classroom.getSpeciality().getDepartment().getName();
+                }
+            }
+        });
+        
+        // Initialize associations for Teachers
+        user.getCourses().forEach(course -> {
+            course.getCourseName();
+        });
+        
         // Mapping inside @Transactional method ensures lazy collections are loaded
         return userMapper.toDto(user);
     }

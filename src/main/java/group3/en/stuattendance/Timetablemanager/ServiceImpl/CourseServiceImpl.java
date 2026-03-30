@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@org.springframework.transaction.annotation.Transactional
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
@@ -84,6 +85,15 @@ public class CourseServiceImpl implements CourseService {
     public CourseDto getCourseById(Integer id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + id));
+        
+        // Force initialization of lazy associations
+        if (course.getSpeciality() != null) {
+            course.getSpeciality().getName();
+        }
+        if (course.getTeachers() != null) {
+            course.getTeachers().size();
+        }
+        
         return courseMapper.toDto(course);
     }
 

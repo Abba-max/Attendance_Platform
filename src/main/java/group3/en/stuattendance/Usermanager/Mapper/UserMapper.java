@@ -41,10 +41,26 @@ public class UserMapper {
                 .availablePermissionNames(calculateAvailablePermissionNames(user))
                 
                 .classroomId(user.getClassroom() != null ? user.getClassroom().getClassId() : null)
+                .classroomName(user.getClassroom() != null ? user.getClassroom().getName() : null)
+                .specialityName(user.getClassroom() != null && user.getClassroom().getSpeciality() != null ? user.getClassroom().getSpeciality().getName() : null)
+                .level(user.getClassroom() != null ? user.getClassroom().getLevel() : null)
                 .matricule(user.getMatricule())
                 .externalEmail(user.getExternalEmail())
                 .staffClassroomIds(user.getStaffClassrooms().stream().map(Classroom::getClassId).collect(Collectors.toSet()))
                 .joinCode(user.getJoinCode())
+                
+                // Role-specific display data
+                .handledDepartmentNames(user.getStaffClassrooms().stream()
+                        .filter(c -> c.getSpeciality() != null && c.getSpeciality().getDepartment() != null)
+                        .map(c -> c.getSpeciality().getDepartment().getName())
+                        .collect(Collectors.toSet()))
+                .handledSpecialityNames(user.getStaffClassrooms().stream()
+                        .filter(c -> c.getSpeciality() != null)
+                        .map(c -> c.getSpeciality().getName())
+                        .collect(Collectors.toSet()))
+                .taughtCourseNames(user.getCourses().stream()
+                        .map(group3.en.stuattendance.Timetablemanager.Model.Course::getCourseName)
+                        .collect(Collectors.toSet()))
                 .build();
     }
 

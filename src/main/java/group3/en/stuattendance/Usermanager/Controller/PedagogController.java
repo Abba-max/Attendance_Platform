@@ -44,6 +44,11 @@ public class PedagogController {
         return ResponseEntity.ok(userService.bulkImportStudents(file, classroomId));
     }
 
+    @GetMapping("/students/{id}")
+    public ResponseEntity<UserDto> getStudentById(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserDtoById(id));
+    }
+
     @PostMapping("/courses/bulk-import")
     public ResponseEntity<BulkImportResultDto> bulkImportCourses(
             @RequestParam("file") MultipartFile file) {

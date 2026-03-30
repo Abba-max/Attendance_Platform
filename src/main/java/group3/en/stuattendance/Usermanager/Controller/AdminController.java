@@ -22,6 +22,11 @@ public class AdminController {
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
     private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
 
+    @GetMapping("/users/{id}")
+    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserDtoById(id));
+    }
+
     @PutMapping("/users/{id}/roles")
     public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {
         User existingUser = userService.getUserById(id)

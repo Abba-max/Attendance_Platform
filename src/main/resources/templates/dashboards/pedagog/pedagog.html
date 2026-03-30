@@ -470,17 +470,17 @@
                                     th:data-spec="${student.classroom?.speciality?.name ?: 'Common'}"
                                     th:data-class="${student.classroom?.name ?: 'Unassigned'}"
                                     th:data-level="${student.classroom?.level ?: 0}"
-                                    th:data-name="${student.firstName + ' ' + student.lastName}"
+                                    th:data-name="${(student.firstName ?: '') + ' ' + (student.lastName ?: '')}"
                                     th:data-email="${student.email}" th:data-matricule="${student.matricule}"
                                     class="student-row hover:bg-slate-50/50 transition">
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
                                             <div class="w-10 h-10 bg-blue-50 text-[#00B0FF] rounded-xl flex items-center justify-center font-bold"
-                                                th:text="${#strings.substring(student.firstName,0,1)}">S</div>
+                                                th:text="${#strings.substring(student.firstName != null ? student.firstName : (student.username != null ? student.username : 'S'),0,1).toUpperCase()}">S</div>
                                             <div>
                                                 <p class="font-bold text-slate-800"
-                                                    th:text="${student.firstName + ' ' + student.lastName}">Name</p>
-                                                <p class="text-xs text-slate-500" th:text="${student.email}">Email</p>
+                                                    th:text="${!#strings.isEmpty(student.firstName) or !#strings.isEmpty(student.lastName) ? #strings.trim((student.firstName ?: '') + ' ' + (student.lastName ?: '')) : student.username}">Name</p>
+                                                <p class="text-xs text-slate-500" th:text="${student.email ?: 'No email'}">Email</p>
                                             </div>
                                         </div>
                                     </td>

@@ -49,6 +49,9 @@ public class UserDto {
 
     // Student specific
     private Integer classroomId;
+    private String classroomName;
+    private String specialityName;
+    private Integer level;
     private String matricule;
     private String externalEmail;
 
@@ -56,4 +59,9 @@ public class UserDto {
     private Set<Integer> 
             staffClassroomIds;
     private String joinCode;
+
+    // Additional Staff Details for Display
+    private java.util.Set<String> handledDepartmentNames;
+    private java.util.Set<String> handledSpecialityNames;
+    private java.util.Set<String> taughtCourseNames;
 }
