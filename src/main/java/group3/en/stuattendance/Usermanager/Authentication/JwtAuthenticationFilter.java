@@ -45,27 +45,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 3. Vérifier qu'aucune authentification n'est déjà en place
             if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // 4. Charger l'utilisateur depuis la BDD
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                try {
+                    // 4. Charger l'utilisateur depuis la BDD
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // 5. Créer l'objet d'authentification
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities()
-                        );
+                    // 5. Créer l'objet d'authentification
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
 
-                authToken.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
 
-                // 6. Enregistrer dans le SecurityContext
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                    // 6. Enregistrer dans le SecurityContext
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                } catch (Exception e) {
+                    // IMPORTANT: Si l'utilisateur est introuvable (ex: vieux cookie ou BDD vide),
+                    // on ne crashe pas l'appli. On vide simplement le contexte.
+                    SecurityContextHolder.clearContext();
+                    // On laisse filterChain.doFilter() s'exécuter à la fin.
+                }
             }
         }
 
-        // 7. Continuer la chaîne de filtres
+        // 7. Continuer la chaîne de filtres (Toujours appelé)
         filterChain.doFilter(request, response);
     }
 

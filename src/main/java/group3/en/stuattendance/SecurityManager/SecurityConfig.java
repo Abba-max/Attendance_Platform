@@ -69,26 +69,35 @@ public class SecurityConfig {
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
+                            // 🕵️ Les mouchards pour la console
+                            System.out.println("✅ SUCCÈS LOGIN POUR : " + authentication.getName());
+                            System.out.println("🔑 RÔLES DÉTECTÉS : " + authentication.getAuthorities());
+
                             String token = jwtUtil.generateToken(authentication.getName());
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
-                            jwtCookie.setSecure(false);
+                            jwtCookie.setSecure(false); // Doit être true en production (HTTPS)
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
-                            
-                            // Dynamic redirection based on role
+
+                            // On vérifie avec OU sans le préfixe ROLE_ pour être sûr
                             boolean isAdmin = authentication.getAuthorities().stream()
-                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN"));
                             boolean isPedagog = authentication.getAuthorities().stream()
-                                    .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG"));
-                                    
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG") || a.getAuthority().equals("PEDAGOG"));
+
                             if (isAdmin) {
+                                System.out.println("🔀 Redirection vers /admin/dashboard");
                                 response.sendRedirect("/admin/dashboard");
-                            } else if (isPedagog) {
+                            }
+                            else if (isPedagog) {
+                                System.out.println("🔀 Redirection vers /pedagog/dashboard");
                                 response.sendRedirect("/pedagog/dashboard");
-                            } else {
-                                response.sendRedirect("/"); // Or some default page
+                            }
+                            else {
+                                System.out.println("⚠️ Rôle non reconnu, redirection vers /");
+                                response.sendRedirect("/");
                             }
                         })
                         .failureUrl("/login?error")

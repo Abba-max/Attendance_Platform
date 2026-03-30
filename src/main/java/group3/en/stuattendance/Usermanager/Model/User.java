@@ -22,6 +22,7 @@ import java.util.Set;
 @Entity
 @Table(name = "users")
 @Getter
+@Data
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -159,5 +160,8 @@ public class User {
     @Override
     public int hashCode() {
         return Objects.hashCode(userId);
+
+
     }
 }
+
