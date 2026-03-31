@@ -1,19 +1,21 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
+import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
+import group3.en.stuattendance.Usermanager.DTO.StaffCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-// @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserService userService;
@@ -23,25 +25,27 @@ public class AdminController {
     private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
 
     @PutMapping("/users/{id}/roles")
-    public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {
-        User existingUser = userService.getUserById(id)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        
+    public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody Set<Integer> roleIds) {
+
+        // Fixed: getUserById returns UserDto directly (no Optional)
+        UserDto existingDto = userService.getUserById(id);
+
         UserDto dto = UserDto.builder()
-            .username(existingUser.getUsername())
-            .email(existingUser.getEmail())
-            .roleIds(roleIds)
-            .isActive(Boolean.TRUE.equals(existingUser.getIsActive()))
-            .build();
-            
+                .userId(existingDto.getUserId())           // Keep the ID
+                .username(existingDto.getUsername())
+                .email(existingDto.getEmail())
+                .roleIds(roleIds)
+                .isActive(existingDto.getIsActive())
+                .build();
+
         userService.updateUser(id, dto);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/staff")
-    public ResponseEntity<UserDto> registerStaff(
-        @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.registerStaff(dto)));
+    public ResponseEntity<UserDto> registerStaff(@RequestBody StaffCreateDto dto) {
+        // Fixed: service already returns UserDto, no need for userMapper.toDto()
+        return ResponseEntity.ok(userService.registerStaff(dto));
     }
 
     @GetMapping("/staff")
@@ -71,28 +75,36 @@ public class AdminController {
     }
 
     @PostMapping("/password-requests/{id}")
-    public ResponseEntity<Void> handleResetRequest(@PathVariable Integer id, @RequestParam String action, @RequestBody(required = false) String newPassword) {
-        group3.en.stuattendance.Usermanager.Model.PasswordResetRequest request = 
-            passwordResetRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Request not found"));
-        
+    public ResponseEntity<Void> handleResetRequest(@PathVariable Integer id,
+                                                   @RequestParam String action,
+                                                   @RequestBody(required = false) String newPassword) {
+
+        // Fixed: proper Optional handling
+        group3.en.stuattendance.Usermanager.Model.PasswordResetRequest request =
+                passwordResetRequestRepository.findById(id)
+                        .orElseThrow(() -> new RuntimeException("Request not found"));
+
         if ("APPROVE".equalsIgnoreCase(action)) {
             userService.resetPassword(request.getUser().getUserId(), newPassword);
-            
-            String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = userService.getUserByUsername(adminUsername).orElseThrow();
-            
+
+            String adminUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+            // Fixed: getUserByUsername returns Optional<User>
+            User admin = userService.getUserByUsername(adminUsername)
+                    .orElseThrow(() -> new RuntimeException("Admin not found"));
+
             emailService.sendPasswordResetNotification(
-                request.getUser().getEmail(),
-                newPassword,
-                admin.getEmail(),
-                admin.getFirstName() + " " + admin.getLastName()
+                    request.getUser().getEmail(),
+                    newPassword,
+                    admin.getEmail(),
+                    admin.getFirstName() + " " + admin.getLastName()
             );
-            
+
             request.setStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.COMPLETED);
         } else {
             request.setStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.REJECTED);
         }
-        
+
         passwordResetRequestRepository.save(request);
         return ResponseEntity.ok().build();
     }
@@ -123,7 +135,7 @@ public class AdminController {
     }
 
     @PostMapping("/staff/bulk-import")
-    public ResponseEntity<group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto> bulkImportStaff(
+    public ResponseEntity<BulkImportResultDto> bulkImportStaff(
             @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
         return ResponseEntity.ok(userService.bulkImportStaff(file));
     }

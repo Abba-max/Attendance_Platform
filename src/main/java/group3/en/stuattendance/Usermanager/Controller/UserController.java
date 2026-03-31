@@ -1,7 +1,6 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
-import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,12 +18,14 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.registerUser(dto)));
+        // Fixed: registerUser already returns UserDto → no need for mapper.toDto()
+        return ResponseEntity.ok(userService.registerUser(dto));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
-        return ResponseEntity.ok(userService.getUserDtoById(id));
+        // Fixed: getUserById returns UserDto (we removed getUserDtoById from the service)
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @GetMapping
@@ -34,7 +35,8 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.updateUser(id, dto)));
+        // Fixed: updateUser already returns UserDto → no need for mapper.toDto()
+        return ResponseEntity.ok(userService.updateUser(id, dto));
     }
 
     @DeleteMapping("/{id}")

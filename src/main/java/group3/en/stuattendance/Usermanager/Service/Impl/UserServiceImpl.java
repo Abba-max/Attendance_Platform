@@ -210,14 +210,6 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getUserDtoById(Integer userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        // Mapping inside @Transactional method ensures lazy collections are loaded
-        return userMapper.toDto(user);
-    }
-
-    @Override
     public Optional<User> getUserByUsername(String username) {
         return userRepository.findByUsername(username);
     }
@@ -294,9 +286,9 @@ public class UserServiceImpl implements UserService {
         userRepository.findById(userId).ifPresent(user -> {
             // Check if permission is in role scope
             boolean inScope = user.getRoles().stream()
-                .anyMatch(role -> role.getPermissions().stream()
-                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
-            
+                    .anyMatch(role -> role.getPermissions().stream()
+                            .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+
             if (!inScope) {
                 throw new RuntimeException("Permission is outside of user's role scope");
             }
@@ -314,9 +306,9 @@ public class UserServiceImpl implements UserService {
         userRepository.findById(userId).ifPresent(user -> {
             // Check if permission is in role scope
             boolean inScope = user.getRoles().stream()
-                .anyMatch(role -> role.getPermissions().stream()
-                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
-            
+                    .anyMatch(role -> role.getPermissions().stream()
+                            .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+
             if (!inScope) {
                 throw new RuntimeException("Permission is outside of user's role scope");
             }
