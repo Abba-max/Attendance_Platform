@@ -16,7 +16,11 @@ public class JustificationDto {
 
     private Integer justificationId;
     private Integer studentId;
+    private String studentName;
+    private String studentMatricule;
     private Integer attendanceId;
+    private LocalDateTime attendanceDate;
+    private String courseName;
     private String documentPath;
     private String reason;
     private JustificationStatus status;

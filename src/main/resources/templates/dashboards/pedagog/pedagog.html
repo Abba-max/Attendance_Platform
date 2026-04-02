@@ -431,7 +431,7 @@
                                 </select>
                             </div>
 
-                            <button onclick="openBulkImportModal()"
+                            <button onclick="openBulkImportModal('STUDENT')"
                                 class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition active:scale-95">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -631,6 +631,14 @@
                                 </select>
                             </div>
 
+                            <button onclick="openBulkImportModal('COURSE')"
+                                class="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 transition active:scale-95">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                Bulk Import
+                            </button>
                             <button onclick="openCourseModal()"
                                 class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -752,7 +760,7 @@
                                 onchange="fetchTimetable()">
                                 <option value="">Auto (Active Year)</option>
                                 <option th:each="year : ${academicYears}" th:value="${year.id}"
-                                    th:text="${year.academicYear}" th:selected="${year.status.name() == 'ACTIVE'}">
+                                    th:text="${year.academicYear}" th:selected="${year.id == activeAcademicYearId}">
                                 </option>
                             </select>
                         </div>
@@ -831,12 +839,6 @@
                                 <div class="flex items-center justify-between mb-4">
                                     <h3 class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Library
                                     </h3>
-                                    <div class="flex bg-slate-100 p-1 rounded-lg gap-1">
-                                        <button onclick="switchTTLibrary('courses')" id="ttLibCoursesBtn"
-                                            class="px-3 py-1 text-[10px] font-black rounded-md bg-white shadow-sm text-blue-600 transition">COURSES</button>
-                                        <button onclick="switchTTLibrary('teachers')" id="ttLibTeachersBtn"
-                                            class="px-3 py-1 text-[10px] font-black rounded-md text-slate-400 transition">TEACHERS</button>
-                                    </div>
                                 </div>
                                 <div id="ttCoursesList" class="space-y-2">
                                     <div class="grid grid-cols-1 gap-3">
@@ -882,12 +884,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div id="ttTeachersList" class="hidden space-y-2">
-                                    <p class="text-center py-6 text-slate-400 text-xs font-medium">Select a speciality
-                                        to load teachers</p>
-                                </div>
-                            </div>
                         </div>
+                        </div> <!-- Closing ttSidePanel -->
 
                         <!-- ── MAIN GRID ────────────────────────── -->
                         <div class="flex-1 min-w-0">
@@ -993,7 +991,7 @@
                                         <div id="timetableGrid">
                                             <div th:each="hour : ${#numbers.sequence(8, 16)}"
                                                 class="grid grid-cols-[100px_repeat(6,1fr)] border-b border-slate-100 last:border-0"
-                                                style="height: 48px;">
+                                                style="min-height: 48px; height: auto;">
                                                 <!-- Time Label -->
                                                 <div
                                                     class="flex items-center justify-center border-r-2 border-slate-200 bg-slate-50/50">
@@ -1127,85 +1125,195 @@
     </div>
 
     <!-- Bulk Import Modal -->
-    <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+    <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden transform transition-all scale-95 opacity-0 duration-500 border border-slate-200"
             id="bulkImportModalContent">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-emerald-600 ">
-                <h3 class="text-xl text-white">Bulk Student Import</h3>
-                <button onclick="closeBulkImportModal()" class="text-white/80 hover:text-white transition">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
-                        </path>
+            <!-- Dynamic Header -->
+            <div id="bulkImportHeader" class="p-8 bg-gradient-to-r from-emerald-600 to-teal-600 text-white relative">
+                <div class="relative z-10">
+                    <h3 id="bulkImportModalTitle" class="text-2xl font-black tracking-tight">Bulk Student Import</h3>
+                    <p class="text-emerald-100 text-xs font-medium mt-1 opacity-80 uppercase tracking-widest">Process Automation Module</p>
+                </div>
+                <button onclick="closeBulkImportModal()" class="absolute top-6 right-6 p-2 bg-white/10 hover:bg-white/20 rounded-full transition-all group">
+                    <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
+                <!-- Decorative background icon -->
+                <div class="absolute -bottom-4 -right-4 text-white/5 transform -rotate-12">
+                    <svg class="w-32 h-32" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+                    </svg>
+                </div>
             </div>
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Speciality
-                            Filter</label>
-                        <select onchange="filterClassrooms(this.value, 'bulkClassroomId')"
-                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none appearance-none cursor-pointer text-sm">
-                            <option value="">All Specialities</option>
-                            <option th:each="spec : ${specialities}" th:value="${spec.specialityId}"
-                                th:text="${spec.name}"></option>
-                        </select>
+
+            <div class="p-8 space-y-6">
+                <div id="pedagogBulkStep1" class="space-y-6">
+                    <!-- Student Specific Filters -->
+                    <div id="classroomSelectorRow" class="grid grid-cols-2 gap-5 p-1">
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Speciality Filter</label>
+                            <div class="relative">
+                                <select onchange="filterClassrooms(this.value, 'bulkClassroomId')"
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700">
+                                    <option value="">All Specialities</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}"></option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Target Classroom</label>
+                            <div class="relative">
+                                <select id="bulkClassroomId" required
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition-all outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700">
+                                    <option value="">Select Classroom</option>
+                                    <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
+                                        th:text="${classroom.name}" th:data-spec="${classroom.speciality.specialityId}">
+                                    </option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Target
-                            Classroom</label>
-                        <select id="bulkClassroomId" required
-                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition outline-none appearance-none cursor-pointer text-sm">
-                            <option value="">Select Classroom</option>
-                            <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}"
-                                th:text="${classroom.name}" th:data-spec="${classroom.speciality.specialityId}">
-                            </option>
-                        </select>
+
+                    <!-- Course Specific Filters -->
+                    <div id="courseSelectorRow" class="grid grid-cols-2 gap-5 p-1 hidden">
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Target Speciality</label>
+                            <div class="relative">
+                                <select id="bulkCourseSpecId"
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700">
+                                    <option value="">Select Speciality</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}"></option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Target Level</label>
+                            <div class="relative">
+                                <select id="bulkCourseLevel"
+                                    class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all outline-none appearance-none cursor-pointer text-sm font-semibold text-slate-700">
+                                    <option value="">Select Level</option>
+                                    <option value="1">Level 1</option>
+                                    <option value="2">Level 2</option>
+                                    <option value="3">Level 3</option>
+                                    <option value="4">Level 4</option>
+                                    <option value="5">Level 5</option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Instructions Banner -->
+                    <div id="bulkInstructionBanner" class="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex gap-4 transition-colors duration-300">
+                        <div class="flex-shrink-0 w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div class="space-y-1.5 flex-1">
+                            <h4 class="text-xs font-black text-emerald-900 uppercase tracking-widest">Configuration Logic</h4>
+                            <p id="bulkImportInstructions" class="text-[11px] text-emerald-700/80 leading-relaxed font-medium">
+                                Ensure your CSV contains: <code class="bg-emerald-100/50 px-1.5 py-0.5 rounded text-emerald-800 font-bold">firstName, lastName, email, matricule</code>
+                            </p>
+                            <button onclick="downloadBulkTemplate()" class="text-[10px] font-black text-emerald-600 hover:text-emerald-800 flex items-center gap-1.5 transition-all group">
+                                <span>DOWNLOAD TEMPLATE</span>
+                                <svg class="w-3 h-3 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 14l-7 7-7-7m14-8l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- File Upload Area -->
+                    <div class="group relative">
+                        <label
+                            class="block w-full border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-all group-active:scale-[0.98] duration-300">
+                            <input type="file" id="studentCsvFile" class="hidden" accept=".csv"
+                                onchange="updateFileName(this)">
+                            <div class="flex flex-col items-center gap-3">
+                                <div
+                                    class="w-14 h-14 bg-slate-50 text-slate-400 group-hover:bg-emerald-100 group-hover:text-emerald-600 rounded-2xl flex items-center justify-center transition-all duration-300 rotate-0 group-hover:rotate-6 shadow-sm group-hover:shadow-emerald-200/50">
+                                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                </div>
+                                <div class="space-y-1">
+                                    <span class="text-sm font-bold text-slate-700 block" id="fileNameDisplay">Drop CSV file here</span>
+                                    <span class="text-[10px] text-slate-400 font-medium uppercase tracking-widest">or click to browse filesystem</span>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-4 pt-2">
+                        <button type="button" onclick="closeBulkImportModal()"
+                            class="flex-1 py-4 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold rounded-2xl transition-all active:scale-95 text-xs uppercase tracking-widest">Cancel</button>
+                        <button id="pedagogStartImportBtn" onclick="startBulkImport()"
+                            class="flex-[2] py-4 bg-slate-900 hover:bg-black text-white rounded-2xl shadow-xl shadow-slate-200 hover:shadow-slate-300 transition-all active:scale-95 flex items-center justify-center gap-3 text-xs font-black uppercase tracking-widest group">
+                            <span>Initialize Preview</span>
+                            <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
+                            <div id="bulkImportLoader" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin hidden"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+                <!-- Step 1.5: Preview -->
+                <div id="pedagogBulkPreview" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Data Preview</h4>
+                        <span id="previewTag" class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">Ready</span>
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl bg-slate-50/30">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-slate-100 sticky top-0 z-10" id="pedagogPreviewHead">
+                                <!-- Headers injected here -->
+                            </thead>
+                            <tbody id="pedagogPreviewBody" class="divide-y divide-slate-100 bg-white text-slate-700">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="pedagogBulkErrors" class="hidden space-y-2">
+                        <h4 class="text-xs font-black text-rose-400 uppercase tracking-widest">Errors Found</h4>
+                        <div class="max-h-32 overflow-y-auto border border-rose-100 rounded-xl bg-rose-50/30 p-2 text-[10px] text-rose-600" id="pedagogErrorContainer">
+                            <!-- Errors injected here -->
+                        </div>
+                    </div>
+
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="backToPedagogUpload()"
+                            class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Back</button>
+                        <button id="pedagogConfirmBtn" onclick="confirmBulkImport()"
+                            class="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            Confirm & Save
+                        </button>
                     </div>
                 </div>
 
-                <div class="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
-                    <h4
-                        class="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <!-- Step 2: Final Results -->
+                <div id="pedagogBulkResults" class="hidden space-y-4 text-center py-4">
+                    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        CSV Format Requirements
-                    </h4>
-                    <p class="text-xs text-emerald-700 leading-relaxed">
-                        Ensure your CSV has exactly these 4 columns in order:<br>
-                        <code
-                            class="bg-white/50 px-1 text-emerald-700 rounded font-bold">firstName, lastName, email, matricule</code>
-                    </p>
-                </div>
-                <div>
-                    <label
-                        class="block w-full border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50 transition-all">
-                        <input type="file" id="studentCsvFile" class="hidden" accept=".csv"
-                            onchange="updateFileName(this)">
-                        <div class="flex flex-col items-center gap-2">
-                            <div
-                                class="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                            </div>
-                            <span class="text-sm font-semibold text-slate-700" id="fileNameDisplay">Choose CSV
-                                file</span>
-                        </div>
-                    </label>
-                </div>
-                <div class="flex gap-3 pt-4">
-                    <button type="button" onclick="closeBulkImportModal()"
-                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
-                    <button onclick="startBulkImport()"
-                        class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white  rounded-lg shadow-lg transition flex items-center justify-center gap-2">
-                        <span>Start Import</span>
-                        <div id="bulkImportLoader"
-                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
-                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800">Import Completed</h3>
+                    <p id="pedagogFinalSummary" class="text-sm text-slate-500">Processing results...</p>
+                    <button onclick="window.location.reload()" class="w-full mt-4 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-900 transition">
+                        Reload to see changes
                     </button>
                 </div>
             </div>
@@ -1484,6 +1592,41 @@
                     class="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition active:scale-95 shadow-sm">
                     Close
                 </button>
+            </div>
+        </div>
+    </div>
+    <!-- Course Assignment Modal -->
+    <div id="courseAssignmentModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300" id="courseAssignmentModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <div>
+                    <h3 class="text-xl font-bold text-white">Assign Course</h3>
+                    <p class="text-blue-100 text-xs mt-1" id="assignCourseSubtitle">Select teachers and display color</p>
+                </div>
+                <button onclick="cancelCourseAssignment()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6 bg-slate-50/50">
+                <!-- Color Picker -->
+                <div class="flex items-center gap-4">
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest">Theme Palette</label>
+                    <input type="color" id="selectedCourseColor" value="#00B0FF" 
+                           class="w-10 h-10 p-1 bg-white border border-slate-200 rounded-lg cursor-pointer transition hover:border-blue-400 shadow-sm">
+                </div>
+                <!-- Teacher Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Assign Teachers</label>
+                    <div id="assignCourseTeachers" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm font-medium text-slate-700 max-h-[160px] overflow-y-auto space-y-2 custom-scrollbar shadow-inner">
+                        <!-- Populated by JS -->
+                    </div>
+                    <p class="text-[10px] text-slate-400 mt-1.5 font-medium italic">Check the boxes of teachers you wish to schedule for this occurrence.</p>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 bg-white border-t border-slate-100 flex gap-3">
+                <button type="button" onclick="cancelCourseAssignment()" class="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold hover:bg-slate-50 transition">Cancel</button>
+                <button type="button" onclick="confirmCourseAssignment()" class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition font-bold">Assign & Place</button>
             </div>
         </div>
     </div>

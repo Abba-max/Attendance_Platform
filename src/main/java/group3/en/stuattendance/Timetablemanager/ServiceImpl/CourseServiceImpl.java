@@ -57,6 +57,7 @@ public class CourseServiceImpl implements CourseService {
         existing.setTotalHours(courseDto.getTotalHours());
         existing.setDescription(courseDto.getDescription());
         existing.setLevel(courseDto.getLevel());
+        existing.setSemester(courseDto.getSemester());
 
         if (courseDto.getSpecialityId() != null) {
             Speciality speciality = specialityRepository.findById(courseDto.getSpecialityId())
@@ -107,15 +108,24 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public List<CourseDto> getCoursesBySpeciality(Integer specialityId) {
-        return courseRepository.findBySpeciality_SpecialityId(specialityId)
+        return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
     }
  
     @Override
+    public List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester) {
+        return courseRepository.findBySpecialitySpecialityId(specialityId)
+                .stream()
+                .filter(c -> c.getSemester() != null && c.getSemester().equals(semester))
+                .map(courseMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
-        return courseRepository.findBySpeciality_SpecialityId(specialityId)
+        return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
                 .filter(c -> c.getLevel() != null && c.getLevel().equals(level))
                 .map(courseMapper::toDto)
@@ -184,7 +194,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
-    public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file) {
+    public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file, boolean dryRun, Integer specialityIdFromModal, Integer levelFromModal) {
         group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
         
         try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(file.getInputStream()));
@@ -194,7 +204,7 @@ public class CourseServiceImpl implements CourseService {
             if (rows.isEmpty()) return result;
 
             int startRow = 0;
-            if (rows.get(0).length > 0 && (rows.get(0)[0].equalsIgnoreCase("courseName") || rows.get(0)[0].equalsIgnoreCase("name"))) {
+            if (rows.get(0).length > 0 && (rows.get(0)[0].equalsIgnoreCase("courseName") || rows.get(0)[0].equalsIgnoreCase("name") || rows.get(0)[0].equalsIgnoreCase("firstName"))) {
                 startRow = 1;
             }
 
@@ -204,8 +214,8 @@ public class CourseServiceImpl implements CourseService {
                 String[] row = rows.get(i);
                 int rowNum = i + 1;
 
-                if (row.length < 4) {
-                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: courseName, code, totalHours, level, [specialityId]"));
+                if (row.length < 2) {
+                    result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, "N/A", "Missing columns. Required: courseName, code"));
                     result.setFailureCount(result.getFailureCount() + 1);
                     continue;
                 }
@@ -214,9 +224,15 @@ public class CourseServiceImpl implements CourseService {
                 String code = row[1].trim();
                 
                 try {
-                    Integer totalHours = Integer.parseInt(row[2].trim());
-                    Integer level = Integer.parseInt(row[3].trim());
-                    Integer specialityId = (row.length > 4 && !row[4].trim().isEmpty()) ? Integer.parseInt(row[4].trim()) : null;
+                    // Modal selection is now the EXCLUSIVE source for Speciality and Level
+                    if (specialityIdFromModal == null || levelFromModal == null) {
+                        result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Speciality and Level must be selected in the dashboard."));
+                        result.setFailureCount(result.getFailureCount() + 1);
+                        continue;
+                    }
+
+                    Integer totalHours = (row.length > 2 && !row[2].trim().isEmpty()) ? Integer.parseInt(row[2].trim()) : 45;
+                    Integer semester = (row.length > 3 && !row[3].trim().isEmpty()) ? Integer.parseInt(row[3].trim()) : 1;
 
                     if (courseRepository.findByCourseName(courseName).isPresent()) {
                          result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Course already exists"));
@@ -224,16 +240,29 @@ public class CourseServiceImpl implements CourseService {
                          continue;
                     }
 
-                    CourseDto dto = CourseDto.builder()
-                            .courseName(courseName)
-                            .code(code)
-                            .totalHours(totalHours)
-                            .level(level)
-                            .specialityId(specialityId)
-                            .credits(3)
-                            .build();
+                    // Add to preview data
+                    java.util.Map<String, String> previewRow = new java.util.HashMap<>();
+                    previewRow.put("courseName", courseName);
+                    previewRow.put("code", code);
+                    previewRow.put("totalHours", String.valueOf(totalHours));
+                    previewRow.put("level", String.valueOf(levelFromModal));
+                    previewRow.put("specialityId", String.valueOf(specialityIdFromModal));
+                    previewRow.put("semester", String.valueOf(semester));
+                    result.getPreviewData().add(previewRow);
 
-                    createCourse(dto);
+                    if (!dryRun) {
+                        CourseDto dto = CourseDto.builder()
+                                .courseName(courseName)
+                                .code(code)
+                                .totalHours(totalHours)
+                                .level(levelFromModal)
+                                .specialityId(specialityIdFromModal)
+                                .credits(3)
+                                .semester(semester)
+                                .build();
+
+                        createCourse(dto);
+                    }
                     result.setSuccessCount(result.getSuccessCount() + 1);
 
                 } catch (NumberFormatException e) {

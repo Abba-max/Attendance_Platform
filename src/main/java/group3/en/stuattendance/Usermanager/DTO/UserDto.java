@@ -43,25 +43,12 @@ public class UserDto {
     private Set<Integer> effectivePermissionIds;
     private Set<String> effectivePermissionNames;
 
-    // Available permissions (Union of all permissions from assigned roles)
-    private Set<Integer> availablePermissionIds;
-    private Set<String> availablePermissionNames;
-
     // Student specific
     private Integer classroomId;
-    private String classroomName;
-    private String specialityName;
-    private Integer level;
     private String matricule;
     private String externalEmail;
 
     // Staff specific
-    private Set<Integer> 
-            staffClassroomIds;
+    private Set<Integer> staffClassroomIds;
     private String joinCode;
-
-    // Additional Staff Details for Display
-    private java.util.Set<String> handledDepartmentNames;
-    private java.util.Set<String> handledSpecialityNames;
-    private java.util.Set<String> taughtCourseNames;
 }

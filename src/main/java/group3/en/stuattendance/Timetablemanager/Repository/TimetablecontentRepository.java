@@ -15,4 +15,6 @@ public interface TimetablecontentRepository extends JpaRepository<Timetableconte
     boolean existsByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrue(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
     List<Timetablecontent> findAllByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterOrderByVersionDesc(Integer classroomId, Long academicYearId, Integer week, Integer semester);
+
+    java.util.Optional<Timetablecontent> findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 }

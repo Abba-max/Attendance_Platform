@@ -53,6 +53,12 @@ public class AttendanceRecord {
     @JsonIgnore
     private Set<Justification> justifications = new HashSet<>();
 
+    @Column(length = 500)
+    private String comments;
+
+    @Column(name = "verified_by_teacher")
+    private Boolean verifiedByTeacher;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

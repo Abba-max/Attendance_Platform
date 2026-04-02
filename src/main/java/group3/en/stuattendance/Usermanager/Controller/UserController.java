@@ -15,11 +15,10 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
-    private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@RequestBody UserDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.registerUser(dto)));
+        return ResponseEntity.ok(userService.registerUser(dto));
     }
 
     @GetMapping("/{id}")
@@ -34,7 +33,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.updateUser(id, dto)));
+        return ResponseEntity.ok(userService.updateUser(id, dto));
     }
 
     @DeleteMapping("/{id}")

@@ -36,6 +36,9 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
 
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository academicYearRepository;
+
     @Value("${jwt.cookie-name}")
     private String cookieName;
     // ─────────────────────────────────────────────────────────
@@ -73,11 +76,16 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
                             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                            Long activeYearId = academicYearRepository.findActiveAcademicYear()
+                                    .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
+                                    .orElse(null);
+
                             String token = jwtUtil.generateToken(
                                     userDetails.getUsername(),
                                     userDetails.getUserId(),
                                     userDetails.getFirstName(),
-                                    userDetails.getLastName()
+                                    userDetails.getLastName(),
+                                    activeYearId
                             );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);

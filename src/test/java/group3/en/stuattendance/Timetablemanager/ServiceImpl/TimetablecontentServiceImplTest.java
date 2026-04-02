@@ -43,15 +43,15 @@ class TimetablecontentServiceImplTest {
         Timetablecontent timetable = new Timetablecontent();
         timetable.setTimetableId(1);
         
-        when(timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester))
+        when(timetablecontentRepository.findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, academicYearId, week, semester))
                 .thenReturn(Optional.of(timetable));
         
         TimetablecontentDto expectedDto = new TimetablecontentDto();
         when(timetablecontentMapper.toDto(timetable)).thenReturn(expectedDto);
-
+ 
         TimetablecontentDto result = timetablecontentService.getWeeklyTimetable(classroomId, academicYearId, week, semester);
-
+ 
         assertNotNull(result);
-        verify(timetablecontentRepository).findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester);
+        verify(timetablecontentRepository).findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, academicYearId, week, semester);
     }
 }

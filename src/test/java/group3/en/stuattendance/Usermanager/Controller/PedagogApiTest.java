@@ -1,6 +1,8 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
 import group3.en.stuattendance.Timetablemanager.Service.CourseService;
+import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetailsService;
+import group3.en.stuattendance.Usermanager.Authentication.JwtUtil;
 import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,12 @@ public class PedagogApiTest {
 
     @MockBean
     private CourseService courseService;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void testBulkImportCourses() throws Exception {

@@ -23,7 +23,7 @@ public class UserMapper {
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
                 .email(user.getEmail())
-                .isActive(Boolean.TRUE.equals(user.getIsActive()))
+                .isActive(user.getIsActive())
                 .institutionId(user.getInstitution() != null ? user.getInstitution().getInstitutionId() : null)
                 .roleIds(user.getRoles().stream().map(Role::getRoleId).collect(Collectors.toSet()))
                 .roleNames(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
@@ -37,30 +37,11 @@ public class UserMapper {
                 .effectivePermissionIds(calculateEffectivePermissionIds(user))
                 .effectivePermissionNames(calculateEffectivePermissionNames(user))
                 
-                .availablePermissionIds(calculateAvailablePermissionIds(user))
-                .availablePermissionNames(calculateAvailablePermissionNames(user))
-                
                 .classroomId(user.getClassroom() != null ? user.getClassroom().getClassId() : null)
-                .classroomName(user.getClassroom() != null ? user.getClassroom().getName() : null)
-                .specialityName(user.getClassroom() != null && user.getClassroom().getSpeciality() != null ? user.getClassroom().getSpeciality().getName() : null)
-                .level(user.getClassroom() != null ? user.getClassroom().getLevel() : null)
                 .matricule(user.getMatricule())
                 .externalEmail(user.getExternalEmail())
                 .staffClassroomIds(user.getStaffClassrooms().stream().map(Classroom::getClassId).collect(Collectors.toSet()))
                 .joinCode(user.getJoinCode())
-                
-                // Role-specific display data
-                .handledDepartmentNames(user.getStaffClassrooms().stream()
-                        .filter(c -> c.getSpeciality() != null && c.getSpeciality().getDepartment() != null)
-                        .map(c -> c.getSpeciality().getDepartment().getName())
-                        .collect(Collectors.toSet()))
-                .handledSpecialityNames(user.getStaffClassrooms().stream()
-                        .filter(c -> c.getSpeciality() != null)
-                        .map(c -> c.getSpeciality().getName())
-                        .collect(Collectors.toSet()))
-                .taughtCourseNames(user.getCourses().stream()
-                        .map(group3.en.stuattendance.Timetablemanager.Model.Course::getCourseName)
-                        .collect(Collectors.toSet()))
                 .build();
     }
 
@@ -74,7 +55,7 @@ public class UserMapper {
                 .lastName(dto.getLastName())
                 .email(dto.getEmail())
                 .password(dto.getPassword())
-                .isActive(Boolean.TRUE.equals(dto.getIsActive()))
+                .isActive(dto.getIsActive())
                 .institution(institution)
                 .roles(roles != null ? roles : new HashSet<>())
                 .additionalPermissions(additionalPermissions != null ? additionalPermissions : new HashSet<>())
@@ -117,21 +98,5 @@ public class UserMapper {
                 .filter(p -> !deniedIds.contains(p.getPermissionId()))
                 .map(Permission::getName)
                 .collect(Collectors.toSet());
-    }
-
-    private Set<Integer> calculateAvailablePermissionIds(User user) {
-        Set<Integer> permissions = new HashSet<>();
-        user.getRoles().forEach(role -> 
-            role.getPermissions().forEach(p -> permissions.add(p.getPermissionId()))
-        );
-        return permissions;
-    }
-
-    private Set<String> calculateAvailablePermissionNames(User user) {
-        Set<String> permissions = new HashSet<>();
-        user.getRoles().forEach(role -> 
-            role.getPermissions().forEach(p -> permissions.add(p.getName()))
-        );
-        return permissions;
     }
 }

@@ -4,7 +4,12 @@ import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Timetablemanager.DTO.TimetablecontentDto;
 import group3.en.stuattendance.Timetablemanager.Service.CourseService;
 import group3.en.stuattendance.Timetablemanager.Service.TimetablecontentService;
+import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Timetablemanager.Service.PdfExportService;
+import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetailsService;
+import group3.en.stuattendance.Usermanager.Authentication.JwtUtil;
+import group3.en.stuattendance.Usermanager.Repository.UserRepository;
+import group3.en.stuattendance.Usermanager.Service.EmailService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -34,6 +39,21 @@ public class CourseTimetableApiTest {
     
     @MockBean
     private PdfExportService pdfExportService;
+
+    @MockBean
+    private EmailService emailService;
+
+    @MockBean
+    private JwtUtil jwtUtil;
+
+    @MockBean
+    private CustomUserDetailsService customUserDetailsService;
+
+    @MockBean
+    private ClassroomRepository classroomRepository;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Test
     void testGetCoursesBySpecialityAndSemester() throws Exception {

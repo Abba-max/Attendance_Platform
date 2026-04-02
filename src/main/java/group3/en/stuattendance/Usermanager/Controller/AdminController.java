@@ -19,13 +19,6 @@ public class AdminController {
     private final UserService userService;
     private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
     private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
-    private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
-    private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
-
-    @GetMapping("/users/{id}")
-    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
-        return ResponseEntity.ok(userService.getUserDtoById(id));
-    }
 
     @PutMapping("/users/{id}/roles")
     public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {
@@ -36,7 +29,7 @@ public class AdminController {
             .username(existingUser.getUsername())
             .email(existingUser.getEmail())
             .roleIds(roleIds)
-            .isActive(Boolean.TRUE.equals(existingUser.getIsActive()))
+            .isActive(existingUser.getIsActive())
             .build();
             
         userService.updateUser(id, dto);
@@ -46,7 +39,7 @@ public class AdminController {
     @PostMapping("/staff")
     public ResponseEntity<UserDto> registerStaff(
         @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
-        return ResponseEntity.ok(userMapper.toDto(userService.registerStaff(dto)));
+        return ResponseEntity.ok(userService.registerStaff(dto));
     }
 
     @GetMapping("/staff")
@@ -75,30 +68,9 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/password-requests/{id}")
-    public ResponseEntity<Void> handleResetRequest(@PathVariable Integer id, @RequestParam String action, @RequestBody(required = false) String newPassword) {
-        group3.en.stuattendance.Usermanager.Model.PasswordResetRequest request = 
-            passwordResetRequestRepository.findById(id).orElseThrow(() -> new RuntimeException("Request not found"));
-        
-        if ("APPROVE".equalsIgnoreCase(action)) {
-            userService.resetPassword(request.getUser().getUserId(), newPassword);
-            
-            String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
-            User admin = userService.getUserByUsername(adminUsername).orElseThrow();
-            
-            emailService.sendPasswordResetNotification(
-                request.getUser().getEmail(),
-                newPassword,
-                admin.getEmail(),
-                admin.getFirstName() + " " + admin.getLastName()
-            );
-            
-            request.setStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.COMPLETED);
-        } else {
-            request.setStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.REJECTED);
-        }
-        
-        passwordResetRequestRepository.save(request);
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<Void> resetPassword(@PathVariable Integer id, @RequestBody String newPassword) {
+        userService.resetPassword(id, newPassword);
         return ResponseEntity.ok().build();
     }
 
@@ -129,7 +101,8 @@ public class AdminController {
 
     @PostMapping("/staff/bulk-import")
     public ResponseEntity<group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto> bulkImportStaff(
-            @RequestParam("file") org.springframework.web.multipart.MultipartFile file) {
-        return ResponseEntity.ok(userService.bulkImportStaff(file));
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam(defaultValue = "false") boolean dryRun) {
+        return ResponseEntity.ok(userService.bulkImportStaff(file, dryRun));
     }
 }

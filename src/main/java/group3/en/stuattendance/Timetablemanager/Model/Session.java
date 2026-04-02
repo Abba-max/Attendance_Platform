@@ -54,6 +54,9 @@ public class Session {
     @Column(name = "qr_code", unique = true, length = 500)
     private String qrCode;
 
+    @Column(name = "temp_pin", length = 10)
+    private String tempPin;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
     @JsonIgnore
@@ -86,7 +89,7 @@ public class Session {
         LocalTime now = LocalTime.now();
         LocalDate today = LocalDate.now();
         return this.date != null && this.date.equals(today) &&
-                now.isAfter(startTime.minusMinutes(15)) &&
+                now.isAfter(startTime.minusMinutes(5)) &&
                 now.isBefore(endTime.plusMinutes(15));
     }
 

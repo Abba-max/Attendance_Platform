@@ -15,6 +15,27 @@ document.addEventListener('DOMContentLoaded', function () {
     if (navItem) navItem.click();
 });
 
+/**
+ * Sets default dates for the timetable: Monday-Saturday of current week.
+ */
+function updateTTDates() {
+    var startInput = document.getElementById('ttStartDate');
+    var endInput   = document.getElementById('ttEndDate');
+    if (!startInput) return;
+    if (startInput.value) return;
+    var today   = new Date();
+    var day     = today.getDay();
+    var diffToMon = (day === 0) ? -6 : 1 - day;
+    var monday  = new Date(today);
+    monday.setDate(today.getDate() + diffToMon);
+    var saturday = new Date(monday);
+    saturday.setDate(monday.getDate() + 5);
+    var fmt = function(d) { return d.toISOString().split('T')[0]; };
+    startInput.value = fmt(monday);
+    if (endInput) endInput.value = fmt(saturday);
+    if (typeof syncTTDates === 'function') syncTTDates('start');
+}
+
 function initializeNavigation() {
     const navItems = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.content-section');
@@ -102,18 +123,51 @@ window.closeStudentModal = function () {
     }, 300);
 };
 
+// Bulk Import State
+let currentBulkImportMode = 'STUDENT';
+
 // Bulk Import Modal Management
-window.openBulkImportModal = function () {
+window.openBulkImportModal = function (mode = 'STUDENT') {
+    currentBulkImportMode = mode;
     const modal = document.getElementById('bulkImportModal');
     const content = document.getElementById('bulkImportModalContent');
+    const title = document.getElementById('bulkImportModalTitle');
+    const instruction = document.getElementById('bulkImportInstructions');
+    const classroomRow = document.getElementById('classroomSelectorRow');
+    const courseRow = document.getElementById('courseSelectorRow');
+    const header = document.getElementById('bulkImportHeader');
+    const banner = document.getElementById('bulkInstructionBanner');
 
-    // Reset modal state
+    // Reset steps
+    document.getElementById('pedagogBulkStep1').classList.remove('hidden');
+    document.getElementById('pedagogBulkPreview').classList.add('hidden');
+    document.getElementById('pedagogBulkResults').classList.add('hidden');
+
+    if (mode === 'STUDENT') {
+        title.textContent = "Bulk Student Import";
+        instruction.innerHTML = 'Ensure your CSV has exactly these 4 columns in order:<br><code class="bg-emerald-100/50 px-1.5 py-0.5 rounded text-emerald-800 font-bold">firstName, lastName, email, matricule</code>';
+        classroomRow.classList.remove('hidden');
+        courseRow.classList.add('hidden');
+        header.className = "p-8 bg-gradient-to-r from-emerald-600 to-teal-600 text-white relative";
+        banner.className = "bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex gap-4 transition-colors duration-300";
+    } else {
+        title.textContent = "Bulk Course Import";
+        instruction.innerHTML = 'Ensure your CSV has these 2 columns in order:<br><code class="bg-blue-100/50 px-1.5 py-0.5 rounded text-blue-800 font-bold">courseName, code</code> <span class="text-[9px] opacity-70">(Hours and Semester are optional)</span>';
+        classroomRow.classList.add('hidden');
+        courseRow.classList.remove('hidden');
+        header.className = "p-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white relative";
+        banner.className = "bg-blue-50 border border-blue-100 rounded-2xl p-5 flex gap-4 transition-colors duration-300";
+    }
+
+    // Reset fields
     const specSelect = modal.querySelector('select[onchange*="bulkClassroomId"]');
     if (specSelect) specSelect.value = "";
     document.getElementById('bulkClassroomId').value = "";
+    document.getElementById('bulkCourseSpecId').value = "";
+    document.getElementById('bulkCourseLevel').value = "";
     document.getElementById('studentCsvFile').value = "";
-    document.getElementById('fileNameDisplay').textContent = "Choose CSV file";
-    document.getElementById('fileNameDisplay').classList.remove('text-emerald-600');
+    document.getElementById('fileNameDisplay').textContent = "Drop CSV file here";
+    document.getElementById('fileNameDisplay').classList.remove('text-emerald-600', 'text-blue-600');
 
     // Show all classrooms initially
     filterClassrooms('', 'bulkClassroomId');
@@ -139,16 +193,17 @@ window.closeBulkImportModal = function () {
 
 window.updateFileName = function (input) {
     const display = document.getElementById('fileNameDisplay');
+    const colorClass = currentBulkImportMode === 'STUDENT' ? 'text-emerald-600' : 'text-blue-600';
+    
     if (input.files && input.files.length > 0) {
         display.textContent = input.files[0].name;
-        display.classList.add('text-emerald-600');
+        display.classList.add(colorClass, 'font-black');
     } else {
-        display.textContent = 'Choose CSV file';
-        display.classList.remove('text-emerald-600');
+        display.textContent = 'Drop CSV file here';
+        display.classList.remove('text-emerald-600', 'text-blue-600', 'font-black');
     }
 };
 
-// Cascading Filter for Individual Student Modal
 // Cascading Filter for Student/Bulk Modals
 window.filterClassrooms = function (specId, targetId = 'classroomSelect') {
     const select = document.getElementById(targetId);
@@ -185,7 +240,7 @@ window.handleCreateStudent = async function (event) {
     data.isActive = true;
 
     loader.classList.remove('hidden');
-    submitBtn.disabled = true;
+    if (submitBtn) submitBtn.disabled = true;
 
     try {
         const response = await fetch('/api/pedagog/students', {
@@ -208,19 +263,26 @@ window.handleCreateStudent = async function (event) {
         showNotification('An unexpected error occurred.', 'error');
     } finally {
         loader.classList.add('hidden');
-        submitBtn.disabled = false;
+        if (submitBtn) submitBtn.disabled = false;
     }
 };
 
-// Bulk Student Import
 window.startBulkImport = async function () {
     const fileInput = document.getElementById('studentCsvFile');
     const classroomId = document.getElementById('bulkClassroomId').value;
+    const courseSpecId = document.getElementById('bulkCourseSpecId').value;
+    const courseLevel = document.getElementById('bulkCourseLevel').value;
     const loader = document.getElementById('bulkImportLoader');
+    const startBtn = document.getElementById('pedagogStartImportBtn');
 
-    if (!classroomId) {
+    if (currentBulkImportMode === 'STUDENT' && !classroomId) {
         showNotification('Please select a target classroom', 'warning');
         return;
+    }
+    
+    if (currentBulkImportMode === 'COURSE') {
+        if (!courseSpecId) { showNotification('Please select a target speciality', 'warning'); return; }
+        if (!courseLevel) { showNotification('Please select a target level', 'warning'); return; }
     }
 
     if (!fileInput.files || fileInput.files.length === 0) {
@@ -230,31 +292,158 @@ window.startBulkImport = async function () {
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
-    formData.append('classroomId', classroomId);
+    if (currentBulkImportMode === 'STUDENT') formData.append('classroomId', classroomId);
+    formData.append('dryRun', 'true');
 
     loader.classList.remove('hidden');
+    startBtn.disabled = true;
 
     try {
-        const response = await fetch('/api/pedagog/students/bulk-import', {
+        let url = currentBulkImportMode === 'STUDENT' 
+            ? '/api/pedagog/students/bulk-import?dryRun=true' 
+            : `/api/pedagog/courses/bulk-import?dryRun=true&specialityId=${courseSpecId}&level=${courseLevel}`;
+
+        const response = await fetch(url, {
             method: 'POST',
             body: formData
         });
 
         if (response.ok) {
             const result = await response.json();
-            showNotification(`Import completed! ${result.successCount} success, ${result.failedCount} failures.`, 'success');
-            closeBulkImportModal();
-            window.location.reload();
+            showPedagogPreview(result);
         } else {
-            showNotification('Failed to process bulk import.', 'error');
+            showNotification('Failed to parse bulk import file.', 'error');
         }
     } catch (error) {
-        console.error('Error during bulk import:', error);
-        showNotification('An error occurred during import.', 'error');
+        console.error('Error during bulk import preview:', error);
+        showNotification('An error occurred during preview.', 'error');
     } finally {
         loader.classList.add('hidden');
+        startBtn.disabled = false;
     }
 };
+
+function showPedagogPreview(result) {
+    document.getElementById('pedagogBulkStep1').classList.add('hidden');
+    document.getElementById('pedagogBulkPreview').classList.remove('hidden');
+
+    const head = document.getElementById('pedagogPreviewHead');
+    const body = document.getElementById('pedagogPreviewBody');
+    const errorSection = document.getElementById('pedagogBulkErrors');
+    const errorContainer = document.getElementById('pedagogErrorContainer');
+
+    // Set Headers
+    if (currentBulkImportMode === 'STUDENT') {
+        head.innerHTML = '<tr><th class="px-3 py-2 font-bold text-slate-600">First Name</th><th class="px-3 py-2 font-bold text-slate-600">Last Name</th><th class="px-3 py-2 font-bold text-slate-600">Email</th><th class="px-3 py-2 font-bold text-slate-600">Matricule</th></tr>';
+        body.innerHTML = result.previewData.map(row => `
+            <tr>
+                <td class="px-3 py-2 font-medium">${escapeHtml(row.firstName || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(row.lastName || '')}</td>
+                <td class="px-3 py-2 text-slate-500">${escapeHtml(row.email || '')}</td>
+                <td class="px-3 py-2 font-black tabular-nums text-slate-400">${escapeHtml(row.matricule || '')}</td>
+            </tr>
+        `).join('');
+    } else {
+        head.innerHTML = '<tr><th class="px-3 py-2 font-bold text-slate-600">Course</th><th class="px-3 py-2 font-bold text-slate-600">Code</th><th class="px-3 py-2 font-bold text-slate-600">Hours</th><th class="px-3 py-2 font-bold text-slate-600">Level</th></tr>';
+        body.innerHTML = result.previewData.map(row => `
+            <tr>
+                <td class="px-3 py-2 font-medium">${escapeHtml(row.courseName || '')}</td>
+                <td class="px-3 py-2 text-blue-600 font-bold">${escapeHtml(row.code || '')}</td>
+                <td class="px-3 py-2">${escapeHtml(row.totalHours || '')}h</td>
+                <td class="px-3 py-2">L${escapeHtml(row.level || '')}</td>
+            </tr>
+        `).join('');
+    }
+
+    if (result.previewData.length === 0) {
+        body.innerHTML = '<tr><td colspan="4" class="px-3 py-8 text-center text-slate-400 italic">No valid rows found to preview.</td></tr>';
+    }
+
+    // Handle Errors
+    if (result.failureCount > 0) {
+        errorSection.classList.remove('hidden');
+        errorContainer.innerHTML = result.errors.map(err => `
+            <div class="flex gap-2 mb-1">
+                <span class="font-bold min-w-[30px]">Row ${err.rowNumber}:</span>
+                <span class="text-rose-700">${escapeHtml(err.errorMessage)}</span>
+            </div>
+        `).join('');
+    } else {
+        errorSection.classList.add('hidden');
+    }
+}
+
+window.backToPedagogUpload = function() {
+    document.getElementById('pedagogBulkPreview').classList.add('hidden');
+    document.getElementById('pedagogBulkStep1').classList.remove('hidden');
+};
+
+window.confirmBulkImport = async function() {
+    const fileInput = document.getElementById('studentCsvFile');
+    const classroomId = document.getElementById('bulkClassroomId').value;
+    const confirmBtn = document.getElementById('pedagogConfirmBtn');
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    if (currentBulkImportMode === 'STUDENT') formData.append('classroomId', classroomId);
+    formData.append('dryRun', 'false');
+
+    try {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Saving...';
+
+        const courseSpecId = document.getElementById('bulkCourseSpecId').value;
+        const courseLevel = document.getElementById('bulkCourseLevel').value;
+
+        const url = currentBulkImportMode === 'STUDENT' 
+            ? '/api/pedagog/students/bulk-import?dryRun=false' 
+            : `/api/pedagog/courses/bulk-import?dryRun=false&specialityId=${courseSpecId}&level=${courseLevel}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            document.getElementById('pedagogBulkPreview').classList.add('hidden');
+            document.getElementById('pedagogBulkResults').classList.remove('hidden');
+            document.getElementById('pedagogFinalSummary').textContent = `Success: ${result.successCount}, Failed: ${result.failureCount}`;
+        } else {
+            showNotification('Final import failed.', 'error');
+        }
+    } catch (error) {
+        console.error('Final Import Error:', error);
+        showNotification('An error occurred during final import.', 'error');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm & Save';
+    }
+};
+
+window.downloadBulkTemplate = function() {
+    let headers, example, filename;
+    if (currentBulkImportMode === 'STUDENT') {
+        headers = "firstName,lastName,email,matricule\n";
+        example = "Alice,Johnson,alice@example.com,MAT001\nBob,Wilson,bob@example.com,MAT002";
+        filename = "student_import_template.csv";
+    } else {
+        headers = "courseName,code,totalHours,semester\n";
+        example = "Data Structures,CS201,60,1\nAlgorithms,CS202,45,2";
+        filename = "course_import_template.csv";
+    }
+
+    const blob = new Blob([headers + example], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+};
+
+
 // Course Modal Management
 // Teacher Selection State for Course Modal
 let selectedTeachers = [];
@@ -522,30 +711,61 @@ window.handleCreateCourse = async function (event) {
 };
 
 function showNotification(message, type = 'info') {
-    let notification = document.getElementById('notification');
+    // Remove any existing notification
+    const existing = document.getElementById('tt-toast');
+    if (existing) existing.remove();
 
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.id = 'notification';
-        document.body.appendChild(notification);
-    }
-
-    const colors = {
-        success: 'bg-green-500 text-white',
-        error: 'bg-red-500 text-white',
-        warning: 'bg-yellow-500 text-white',
-        info: 'bg-blue-500 text-white'
+    const icons = {
+        success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+        error:   `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+        warning: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>`,
+        info:    `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>`
     };
+    const palettes = {
+        success: { bg: '#ECFDF5', border: '#10B981', icon: '#10B981', title: '#065F46', msg: '#047857' },
+        error:   { bg: '#FEF2F2', border: '#EF4444', icon: '#EF4444', title: '#7F1D1D', msg: '#B91C1C' },
+        warning: { bg: '#FFFBEB', border: '#F59E0B', icon: '#F59E0B', title: '#78350F', msg: '#B45309' },
+        info:    { bg: '#EFF6FF', border: '#3B82F6', icon: '#3B82F6', title: '#1E3A5F', msg: '#1D4ED8' }
+    };
+    const titles = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Info' };
+    const p = palettes[type] || palettes.info;
 
-    notification.className = `fixed top-20 right-8 px-6 py-4 rounded-xl shadow-lg ${colors[type]}`;
-    notification.textContent = message;
-    notification.style.transform = 'translateX(0)';
-    notification.style.opacity = '1';
+    const toast = document.createElement('div');
+    toast.id = 'tt-toast';
+    toast.setAttribute('role', 'alert');
+    toast.style.cssText = [
+        'position:fixed', 'top:80px', 'right:24px', 'z-index:9999',
+        `background:${p.bg}`, `border:1.5px solid ${p.border}`,
+        'border-radius:14px', 'box-shadow:0 8px 32px rgba(0,0,0,0.13)',
+        'padding:16px 20px', 'display:flex', 'align-items:flex-start', 'gap:12px',
+        'min-width:300px', 'max-width:400px',
+        'transform:translateX(440px)', 'opacity:0',
+        'transition:transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s ease'
+    ].join(';');
 
+    toast.innerHTML = `
+        <span style="color:${p.icon};flex-shrink:0;margin-top:1px">${icons[type] || icons.info}</span>
+        <div style="flex:1;min-width:0">
+            <p style="margin:0 0 2px;font-weight:700;font-size:13px;color:${p.title}">${titles[type] || 'Notice'}</p>
+            <p style="margin:0;font-size:12.5px;color:${p.msg};line-height:1.45">${message}</p>
+        </div>
+        <button onclick="this.closest('#tt-toast').remove()" style="color:${p.icon};background:none;border:none;cursor:pointer;padding:0;line-height:1;flex-shrink:0" aria-label="Dismiss">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>`;
+
+    document.body.appendChild(toast);
+    // Slide in
+    requestAnimationFrame(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+    });
+    // Auto-dismiss
+    const delay = type === 'error' ? 8000 : 5000;
     setTimeout(() => {
-        notification.style.transform = 'translateX(400px)';
-        notification.style.opacity = '0';
-    }, 5000);
+        toast.style.transform = 'translateX(440px)';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 400);
+    }, delay);
 }
 
 // ==========================================
@@ -592,12 +812,11 @@ window.loadTTCoursesAndTeachers = async function () {
     const specId = document.getElementById('ttSpecSelect').value;
     const level = document.getElementById('ttLevelSelect').value;
     const coursesList = document.getElementById('ttCoursesListContainer');
-    const teachersList = document.getElementById('ttTeachersList');
+    window.currentSpecialityTeachers = [];
 
     if (!specId || !level) return;
 
     coursesList.innerHTML = '<p class="text-center py-4 text-xs text-slate-400">Loading...</p>';
-    teachersList.innerHTML = '<p class="text-center py-4 text-xs text-slate-400">Loading...</p>';
 
     try {
         const [coursesRes, teachersRes] = await Promise.all([
@@ -607,6 +826,8 @@ window.loadTTCoursesAndTeachers = async function () {
 
         const courses = await coursesRes.json();
         const teachers = await teachersRes.json();
+
+        window.currentSpecialityCourses = courses;
 
         // Render Courses
         if (courses.length === 0) {
@@ -634,30 +855,11 @@ window.loadTTCoursesAndTeachers = async function () {
             `).join('');
         }
 
-        // Render Teachers
-        if (teachers.length === 0) {
-            teachersList.innerHTML = `<div class="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                <p class="text-slate-400 text-[11px] font-bold text-center">No teachers assigned to this speciality</p>
-            </div>`;
+        // Store Teachers globally for the assignment modal
+        if (teachers && teachers.length > 0) {
+            window.currentSpecialityTeachers = teachers;
         } else {
-            teachersList.innerHTML = teachers.map(t => `
-                <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-move hover:border-blue-300 hover:shadow-md transition-all group relative"
-                     draggable="true" ondragstart="handleTTDragStart(event)" 
-                     data-type="teacher" data-id="${t.userId}" data-name="${t.username}">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xs font-black shadow-inner">
-                            ${t.username.charAt(0)}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[12px] font-black text-slate-800 mb-0.5 truncate">${t.username}</p>
-                            <div class="flex items-center gap-2">
-                                <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Lecturer</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
+            window.currentSpecialityTeachers = [];
         }
     } catch (err) {
         console.error('Error loading library:', err);
@@ -724,9 +926,26 @@ window.handleTTDrop = function (e) {
             draggedItem = null;
             return;
         }
-        renderCourseInCell(cell, draggedItem);
+        if (draggedItem.sourceCell) {
+            // Already placed block being moved
+            if (draggedItem.sourceCell === cell) {
+                draggedItem = null;
+                return;
+            }
+            renderCourseInCell(cell, draggedItem);
+            draggedItem.sourceCell.innerHTML = `<div class="absolute inset-1 rounded-xl border-2 border-dashed border-slate-100 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>`;
+            draggedItem = null;
+            return;
+        }
+
+        // New course block being dropped
+        pendingCourseDropCell = cell;
+        pendingCourseDropItem = { ...draggedItem };
+        openCourseAssignmentModal(draggedItem.id, draggedItem.name);
+        draggedItem = null;
+        return;
     } else if (draggedItem.type === 'teacher') {
-        assignTeacherToCell(cell, draggedItem);
+        showNotification('Teachers are now assigned via the Course drop modal.', 'info');
     }
     draggedItem = null;
 };
@@ -734,6 +953,8 @@ window.handleTTDrop = function (e) {
 // Global vars to hold state while waiting for the Custom Modal to submit
 let pendingEventDropCell = null;
 let pendingEventDropItem = null;
+let pendingCourseDropCell = null;
+let pendingCourseDropItem = null;
 
 window.cancelEventCreation = function () {
     const modal = document.getElementById('eventModal');
@@ -762,14 +983,137 @@ window.confirmEventCreation = function (e) {
     cancelEventCreation();
 };
 
+window.openCourseAssignmentModal = function (courseId, courseName, existingColor = null, existingTeachers = null) {
+    const modal = document.getElementById('courseAssignmentModal');
+    const content = document.getElementById('courseAssignmentModalContent');
+    const subtitle = document.getElementById('assignCourseSubtitle');
+    
+    if (subtitle) subtitle.textContent = `Assigning: ${courseName}`;
+
+    // Default color setup or use pre-existing from an edited block
+    const colorInput = document.getElementById('selectedCourseColor');
+    if (colorInput) colorInput.value = existingColor || '#00B0FF';
+
+    // Populate teachers checkboxes
+    const container = document.getElementById('assignCourseTeachers');
+    if (container && window.currentSpecialityTeachers && window.currentSpecialityCourses) {
+        // Find the specific course
+        const targetCourse = window.currentSpecialityCourses.find(c => String(c.courseId) === String(courseId));
+        
+        let validTeacherIds = [];
+        if (targetCourse && targetCourse.teacherIds) {
+            validTeacherIds = targetCourse.teacherIds.map(id => String(id));
+        }
+
+        // Filter valid teachers
+        const eligibleTeachers = window.currentSpecialityTeachers.filter(t => validTeacherIds.includes(String(t.userId)));
+
+        if (eligibleTeachers.length > 0) {
+            container.innerHTML = eligibleTeachers.map(t => {
+                const isChecked = existingTeachers && existingTeachers.some(et => String(et.id) === String(t.userId)) ? 'checked' : '';
+                const displayFirstName = t.firstName ? t.firstName.trim() : t.username;
+                const displayFullName = (t.firstName || t.lastName) ? `${t.firstName || ''} ${t.lastName || ''}`.trim() : t.username;
+
+                return `
+                <label class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition">
+                    <input type="checkbox" value="${t.userId}" data-name="${displayFirstName}" class="w-4 h-4 text-blue-500 rounded border-slate-300 focus:ring-blue-500" ${isChecked}>
+                    <span class="text-sm font-bold text-slate-700">${displayFullName}</span>
+                </label>
+            `;}).join('');
+        } else {
+            container.innerHTML = `<p class="text-xs text-slate-500 italic py-2 text-center">No teachers explicitly assigned to this module.</p>`;
+        }
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+};
+
+window.cancelCourseAssignment = function () {
+    const modal = document.getElementById('courseAssignmentModal');
+    const content = document.getElementById('courseAssignmentModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+
+    pendingCourseDropCell = null;
+    pendingCourseDropItem = null;
+};
+
+window.confirmCourseAssignment = function () {
+    const colorInput = document.getElementById('selectedCourseColor');
+    const container = document.getElementById('assignCourseTeachers');
+    
+    const checkedBoxes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
+    const selectedTeachers = checkedBoxes.map(cb => ({
+        id: cb.value,
+        name: cb.getAttribute('data-name')
+    }));
+
+    if (pendingCourseDropCell && pendingCourseDropItem) {
+        pendingCourseDropItem.color = colorInput ? colorInput.value : '#00B0FF';
+        pendingCourseDropItem.teachers = selectedTeachers;
+        renderCourseInCell(pendingCourseDropCell, pendingCourseDropItem);
+    }
+    
+    cancelCourseAssignment();
+};
+
+window.handlePlacedTTDragStart = function (e) {
+    const block = e.currentTarget;
+    draggedItem = {
+        type: 'course',
+        id: block.getAttribute('data-course-id'),
+        name: block.getAttribute('data-event-name'),
+        isEvent: block.getAttribute('data-is-event') === 'true',
+        color: block.getAttribute('data-color'),
+        teachers: JSON.parse(block.getAttribute('data-teachers') || '[]'),
+        sourceCell: block.closest('.grid-cell')
+    };
+    e.dataTransfer.setData('text/plain', '');
+    e.dataTransfer.effectAllowed = 'copy';
+};
+
+window.editTTBlock = function(block) {
+    const isEvent = block.getAttribute('data-is-event') === 'true';
+    if (isEvent) {
+         showNotification('Events cannot be edited yet.', 'info');
+         return; 
+    }
+
+    const item = {
+        type: 'course',
+        id: block.getAttribute('data-course-id'),
+        name: block.getAttribute('data-event-name'),
+        isEvent: isEvent,
+        color: block.getAttribute('data-color'),
+        teachers: JSON.parse(block.getAttribute('data-teachers') || '[]'),
+        sourceCell: block.closest('.grid-cell')
+    };
+
+    pendingCourseDropCell = item.sourceCell;
+    pendingCourseDropItem = item;
+    openCourseAssignmentModal(item.id, item.name, item.color, item.teachers);
+};
+
 function renderCourseInCell(cell, item) {
     const bgColor = item.color || '#00B0FF';
     const isEvent = item.isEvent === true || item.isEvent === 'true';
+    const encodedTeachers = item.teachers ? item.teachers.map(({id, name}) => ({id, name})) : [];
 
     cell.innerHTML = `
-        <div class="rounded-xl p-1 shadow-sm group/block tt-block text-white"
+        <div class="rounded-xl p-1 shadow-sm group/block tt-block text-white h-full min-h-[48px] cursor-pointer"
+             draggable="true" ondragstart="handlePlacedTTDragStart(event)" onclick="if(event.target.closest('button')) return; editTTBlock(this)"
              data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
              data-is-event="${isEvent}" data-event-name="${item.name}"
+             data-teachers='${JSON.stringify(encodedTeachers).replace(/'/g, "&#39;")}'
              style="background: linear-gradient(135deg, ${bgColor}, ${adjustColor(bgColor, -15)}); border-left-color: ${bgColor};">
             <div class="flex flex-col h-full relative z-10 px-1">
                 <div class="flex items-start justify-between gap-1 mb-0.5">
@@ -780,28 +1124,33 @@ function renderCourseInCell(cell, item) {
                         </svg>
                     </button>
                 </div>
-                <div class="mt-auto">
+                <div class="mt-auto pt-1 w-full flex flex-col gap-0.5">
                     ${isEvent ? `
-                        <span class="inline-block px-1 py-0.5 bg-white/20 rounded text-[7px] font-black uppercase tracking-widest">Event</span>
+                        <span class="inline-block px-1 py-0.5 bg-white/20 rounded text-[7px] font-black uppercase tracking-widest self-start">Event</span>
                     ` : `
-                        <div class="teacher-info flex items-center gap-1 py-0.5 px-1 bg-black/10 rounded-md">
-                            <div class="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center">
-                                <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                        ${(item.teachers && item.teachers.length > 0) ? item.teachers.map(t => `
+                            <div class="teacher-info flex items-center gap-1 py-0.5 px-1 bg-black/10 rounded-md w-full">
+                                <div class="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <span class="teacher-name text-[8px] font-black truncate">${t.name}</span>
                             </div>
-                            <span class="teacher-name text-[8px] font-black truncate max-w-[50px]">Unassigned</span>
-                        </div>
+                        `).join('') : `
+                            <div class="teacher-info flex items-center gap-1 py-0.5 px-1 bg-black/10 rounded-md w-full">
+                                <div class="w-3 h-3 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                    <svg class="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
+                                <span class="teacher-name text-[8px] font-black truncate">Unassigned</span>
+                            </div>
+                        `}
                     `}
                 </div>
             </div>
-            <!-- Color Picker -->
-            <div class="absolute -right-3 top-0 bottom-0 flex flex-col justify-center gap-1 opacity-0 group-hover/block:opacity-100 transition-opacity z-20">
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#3b82f6')" class="w-5 h-5 bg-[#3b82f6] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#ef4444')" class="w-5 h-5 bg-[#ef4444] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#10b981')" class="w-5 h-5 bg-[#10b981] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
-                <div onclick="event.stopPropagation(); setTTBlockColor(this.closest('.tt-block'), '#f59e0b')" class="w-5 h-5 bg-[#f59e0b] rounded-full shadow-lg border-2 border-white cursor-pointer hover:scale-125 transition"></div>
-            </div>
+
             
             <!-- Resize Handle -->
             <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-white/20 rounded-b-xl z-20 transition"></div>
@@ -820,15 +1169,7 @@ function adjustColor(color, percent) {
 }
 
 
-function assignTeacherToCell(cell, item) {
-    const block = cell.querySelector('.tt-block');
-    if (!block) {
-        showNotification('Drop a course first!', 'warning');
-        return;
-    }
-    block.setAttribute('data-teacher-id', item.id);
-    block.querySelector('.teacher-name').textContent = item.name;
-}
+
 
 window.removeTTBlock = function (btn) {
     const cell = btn.closest('.grid-cell');
@@ -839,10 +1180,7 @@ window.removeTTBlock = function (btn) {
     `;
 };
 
-window.setTTBlockColor = function (block, color) {
-    block.style.background = `linear-gradient(135deg, ${color}, ${adjustColor(color, -15)})`;
-    block.setAttribute('data-color', color);
-};
+
 
 window.getISOWeek = function (date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -987,44 +1325,103 @@ window.renderTimetableData = function (data) {
 };
 
 window.saveTimetable = async function () {
-    const classroomId = document.getElementById('ttClassSelect').value;
-    const startDateStr = document.getElementById('ttStartDate').value;
-    const week = startDateStr ? getISOWeek(new Date(startDateStr)) : 1;
-    const semester = document.getElementById('ttSemesterSelect').value;
+    // ── Field helpers ──────────────────────────────────────────────────────
+    const highlight = (id, on) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (on) {
+            el.style.outline = '2px solid #EF4444';
+            el.style.outlineOffset = '2px';
+        } else {
+            el.style.outline = '';
+            el.style.outlineOffset = '';
+        }
+    };
+    const clearHighlights = () =>
+        ['ttClassSelect','ttSemesterSelect','ttAcademicYearSelect','ttStartDate']
+        .forEach(id => highlight(id, false));
+
+    clearHighlights();
+
+    // ── Read field values ──────────────────────────────────────────────────
+    const classroomId    = document.getElementById('ttClassSelect')?.value;
+    const startDateStr   = document.getElementById('ttStartDate')?.value;
+    const semester       = document.getElementById('ttSemesterSelect')?.value;
     const academicYearId = document.getElementById('ttAcademicYearSelect')?.value;
 
-    if (!classroomId) {
-        showNotification('Select a classroom first', 'warning');
+    const semesterVal        = parseInt(semester);
+    const academicYearIdVal  = (academicYearId && academicYearId !== '') ? parseInt(academicYearId) : null;
+    const week               = startDateStr ? getISOWeek(new Date(startDateStr)) : null;
+
+    // ── Validations ────────────────────────────────────────────────────────
+    const errors = [];
+
+    if (!classroomId || classroomId === '') {
+        errors.push({ field: 'ttClassSelect', msg: 'Please select a <strong>classroom</strong> before saving.' });
+    }
+    if (!semester || isNaN(semesterVal)) {
+        errors.push({ field: 'ttSemesterSelect', msg: 'Please select a <strong>semester</strong> (1 or 2).' });
+    }
+    if (!startDateStr) {
+        errors.push({ field: 'ttStartDate', msg: 'Please pick a <strong>week start date</strong> so the timetable can be anchored correctly.' });
+    }
+
+    const blocks = document.querySelectorAll('.tt-block');
+    if (blocks.length === 0) {
+        errors.push({ field: null, msg: 'The timetable grid is <strong>empty</strong>. Drag at least one course onto the grid before saving.' });
+    }
+
+    if (errors.length > 0) {
+        errors.forEach(({ field, msg }, i) => {
+            if (field) highlight(field, true);
+            // Stagger each toast slightly
+            setTimeout(() => showNotification(msg, 'warning'), i * 250);
+        });
+        // Auto-clear red borders after user starts interacting
+        ['ttClassSelect','ttSemesterSelect','ttAcademicYearSelect','ttStartDate'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', clearHighlights, { once: true });
+        });
         return;
     }
 
+    // ── Build entries ──────────────────────────────────────────────────────
     const entries = [];
-    document.querySelectorAll('.tt-block').forEach(block => {
+    blocks.forEach(block => {
         const cell = block.closest('.grid-cell');
-        const duration = parseInt(block.getAttribute('data-duration') || 1);
+        if (!cell) return;
+        const duration  = parseInt(block.getAttribute('data-duration') || 1);
         const startHour = parseInt(cell.getAttribute('data-hour'));
-
-        const isEvent = block.getAttribute('data-is-event') === 'true';
+        const isEvent   = block.getAttribute('data-is-event') === 'true';
         const eventName = block.getAttribute('data-event-name');
 
         entries.push({
-            dayOfWeek: parseInt(cell.getAttribute('data-day-index')),
-            startTime: `${startHour.toString().padStart(2, '0')}:00:00`,
-            endTime: `${(startHour + duration).toString().padStart(2, '0')}:00:00`,
-            courseId: isEvent ? null : parseInt(block.getAttribute('data-course-id')),
-            isEvent: isEvent,
-            eventName: isEvent ? eventName : null,
-            teacherId: block.getAttribute('data-teacher-id') ? parseInt(block.getAttribute('data-teacher-id')) : null,
+            dayOfWeek:  parseInt(cell.getAttribute('data-day-index')),
+            startTime:  `${startHour.toString().padStart(2, '0')}:00:00`,
+            endTime:    `${(startHour + duration).toString().padStart(2, '0')}:00:00`,
+            courseId:   isEvent ? null : parseInt(block.getAttribute('data-course-id')),
+            isEvent,
+            eventName:  isEvent ? eventName : null,
+            teacherId: (() => {
+                const teachersStr = block.getAttribute('data-teachers');
+                if (teachersStr) {
+                    try {
+                        const parsed = JSON.parse(teachersStr);
+                        if (parsed && parsed.length > 0) return parseInt(parsed[0].id);
+                    } catch (e) {}
+                }
+                return block.getAttribute('data-teacher-id') ? parseInt(block.getAttribute('data-teacher-id')) : null;
+            })(),
             color: block.getAttribute('data-color') || '#00B0FF'
         });
     });
 
     const payload = {
-        classroomId: parseInt(classroomId),
-        academicYearId: academicYearId ? parseInt(academicYearId) : null,
-        week: parseInt(week),
-        semester: parseInt(semester),
-        entries: entries
+        classroomId:    parseInt(classroomId),
+        academicYearId: academicYearIdVal,
+        week:           parseInt(week),
+        semester:       semesterVal,
+        entries
     };
 
     try {
@@ -1035,13 +1432,15 @@ window.saveTimetable = async function () {
         });
 
         if (res.ok) {
-            showNotification('Timetable saved successfully!', 'success');
+            showNotification('Timetable saved successfully! All entries have been stored.', 'success');
         } else {
-            showNotification('Failed to save timetable', 'error');
+            let detail = '';
+            try { const body = await res.json(); detail = body.message || body.error || ''; } catch (_) {}
+            showNotification(`Failed to save timetable.${ detail ? ' ' + detail : ' Please check server logs for details.' }`, 'error');
         }
     } catch (err) {
         console.error('Error saving timetable:', err);
-        showNotification('An error occurred', 'error');
+        showNotification('Network error — could not reach the server. Check your connection and try again.', 'error');
     }
 };
 
@@ -1305,14 +1704,14 @@ window.handleSendEmailTT = async function (event) {
         const result = await response.json();
 
         if (response.ok) {
-            showNotification('success', result.message || 'Timetable emails sent successfully!');
+            showNotification(result.message || 'Timetable emails sent successfully!', 'success');
             closeEmailTTModal();
         } else {
-            showNotification('error', result.error || 'Failed to send emails.');
+            showNotification(result.error || 'Failed to send emails.', 'error');
         }
     } catch (error) {
         console.error('Email error:', error);
-        showNotification('error', 'Network error while sending emails.');
+        showNotification('Network error while sending emails.', 'error');
     } finally {
         loader.classList.add('hidden');
         btn.disabled = false;

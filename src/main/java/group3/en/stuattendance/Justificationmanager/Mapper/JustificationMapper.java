@@ -2,8 +2,6 @@ package group3.en.stuattendance.Justificationmanager.Mapper;
 
 import group3.en.stuattendance.Justificationmanager.DTO.JustificationDto;
 import group3.en.stuattendance.Justificationmanager.Model.Justification;
-import group3.en.stuattendance.Usermanager.Model.User;
-import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,7 +12,15 @@ public class JustificationMapper {
         return JustificationDto.builder()
                 .justificationId(justification.getJustificationId())
                 .studentId(justification.getUser() != null ? justification.getUser().getUserId() : null)
+                .studentName(justification.getUser() != null ?
+                        justification.getUser().getFirstName() + " " + justification.getUser().getLastName() : null)
+                .studentMatricule(justification.getUser() != null ? justification.getUser().getMatricule() : null)
                 .attendanceId(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getAttendanceId() : null)
+                .attendanceDate(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getTimestamp() : null)
+                .courseName(justification.getAttendanceRecord() != null &&
+                        justification.getAttendanceRecord().getSession() != null &&
+                        justification.getAttendanceRecord().getSession().getCourse() != null ?
+                        justification.getAttendanceRecord().getSession().getCourse().getCourseName() : null)
                 .documentPath(justification.getDocumentPath())
                 .reason(justification.getReason())
                 .status(justification.getStatus())
@@ -24,12 +30,10 @@ public class JustificationMapper {
                 .build();
     }
 
-    public Justification toEntity(JustificationDto dto, User user, AttendanceRecord attendanceRecord) {
+    public Justification toEntity(JustificationDto dto) {
         if (dto == null) return null;
         return Justification.builder()
                 .justificationId(dto.getJustificationId())
-                .user(user)
-                .attendanceRecord(attendanceRecord)
                 .documentPath(dto.getDocumentPath())
                 .reason(dto.getReason())
                 .status(dto.getStatus())

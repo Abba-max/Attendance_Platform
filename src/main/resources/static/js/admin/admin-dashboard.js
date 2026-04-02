@@ -199,7 +199,7 @@ function renderUserTable(users) {
                         ${user.username.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                        <div class="text-sm font-semibold text-gray-800">${escapeHtml((user.firstName || '') + ' ' + (user.lastName || '')).trim() || escapeHtml(user.username)}</div>
+                        <div class="text-sm font-semibold text-gray-800">${escapeHtml(user.username)}</div>
                         <div class="text-xs text-gray-500">${escapeHtml(user.email || 'No email')}</div>
                     </div>
                 </div>
@@ -218,11 +218,6 @@ function renderUserTable(users) {
                     ${user.isActive ? 'Active' : 'Inactive'}
                 </span>
             </td>
-            <td class="px-6 py-4 text-center">
-                                 <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                                     ${user.isActive ? 'Active' : 'Inactive'}
-                                 </span>
-                             </td>
             <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
                     <button onclick="handleResetPassword(${user.userId})" class="p-2 text-gray-400 hover:text-[#00B0FF] transition-colors" title="Reset Password">
@@ -241,12 +236,6 @@ function renderUserTable(users) {
                         </svg>
                     </button>
                     <!-- Roles Dropdown -->
-                    <button onclick="handleViewUser(${user.userId})" class="p-2 text-gray-400 hover:text-emerald-500 transition-colors" title="View Details">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                        </svg>
-                    </button>
                     <div class="relative">
                         <button onclick="toggleUserDropdown('dropdown-roles-${user.userId}', event)" 
                                 class="p-2 text-gray-400 hover:text-blue-500 transition-colors" title="Manage Roles">
@@ -281,9 +270,7 @@ function renderUserTable(users) {
                         <div id="dropdown-perms-${user.userId}" class="hidden absolute right-0 mt-2 w-72 bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden" onclick="event.stopPropagation()">
                             <div class="p-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-50">Manage Permissions</div>
                             <div class="max-h-60 overflow-y-auto p-2 space-y-1">
-                                ${allPermissions
-                                    .filter(perm => (user.availablePermissionIds || []).includes(perm.permissionId))
-                                    .map(perm => {
+                                ${allPermissions.map(perm => {
         // Use pre-calculated effective permissions from DTO
         const isExplicitlyGranted = (user.additionalPermissionIds || []).includes(perm.permissionId);
         const isExplicitlyDenied = (user.deniedPermissionIds || []).includes(perm.permissionId);
@@ -318,8 +305,6 @@ function renderUserTable(users) {
                                         </div>
                                     `;
     }).join('')}
-                                ${allPermissions.filter(perm => (user.availablePermissionIds || []).includes(perm.permissionId)).length === 0 ? 
-                                    '<div class="text-center py-4 text-gray-400 text-[10px] italic">No role-based permissions to manage</div>' : ''}
                                 <div class="pt-2 border-t border-gray-50">
                                     <button onclick="handleClearOverrides(${user.userId})" 
                                         class="w-full py-2 text-[10px] font-bold text-gray-400 hover:text-red-500 hover:bg-red-50 uppercase tracking-widest transition-colors">
@@ -2619,6 +2604,7 @@ function openBulkImportModal() {
 
         // Reset steps
         document.getElementById('bulkImportStep1').classList.remove('hidden');
+        document.getElementById('bulkImportPreview').classList.add('hidden');
         document.getElementById('bulkImportStep2').classList.add('hidden');
 
         // Reset file input
@@ -2674,12 +2660,91 @@ async function startImport() {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('dryRun', 'true');
 
     try {
         loader.classList.remove('hidden');
         startBtn.disabled = true;
 
-        const response = await fetch('/api/admin/staff/bulk-import', {
+        const response = await fetch('/api/admin/staff/bulk-import?dryRun=true', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showPreview(result);
+        } else {
+            throw new Error('Failed to parse CSV file');
+        }
+    } catch (error) {
+        console.error('Bulk Import Error:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        startBtn.disabled = false;
+        loader.classList.add('hidden');
+    }
+}
+
+function showPreview(result) {
+    document.getElementById('bulkImportStep1').classList.add('hidden');
+    const previewSection = document.getElementById('bulkImportPreview');
+    previewSection.classList.remove('hidden');
+
+    const tbody = document.getElementById('previewTableBody');
+    if (result.previewData && result.previewData.length > 0) {
+        tbody.innerHTML = result.previewData.map(row => `
+            <tr>
+                <td class="px-3 py-2 text-slate-700 font-medium">${escapeHtml(row.firstName || '')}</td>
+                <td class="px-3 py-2 text-slate-700">${escapeHtml(row.lastName || '')}</td>
+                <td class="px-3 py-2 text-slate-600">${escapeHtml(row.email || '')}</td>
+                <td class="px-3 py-2">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 uppercase tabular-nums tracking-wider">${escapeHtml(row.role || '')}</span>
+                </td>
+            </tr>
+        `).join('');
+    } else {
+        tbody.innerHTML = '<tr><td colspan="4" class="px-3 py-8 text-center text-slate-400 italic font-medium">No valid rows found to preview. Please check for errors below.</td></tr>';
+    }
+
+    // Also show errors if any
+    const errorContainer = document.getElementById('errorListContainer');
+    const errorTable = document.getElementById('importErrorTable');
+    if (result.failureCount > 0) {
+        errorContainer.classList.remove('hidden');
+        errorTable.innerHTML = result.errors.map(err => `
+            <tr>
+                <td class="px-3 py-2 font-black text-slate-700">${err.rowNumber}</td>
+                <td class="px-3 py-2 text-slate-600">${escapeHtml(err.identifier)}</td>
+                <td class="px-3 py-2 text-rose-500 font-medium">${escapeHtml(err.errorMessage)}</td>
+            </tr>
+        `).join('');
+    } else {
+        errorContainer.classList.add('hidden');
+    }
+}
+
+function backToUpload() {
+    document.getElementById('bulkImportPreview').classList.add('hidden');
+    document.getElementById('bulkImportStep1').classList.remove('hidden');
+}
+
+async function confirmImport() {
+    const fileInput = document.getElementById('csvFileInput');
+    const file = fileInput.files[0];
+    const confirmBtn = document.getElementById('confirmImportBtn');
+
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('dryRun', 'false');
+
+    try {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Processing...';
+
+        const response = await fetch('/api/admin/staff/bulk-import?dryRun=false', {
             method: 'POST',
             body: formData
         });
@@ -2687,23 +2752,19 @@ async function startImport() {
         if (response.ok) {
             const result = await response.json();
             showResults(result);
-            // We need loadUsers to refresh the table. Check if it's defined.
-            if (typeof loadUsers === 'function') {
-                loadUsers();
-            }
+            if (typeof loadUsers === 'function') loadUsers();
         } else {
-            throw new Error('Failed to process bulk import');
+            throw new Error('Failed to complete import');
         }
     } catch (error) {
-        console.error('Bulk Import Error:', error);
         showNotification(error.message, 'error');
-        startBtn.disabled = false;
-        loader.classList.add('hidden');
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> Confirm & Save';
     }
 }
 
 function showResults(result) {
-    document.getElementById('bulkImportStep1').classList.add('hidden');
+    document.getElementById('bulkImportPreview').classList.add('hidden');
     document.getElementById('bulkImportStep2').classList.remove('hidden');
 
     document.getElementById('res_total').textContent = result.totalRows;
@@ -2728,8 +2789,8 @@ function showResults(result) {
 }
 
 function downloadCsvTemplate() {
-    const headers = "username,email,role\n";
-    const example = "john_doe,john@example.com,PEDAGOG\njane_smith,jane@example.com,SUPERVISOR";
+    const headers = "firstName,lastName,email,role\n";
+    const example = "John,Doe,john@example.com,PEDAGOG\nJane,Smith,jane@example.com,SUPERVISOR";
     const blob = new Blob([headers + example], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2741,11 +2802,21 @@ function downloadCsvTemplate() {
     document.body.removeChild(a);
 }
 
+// Helper to escape HTML and prevent XSS in previews
+function escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Global Exports
 window.openBulkImportModal = openBulkImportModal;
 window.closeBulkImportModal = closeBulkImportModal;
 window.handleFileSelection = handleFileSelection;
 window.startImport = startImport;
+window.confirmImport = confirmImport;
+window.backToUpload = backToUpload;
 window.downloadCsvTemplate = downloadCsvTemplate;
 
 console.log('Bulk Importer module loaded');
@@ -3180,600 +3251,4 @@ window.setRoleFilter = setRoleFilter;
 window.handleUpdateUserRole = handleUpdateUserRole;
 window.handlePermissionCycle = handlePermissionCycle;
 
-/* --- Detail View Modal Handlers --- */
-
-/**
- * Open Detail Modal
- */
-window.openDetailModal = function(title, subtitle = 'Viewing detailed information') {
-    const modal = document.getElementById('detailViewModal');
-    const content = document.getElementById('detailViewModalContent');
-    const titleEl = document.getElementById('detailModalTitle');
-    const subtitleEl = document.getElementById('detailModalSubtitle');
-    const bodyEl = document.getElementById('detailModalBody');
-
-    titleEl.textContent = title;
-    subtitleEl.textContent = subtitle;
-    bodyEl.innerHTML = `
-        <div class="flex items-center justify-center py-10">
-            <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        content.classList.remove('scale-95', 'opacity-0');
-        content.classList.add('scale-100', 'opacity-100');
-    }, 10);
-};
-
-/**
- * Close Detail Modal
- */
-window.closeDetailModal = function() {
-    const modal = document.getElementById('detailViewModal');
-    const content = document.getElementById('detailViewModalContent');
-
-    content.classList.remove('scale-100', 'opacity-100');
-    content.classList.add('scale-95', 'opacity-0');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
-};
-
-/**
- * Handle View User Details
- */
-window.handleViewUser = async function(userId) {
-    openDetailModal('User Details', `Profile for user #${userId}`);
-    
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`);
-        if (!response.ok) throw new Error('Failed to fetch user details');
-        const user = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl">
-                    <div class="w-16 h-16 bg-[#00B0FF] bg-opacity-10 rounded-2xl flex items-center justify-center text-[#00B0FF] text-2xl font-bold">
-                        ${user.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(user.username)}</h4>
-                        <p class="text-slate-500">${escapeHtml(user.email || 'No email')}</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">User ID</p>
-                        <p class="font-bold text-slate-800">#${user.userId}</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
-                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                            ${user.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                    </div>
-                </div>
-                
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Assigned Roles</p>
-                    <div class="flex flex-wrap gap-2 mt-1">
-                        ${(user.roleNames || []).map(role => `
-                            <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-tight border border-blue-100">
-                                ${escapeHtml(role)}
-                            </span>
-                        `).join('') || '<span class="text-slate-400 italic">No roles assigned</span>'}
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Effective Permissions</p>
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                        ${allPermissions
-                            .filter(perm => (user.effectivePermissionIds || []).includes(perm.permissionId))
-                            .map(perm => `
-                                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                    <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    <span class="text-xs font-medium text-slate-600">${escapeHtml(perm.name)}</span>
-                                </div>
-                            `).join('') || '<div class="col-span-2 py-4 text-center text-slate-400 italic text-xs">No active permissions</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing user:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading user details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-};
-
 console.log('Scheduling Grid module loaded');
-
-/**
- * Password Reset Request Handlers
- */
-let currentResetRequestId = null;
-
-function openApproveResetModal(id, username) {
-    currentResetRequestId = id;
-    document.getElementById('resetTargetUser').textContent = username;
-    document.getElementById('tempPassword').value = '';
-    document.getElementById('approveResetModal').classList.remove('hidden');
-    document.getElementById('approveResetModal').classList.add('flex');
-}
-
-function closeApproveResetModal() {
-    document.getElementById('approveResetModal').classList.add('hidden');
-    document.getElementById('approveResetModal').classList.remove('flex');
-    currentResetRequestId = null;
-}
-
-async function submitApproveReset() {
-    const tempPassword = document.getElementById('tempPassword').value;
-    if (!tempPassword) {
-        showNotification('Please enter a temporary password', 'error');
-        return;
-    }
-
-    const btn = document.getElementById('confirmApproveBtn');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Processing...';
-
-    try {
-        const response = await fetch(`/api/admin/password-requests/${currentResetRequestId}?action=APPROVE`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: tempPassword
-        });
-
-        if (response.ok) {
-            showNotification('Password reset approved and notification sent', 'success');
-            closeApproveResetModal();
-            setTimeout(() => window.location.reload(), 1500);
-        } else {
-            throw new Error('Failed to approve request');
-        }
-    } catch (error) {
-        console.error('Error approving reset:', error);
-        showNotification('Error approving reset request', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-    }
-}
-
-async function handleRejectRequest(id) {
-    if (!confirm('Are you sure you want to reject this password reset request?')) return;
-
-    try {
-        const response = await fetch(`/api/admin/password-requests/${id}?action=REJECT`, {
-            method: 'POST'
-        });
-
-        if (response.ok) {
-            showNotification('Request rejected', 'success');
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            throw new Error('Failed to reject request');
-        }
-    } catch (error) {
-        console.error('Error rejecting reset:', error);
-        showNotification('Error rejecting reset request', 'error');
-    }
-}
-
-/* --- Detail View Modal Handlers --- */
-
-/**
- * Open Detail Modal
- */
-function openDetailModal(title, subtitle = 'Viewing detailed information') {
-    const modal = document.getElementById('detailViewModal');
-    const content = document.getElementById('detailViewModalContent');
-    const titleEl = document.getElementById('detailModalTitle');
-    const subtitleEl = document.getElementById('detailModalSubtitle');
-    const bodyEl = document.getElementById('detailModalBody');
-
-    if (!modal) return;
-
-    titleEl.textContent = title;
-    subtitleEl.textContent = subtitle;
-    bodyEl.innerHTML = `
-        <div class="flex items-center justify-center py-10">
-            <div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div>
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        if (content) {
-            content.classList.remove('scale-95', 'opacity-0');
-            content.classList.add('scale-100', 'opacity-100');
-        }
-    }, 10);
-}
-
-/**
- * Close Detail Modal
- */
-function closeDetailModal() {
-    const modal = document.getElementById('detailViewModal');
-    const content = document.getElementById('detailViewModalContent');
-
-    if (!modal) return;
-
-    if (content) {
-        content.classList.remove('scale-100', 'opacity-100');
-        content.classList.add('scale-95', 'opacity-0');
-    }
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
-}
-
-/**
- * Handle View User Details
- */
-async function handleViewUser(userId) {
-    openDetailModal('User Details', `Information for user #${userId}`);
-    
-    try {
-        const response = await fetch(`/api/admin/users/${userId}`);
-        if (!response.ok) throw new Error('Failed to fetch user details');
-        const user = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                    <div class="w-16 h-16 bg-[#00B0FF] bg-opacity-10 rounded-2xl flex items-center justify-center text-[#00B0FF] text-2xl font-bold">
-                        ${(user.firstName || user.username || 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(user.firstName || '')} ${escapeHtml(user.lastName || '')}</h4>
-                        <p class="text-slate-500">${escapeHtml(user.firstName)}  ${escapeHtml(user.lastName)}</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email Address</p>
-                        <p class="font-bold text-slate-800">${escapeHtml(user.email || 'No email')}</p>
-                    </div>
-//                    <div>
-//                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
-//                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-//                            ${user.isActive ? 'Active' : 'Inactive'}
-//                        </span>
-//                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Assigned Roles</p>
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        ${(user.roleNames || []).map(roleName => `
-                            <span class="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold uppercase tracking-tight">
-                                ${escapeHtml(roleName)}
-                            </span>
-                        `).join('') || '<p class="text-sm text-slate-400 italic">No roles assigned</p>'}
-                    </div>
-                </div>
-
-                <!-- Role Specific Details -->
-                ${(user.roleNames || []).includes('PEDAGOGIC_ASSISTANT') || (user.roleNames || []).includes('PA_ASSISTANT') ? `
-                <div class="grid grid-cols-1 gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <div>
-                        <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Handled Departments</p>
-                        <div class="flex flex-wrap gap-1 mt-1">
-                            ${(user.handledDepartmentNames || []).map(dept => `
-                                <span class="px-2 py-0.5 bg-white text-emerald-700 rounded-md text-[10px] font-bold border border-emerald-100">${escapeHtml(dept)}</span>
-                            `).join('') || '<span class="text-xs text-emerald-400 italic">None</span>'}
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Handled Specialities</p>
-                        <div class="flex flex-wrap gap-1 mt-1">
-                            ${(user.handledSpecialityNames || []).map(spec => `
-                                <span class="px-2 py-0.5 bg-white text-emerald-700 rounded-md text-[10px] font-bold border border-emerald-100">${escapeHtml(spec)}</span>
-                            `).join('') || '<span class="text-xs text-emerald-400 italic">None</span>'}
-                        </div>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${(user.roleNames || []).includes('TEACHER') ? `
-                <div class="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                    <p class="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Taught Courses</p>
-                    <div class="flex flex-wrap gap-1 mt-1">
-                        ${(user.taughtCourseNames || []).map(course => `
-                            <span class="px-2 py-0.5 bg-white text-orange-700 rounded-md text-[10px] font-bold border border-orange-100">${escapeHtml(course)}</span>
-                        `).join('') || '<span class="text-xs text-orange-400 italic">No courses assigned</span>'}
-                    </div>
-                </div>
-                ` : ''}
-
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Effective Permissions</p>
-                    <div class="grid grid-cols-2 gap-2 mt-2">
-                        ${allPermissions
-                            .filter(perm => (user.effectivePermissionIds || []).includes(perm.permissionId))
-                            .map(perm => `
-                                <div class="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                                    <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path>
-                                    </svg>
-                                    <span class="text-xs font-medium text-slate-600">${escapeHtml(perm.name)}</span>
-                                </div>
-                            `).join('') || '<div class="col-span-2 py-4 text-center text-slate-400 italic text-xs">No active permissions</div>'}
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing user:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading user details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Handle View Cycle Details
- */
-async function handleViewCycle(cycleId) {
-    openDetailModal('Cycle Details', `Information for academic cycle #${cycleId}`);
-    
-    try {
-        const response = await fetch(`/admin/cycles/${cycleId}`);
-        if (!response.ok) throw new Error('Failed to fetch cycle details');
-        const cycle = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-cyan-50 rounded-2xl border border-cyan-100">
-                    <div class="w-16 h-16 bg-cyan-100 text-cyan-600 rounded-2xl flex items-center justify-center text-2xl font-black">
-                        ${cycle.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(cycle.name)}</h4>
-                        <p class="text-sm text-slate-500 mt-1">Cycle Management</p>
-                    </div>
-                </div>
-                
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Description</p>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <p class="text-sm leading-relaxed">${escapeHtml(cycle.description || 'No description provided.')}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing cycle:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading cycle details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Handle View Department Details
- */
-async function handleViewDepartment(deptId) {
-    openDetailModal('Department Details', `Information for department #${deptId}`);
-    
-    try {
-        const response = await fetch(`/admin/departments/${deptId}`);
-        if (!response.ok) throw new Error('Failed to fetch department details');
-        const dept = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                    <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center text-2xl font-black">
-                        ${dept.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(dept.name)}</h4>
-                        <p class="text-sm text-slate-500 mt-1">Chief: ${escapeHtml(dept.chief || 'Not assigned')}</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Academic Cycle</p>
-                        <p class="font-bold text-slate-800">${escapeHtml(dept.cycleName || 'Common')}</p>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Institution</p>
-                        <p class="font-bold text-slate-800">${escapeHtml(dept.institutionName || 'N/A')}</p>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Department Staff</p>
-                    <div class="grid grid-cols-2 gap-4 mt-2">
-                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Pedagogic Assistants</p>
-                            <p class="text-xs font-bold text-slate-700">${dept.pedagogicAssistantCount || 0} Members</p>
-                        </div>
-                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-1">Supervisors</p>
-                            <p class="text-xs font-bold text-slate-700">${dept.supervisorCount || 0} Members</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing department:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading department details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Handle View Speciality Details
- */
-async function handleViewSpeciality(specId) {
-    openDetailModal('Speciality Details', `Information for speciality #${specId}`);
-    
-    try {
-        const response = await fetch(`/admin/specialities/${specId}`);
-        if (!response.ok) throw new Error('Failed to fetch speciality details');
-        const spec = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-                    <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl font-black">
-                        ${spec.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(spec.name)}</h4>
-                        <p class="text-sm text-slate-500 mt-1">Speciality Track</p>
-                    </div>
-                </div>
-                
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Parent Department</p>
-                    <p class="font-bold text-slate-800">${escapeHtml(spec.departmentName || 'General')}</p>
-                </div>
-
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Description</p>
-                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <p class="text-sm leading-relaxed">${escapeHtml(spec.description || 'No description provided.')}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing speciality:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading speciality details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Handle View Classroom Details
- */
-async function handleViewClassroom(classId) {
-    openDetailModal('Classroom Details', `Information for classroom #${classId}`);
-    
-    try {
-        const response = await fetch(`/admin/classrooms/${classId}`);
-        if (!response.ok) throw new Error('Failed to fetch classroom details');
-        const classroom = await response.json();
-        
-        const bodyEl = document.getElementById('detailModalBody');
-        bodyEl.innerHTML = `
-            <div class="space-y-6 text-slate-700">
-                <div class="flex items-center gap-4 p-4 bg-amber-50 rounded-2xl border border-amber-100">
-                    <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl font-black">
-                        ${classroom.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                        <h4 class="text-xl font-bold text-slate-800">${escapeHtml(classroom.name)}</h4>
-                        <p class="text-sm text-slate-500 mt-1">Level ${classroom.level || 0} • Capacity: ${classroom.capacity || 0}</p>
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Speciality</p>
-                        <p class="font-bold text-slate-800">${escapeHtml(classroom.specialityName || 'Common')}</p>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        console.error('Error viewing classroom:', error);
-        document.getElementById('detailModalBody').innerHTML = `
-            <div class="p-8 text-center text-red-500">
-                <p class="font-bold">Error loading classroom details</p>
-                <p class="text-sm mt-1">${error.message}</p>
-            </div>
-        `;
-    }
-}
-
-/**
- * Filter Multi-select Dropdown (Pedagogic Assistants / Supervisors)
- */
-function filterMultiSelect(input, containerId) {
-    const term = input.value.toLowerCase();
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const options = container.querySelectorAll('label[class*="cursor-pointer"]');
-    
-    options.forEach(opt => {
-        const name = opt.textContent.trim().toLowerCase();
-        if (name.includes(term)) {
-            opt.classList.remove('hidden');
-        } else {
-            opt.classList.add('hidden');
-        }
-    });
-
-    // Check if any results
-    const existingNoResults = container.querySelector('.no-results-msg');
-    const hasVisible = Array.from(options).some(opt => !opt.classList.contains('hidden'));
-    
-    if (!hasVisible) {
-        if (!existingNoResults) {
-            const msg = document.createElement('div');
-            msg.className = 'no-results-msg p-4 text-center text-xs text-slate-400 italic';
-            msg.textContent = 'No results found';
-            container.appendChild(msg);
-        }
-    } else if (existingNoResults) {
-        existingNoResults.remove();
-    }
-}
-
-// Global exposure
-window.openDetailModal = openDetailModal;
-window.handleViewUser = handleViewUser;
-window.handleViewCycle = handleViewCycle;
-window.handleViewDepartment = handleViewDepartment;
-window.handleViewSpeciality = handleViewSpeciality;
-window.handleViewClassroom = handleViewClassroom;
-window.closeDetailModal = closeDetailModal;
-window.filterMultiSelect = filterMultiSelect;
-
-
-window.escapeHtml = escapeHtml;

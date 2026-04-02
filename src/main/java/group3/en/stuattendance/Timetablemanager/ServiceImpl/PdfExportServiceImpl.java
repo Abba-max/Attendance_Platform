@@ -39,15 +39,33 @@ public class PdfExportServiceImpl implements PdfExportService {
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             
-            String dateRange = (timetableDto.getStartDate() != null && timetableDto.getEndDate() != null) 
-                    ? " from " + timetableDto.getStartDate() + " to " + timetableDto.getEndDate() 
+            // ── Derive and format dates ──────────────────────────────────────────
+            java.time.LocalDate startDate = timetableDto.getStartDate();
+            java.time.LocalDate endDate   = timetableDto.getEndDate();
+
+            // When not explicitly stored, compute Monday-Saturday from the ISO week
+            if ((startDate == null || endDate == null) && timetableDto.getWeek() != null) {
+                int isoWeek = timetableDto.getWeek();
+                int year    = java.time.LocalDate.now().getYear();
+                java.time.LocalDate weekStart = java.time.LocalDate.ofYearDay(year, 1)
+                        .with(java.time.temporal.WeekFields.ISO.weekOfYear(), isoWeek)
+                        .with(java.time.DayOfWeek.MONDAY);
+                if (startDate == null) startDate = weekStart;
+                if (endDate   == null) endDate   = weekStart.plusDays(5);
+            }
+
+            java.time.format.DateTimeFormatter dateFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String dateRange = (startDate != null && endDate != null)
+                    ? "From " + startDate.format(dateFmt) + " to " + endDate.format(dateFmt)
                     : "";
-                    
+
             String versionText = timetableDto.getVersion() != null ? " (v" + timetableDto.getVersion() + ")" : "";
-            
-            Paragraph subInfo = new Paragraph("Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") + 
+
+            Paragraph subInfo = new Paragraph(
+                    "Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") +
                     " | Semester: " + (timetableDto.getSemester() != null ? timetableDto.getSemester() : "N/A") +
-                    " | Week: " + timetableDto.getWeek() + versionText + dateRange);
+                    " | Week: " + timetableDto.getWeek() + versionText +
+                    (dateRange.isEmpty() ? "" : "   |   " + dateRange));
             subInfo.setAlignment(Element.ALIGN_CENTER);
             document.add(subInfo);
             document.add(Chunk.NEWLINE);

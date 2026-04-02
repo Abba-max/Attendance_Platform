@@ -39,7 +39,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         Classroom classroom = classroomRepository.findById(dto.getClassroomId())
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + dto.getClassroomId()));
 
-        AcademicYear academicYear;
+        AcademicYear academicYear = null;
         if (dto.getAcademicYearId() == null) {
             academicYear = academicYearRepository.findActiveAcademicYear().orElse(null);
         } else {
@@ -47,9 +47,11 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                     .orElseThrow(() -> new EntityNotFoundException("Academic Year not found with id: " + dto.getAcademicYearId()));
         }
 
+        Long filterYearId = (academicYear != null) ? academicYear.getId() : null;
+
         // Check if a timetable already exists for this classroom, academic year, week, and semester
         Timetablecontent existingTimetable = timetablecontentRepository
-                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(dto.getClassroomId(), academicYear.getId(), dto.getWeek(), dto.getSemester())
+                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(dto.getClassroomId(), filterYearId, dto.getWeek(), dto.getSemester())
                 .orElse(null);
 
         Integer newVersion = 1;
@@ -143,7 +145,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         if (yearId == null) {
             yearId = academicYearRepository.findActiveAcademicYear()
                      .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
-                     .orElseThrow(() -> new EntityNotFoundException("No active academic year found"));
+                     .orElse(null);
         }
         
         final Long finalYearId = yearId;
@@ -159,7 +161,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         if (yearId == null) {
             yearId = academicYearRepository.findActiveAcademicYear()
                      .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
-                     .orElseThrow(() -> new EntityNotFoundException("No active academic year found"));
+                     .orElse(null);
         }
         
         final Long finalYearId = yearId;

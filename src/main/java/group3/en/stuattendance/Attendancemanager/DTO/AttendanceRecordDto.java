@@ -16,8 +16,12 @@ public class AttendanceRecordDto {
 
     private Integer attendanceId;
     private Integer studentId;
+    private String studentName;
+    private String studentMatricule;
     private Integer sessionId;
     private AttendanceStatus status;
+    private String comments;
+    private Boolean verifiedByTeacher;
     private LocalDateTime timestamp;
     private String locationAtCheckin;
     private LocalDateTime createdAt;
