@@ -165,6 +165,18 @@ public class TimetablecontentController {
     }
 
     /**
+     * Resolve classroom from speciality and level.
+     */
+    @GetMapping("/resolve-classroom")
+    public ResponseEntity<java.util.Map<String, Integer>> resolveClassroom(
+            @RequestParam Integer specialityId,
+            @RequestParam Integer level) {
+        return classroomRepository.findFirstBySpeciality_SpecialityIdAndLevel(specialityId, level)
+                .map(c -> ResponseEntity.ok(java.util.Map.of("classroomId", c.getClassId())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * Send timetable PDF to all students in a classroom via Email.
      */
     @PostMapping("/email")

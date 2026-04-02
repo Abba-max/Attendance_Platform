@@ -23,4 +23,6 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
     List<Session> findByCourseCourseIdAndWeek(Integer courseId, Integer week);
 
     List<Session> findByTeacherUserIdAndDate(Integer teacherId, LocalDate date);
+
+    List<Session> findByTeacherUserIdOrderByDateAscStartTimeAsc(Integer teacherId);
 }

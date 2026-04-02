@@ -168,4 +168,12 @@ public class SessionServiceImpl implements SessionService {
                 .map(sessionMapper::toDto)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<SessionDto> getSessionsByTeacherSorted(Integer teacherId) {
+        return sessionRepository.findByTeacherUserIdOrderByDateAscStartTimeAsc(teacherId)
+                .stream()
+                .map(sessionMapper::toDto)
+                .collect(Collectors.toList());
+    }
 }

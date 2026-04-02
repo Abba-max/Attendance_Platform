@@ -61,6 +61,11 @@ function initializeNavigation() {
                 }
             });
 
+            // Special handling for sections
+            if (sectionId === 'planning') {
+                loadPlanning();
+            }
+
             // Update URL
             const url = new URL(window.location);
             url.searchParams.set('section', sectionId);
@@ -1960,3 +1965,127 @@ function escapeHtml(text) {
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
 }
+
+/**
+ * Weekly Planning Logic for Pedagogic Assistant
+ */
+window.loadPlanning = async function() {
+    console.log("Loading planning...");
+    const specId = document.getElementById('planningSpecId').value;
+    const level = document.getElementById('planningLevel').value;
+    const week = document.getElementById('planningWeek').value;
+    const semester = 1; // Default semester
+    
+    // Clear grid and update headers
+    clearPlanningGrid();
+    updatePlanningDates(week);
+
+    if (!specId || !level || !week) return;
+
+    try {
+        // 1. Resolve Classroom
+        const resolveResp = await fetch(`/api/timetablecontent/resolve-classroom?specialityId=${specId}&level=${level}`);
+        if (!resolveResp.ok) {
+            console.warn("No classroom found for the selected speciality and level.");
+            return;
+        }
+        const { classroomId } = await resolveResp.json();
+        
+        // 2. Fetch Timetable
+        const resp = await fetch(`/api/timetablecontent/search?classroomId=${classroomId}&week=${week}&semester=${semester}`);
+        if (!resp.ok) throw new Error("Timetable fetch failed");
+        
+        const timetable = await resp.json();
+        renderPlanningGrid(timetable.entries || []);
+    } catch (error) {
+        console.error("Error loading planning:", error);
+    }
+};
+
+function clearPlanningGrid() {
+    for (let hour = 8; hour <= 17; hour++) {
+        for (let dayIndex = 0; dayIndex <= 6; dayIndex++) {
+            const slot = document.getElementById(`planning-slot-${hour}-${dayIndex}`);
+            if (slot) slot.innerHTML = '';
+        }
+    }
+}
+
+function updatePlanningDates(week) {
+    const today = new Date();
+    const [currYear, currWeek] = getWeekNumber(today);
+    const diff = week - currWeek;
+    
+    const monday = new Date();
+    monday.setDate(today.getDate() + (diff * 7) - (today.getDay() === 0 ? 6 : today.getDay() - 1));
+    
+    const placeholders = document.querySelectorAll('#planning-date-placeholder');
+    placeholders.forEach((p, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        p.textContent = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+    });
+}
+
+function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return [d.getUTCFullYear(), weekNo];
+}
+
+function renderPlanningGrid(entries) {
+    console.log("Rendering planning grid with", entries.length, "entries");
+    const dayMap = {
+        'MONDAY': 0, 'TUESDAY': 1, 'WEDNESDAY': 2, 'THURSDAY': 3,
+        'FRIDAY': 4, 'SATURDAY': 5, 'SUNDAY': 6
+    };
+
+    entries.forEach(entry => {
+        const dayIndex = entry.dayOfWeek !== null ? entry.dayOfWeek : dayMap[entry.day.toUpperCase()];
+        const startHour = parseInt(entry.startTime.split(':')[0]);
+        const endHour = parseInt(entry.endTime.split(':')[0]);
+        const duration = endHour - startHour;
+
+        const slot = document.getElementById(`planning-slot-${startHour}-${dayIndex}`);
+        if (slot) {
+            const block = document.createElement('div');
+            block.className = 'tt-block p-2';
+            block.style.height = `calc((${duration} * 100%) - 6px)`;
+            block.style.borderLeft = `4px solid ${entry.color || '#3b82f6'}`;
+            
+            const name = entry.isEvent ? (entry.eventName || 'Event') : (entry.courseName || 'Course');
+            const teacher = entry.teacherName ? `By ${entry.teacherName}` : '';
+            
+            block.innerHTML = `
+                <div class="flex flex-col h-full overflow-hidden">
+                    <span class="text-[9px] font-black uppercase tracking-tight text-slate-400 mb-0.5">${entry.startTime.substring(0, 5)} - ${entry.endTime.substring(0, 5)}</span>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-black text-slate-800 text-[11px] leading-tight line-clamp-2">${name}</p>
+                        <p class="text-[9px] font-bold text-slate-500 mt-0.5 truncate">${teacher}</p>
+                    </div>
+                </div>
+            `;
+            slot.appendChild(block);
+        }
+    });
+}
+
+window.exportPlanningPdf = async function() {
+    const specId = document.getElementById('planningSpecId').value;
+    const level = document.getElementById('planningLevel').value;
+    const week = document.getElementById('planningWeek').value;
+    
+    if (!specId || !level || !week) return alert("Select Speciality, Level, and Week.");
+    
+    try {
+        const resolveResp = await fetch(`/api/timetablecontent/resolve-classroom?specialityId=${specId}&level=${level}`);
+        if (!resolveResp.ok) return alert("Classroom not found.");
+        const { classroomId } = await resolveResp.json();
+        
+        window.open(`/api/timetablecontent/export/pdf?classroomId=${classroomId}&week=${week}&semester=1`, '_blank');
+    } catch (e) {
+        console.error(e);
+    }
+};

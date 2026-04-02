@@ -199,4 +199,71 @@ public class PdfExportServiceImpl implements PdfExportService {
         }
         table.addCell(cell);
     }
+
+    @Override
+    public ByteArrayInputStream exportAttendanceToPdf(group3.en.stuattendance.Timetablemanager.DTO.SessionDto session, 
+                                                     java.util.List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto> records) {
+        Document document = new Document(PageSize.A4);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Font settings
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Font tableHeadFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+
+            // Title
+            Paragraph title = new Paragraph("Session Attendance Sheet", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(Chunk.NEWLINE);
+
+            // Session Details
+            document.add(new Paragraph("Course: " + session.getCourseName(), bodyFont));
+            document.add(new Paragraph("Date: " + session.getDate() + " (" + session.getStartTime() + " - " + session.getEndTime() + ")", bodyFont));
+            document.add(new Paragraph("Classroom: " + session.getClassroomName(), bodyFont));
+            document.add(new Paragraph("Teacher: " + session.getTeacherName(), bodyFont));
+            document.add(Chunk.NEWLINE);
+
+            // Attendance Table
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1.5f, 3f, 1.5f, 3f});
+
+            // Headers
+            String[] headers = {"Matricule", "Student Name", "Status", "Comments"};
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.WHITE)));
+                cell.setBackgroundColor(java.awt.Color.decode("#00B0FF"));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // Data Rows
+            for (group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto r : records) {
+                table.addCell(new Phrase(r.getStudentMatricule() != null ? r.getStudentMatricule() : "N/A", bodyFont));
+                table.addCell(new Phrase(r.getStudentFirstName() + " " + r.getStudentLastName(), bodyFont));
+                
+                PdfPCell statusCell = new PdfPCell(new Phrase(r.getStatus(), bodyFont));
+                if ("ABSENT".equals(r.getStatus())) statusCell.setBackgroundColor(new java.awt.Color(254, 226, 226));
+                else if ("LATE".equals(r.getStatus())) statusCell.setBackgroundColor(new java.awt.Color(254, 243, 199));
+                else statusCell.setBackgroundColor(new java.awt.Color(209, 250, 229));
+                table.addCell(statusCell);
+                
+                table.addCell(new Phrase(r.getComments() != null ? r.getComments() : "", bodyFont));
+            }
+
+            document.add(table);
+            document.close();
+
+        } catch (DocumentException ex) {
+            throw new RuntimeException("Error during Attendance PDF generation", ex);
+        }
+
+        return new ByteArrayInputStream(out.toByteArray());
+    }
 }
