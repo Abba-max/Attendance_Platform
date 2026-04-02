@@ -16,6 +16,7 @@ public class AttendanceRecordDto {
 
     private Integer attendanceId;
     private Integer userId;
+    private Integer studentId;
     private String studentFirstName;
     private String studentLastName;
     private String studentName;

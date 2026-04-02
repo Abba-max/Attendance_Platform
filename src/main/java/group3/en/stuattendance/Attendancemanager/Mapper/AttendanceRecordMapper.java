@@ -15,6 +15,7 @@ public class AttendanceRecordMapper {
         return AttendanceRecordDto.builder()
                 .attendanceId(entity.getAttendanceId())
                 .userId(student != null ? student.getUserId() : null)
+                .studentId(student != null ? student.getUserId() : null)
                 .studentFirstName(student != null ? student.getFirstName() : null)
                 .studentLastName(student != null ? student.getLastName() : null)
                 .studentName(student != null ? student.getFirstName() + " " + student.getLastName() : null)
