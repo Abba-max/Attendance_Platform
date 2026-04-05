@@ -15,7 +15,9 @@ import java.time.LocalDateTime;
 public class AttendanceRecordDto {
 
     private Integer attendanceId;
-    private Integer studentId;
+    private Integer userId;
+    private String studentFirstName;
+    private String studentLastName;
     private String studentName;
     private String studentMatricule;
     private Integer sessionId;

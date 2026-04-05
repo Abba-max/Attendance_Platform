@@ -45,7 +45,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         record.setVerifiedByTeacher(dto.getVerifiedByTeacher());
         
         // If teacher is verifying, set status to PRESENT if it wasn't set, or keep existing
-        if (record.getStatus() == null) record.setStatus("PRESENT");
+        if (record.getStatus() == null) record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
 
         AttendanceRecord saved = attendanceRecordRepository.save(record);
         return attendanceRecordMapper.toDto(saved);
@@ -79,7 +79,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                         .session(session)
                         .build());
 
-        record.setStatus("PRESENT");
+        record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
         record.setRecordedAt(LocalDateTime.now());
         record.setVerifiedByTeacher(true);
         record.setComments("Teacher self-marked presence.");
@@ -104,7 +104,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .session(session)
                             .build());
 
-            record.setStatus("ABSENT");
+            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
             record.setRecordedAt(LocalDateTime.now());
             record.setComments(comment);
             record.setVerifiedByTeacher(true);

@@ -11,11 +11,18 @@ public class AttendanceRecordMapper {
 
     public AttendanceRecordDto toDto(AttendanceRecord entity) {
         if (entity == null) return null;
+        User student = entity.getUser();
         return AttendanceRecordDto.builder()
                 .attendanceId(entity.getAttendanceId())
-                .studentId(entity.getUser() != null ? entity.getUser().getUserId() : null)
+                .userId(student != null ? student.getUserId() : null)
+                .studentFirstName(student != null ? student.getFirstName() : null)
+                .studentLastName(student != null ? student.getLastName() : null)
+                .studentName(student != null ? student.getFirstName() + " " + student.getLastName() : null)
+                .studentMatricule(student != null ? student.getMatricule() : null)
                 .sessionId(entity.getSession() != null ? entity.getSession().getSessionId() : null)
                 .status(entity.getStatus())
+                .comments(entity.getComments())
+                .verifiedByTeacher(entity.getVerifiedByTeacher())
                 .timestamp(entity.getTimestamp())
                 .locationAtCheckin(entity.getLocationAtCheckin())
                 .createdAt(entity.getCreatedAt())

@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeNavigation();
     initializeMobileMenu();
     initializeProfileDropdown();
+    initializeNotifications();
 
     // Initialise date display for the timetable
     updateTTDates();
@@ -2087,5 +2088,94 @@ window.exportPlanningPdf = async function() {
         window.open(`/api/timetablecontent/export/pdf?classroomId=${classroomId}&week=${week}&semester=1`, '_blank');
     } catch (e) {
         console.error(e);
+    }
+};
+// ==========================================
+// NOTIFICATION MANAGEMENT
+// ==========================================
+
+function initializeNotifications() {
+    const btn = document.getElementById('notification-btn');
+    const panel = document.getElementById('notification-panel');
+    const badge = document.getElementById('notification-badge');
+
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            loadNotifications();
+        }
+    });
+
+    document.addEventListener('click', () => {
+        panel.classList.add('hidden');
+    });
+
+    // Initial load check
+    loadNotifications();
+    // Poll every 60 seconds
+    setInterval(loadNotifications, 60000);
+}
+
+async function loadNotifications() {
+    const list = document.getElementById('notification-list');
+    const badge = document.getElementById('notification-badge');
+    
+    if (!window.user || !window.user.id) return;
+
+    try {
+        const response = await fetch(`/api/notifications/user/${window.user.id}`);
+        if (!response.ok) throw new Error("Failed to fetch notifications");
+        
+        const notifications = await response.json();
+        const unreadCount = notifications.filter(n => !n.isRead).length;
+
+        if (unreadCount > 0) {
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+
+        if (notifications.length === 0) {
+            list.innerHTML = '<div class="p-8 text-center text-slate-400 text-xs font-bold">No new notifications</div>';
+            return;
+        }
+
+        list.innerHTML = notifications.map(n => `
+            <div class="p-4 hover:bg-slate-50 transition-colors cursor-pointer ${n.isRead ? 'opacity-60' : ''}" onclick="handleNotificationClick(${n.id}, '${n.type}')">
+                <div class="flex items-center gap-3 mb-1">
+                    <span class="w-1.5 h-1.5 rounded-full ${n.isRead ? 'bg-slate-300' : 'bg-blue-500'}"></span>
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${n.type.replace('_', ' ')}</span>
+                    <span class="text-[9px] text-slate-300 ml-auto">${new Date(n.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                </div>
+                <p class="text-xs font-bold text-slate-700 leading-relaxed">${n.message}</p>
+            </div>
+        `).join('');
+
+    } catch (error) {
+        console.error("Notifications error:", error);
+    }
+}
+
+window.markAllNotificationsRead = async function() {
+    // This is a placeholder for a bulk mark-as-read API if added later
+    // For now, we can just close the panel or call individual ones if needed
+    alert("Marking all as read...");
+};
+
+window.handleNotificationClick = async function(id, type) {
+    try {
+        await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+        loadNotifications(); // Refresh
+        
+        if (type === 'ATTENDANCE_SUBMISSION') {
+            // Switch to attendance section
+            const navItem = document.querySelector('[data-section="attendance"]');
+            if (navItem) navItem.click();
+        }
+    } catch (error) {
+        console.error("Failed to mark notification as read", error);
     }
 };

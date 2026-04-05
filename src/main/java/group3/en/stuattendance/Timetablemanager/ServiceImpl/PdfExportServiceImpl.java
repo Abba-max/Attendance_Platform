@@ -248,10 +248,16 @@ public class PdfExportServiceImpl implements PdfExportService {
                 table.addCell(new Phrase(r.getStudentMatricule() != null ? r.getStudentMatricule() : "N/A", bodyFont));
                 table.addCell(new Phrase(r.getStudentFirstName() + " " + r.getStudentLastName(), bodyFont));
                 
-                PdfPCell statusCell = new PdfPCell(new Phrase(r.getStatus(), bodyFont));
-                if ("ABSENT".equals(r.getStatus())) statusCell.setBackgroundColor(new java.awt.Color(254, 226, 226));
-                else if ("LATE".equals(r.getStatus())) statusCell.setBackgroundColor(new java.awt.Color(254, 243, 199));
-                else statusCell.setBackgroundColor(new java.awt.Color(209, 250, 229));
+                String statusStr = r.getStatus() != null ? r.getStatus().name() : "NOT_MARKED";
+                PdfPCell statusCell = new PdfPCell(new Phrase(statusStr, bodyFont));
+                
+                if ("ABSENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 226, 226));
+                } else if ("LATE".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 243, 199));
+                } else if ("PRESENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(209, 250, 229));
+                }
                 table.addCell(statusCell);
                 
                 table.addCell(new Phrase(r.getComments() != null ? r.getComments() : "", bodyFont));
