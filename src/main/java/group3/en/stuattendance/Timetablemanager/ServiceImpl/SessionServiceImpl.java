@@ -7,6 +7,10 @@ import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
 import group3.en.stuattendance.Timetablemanager.Service.SessionService;
 import group3.en.stuattendance.Timetablemanager.Model.Course;
 import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
+import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
+import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
+import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
+import group3.en.stuattendance.Timetablemanager.Enum.SessionStatus;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
@@ -14,8 +18,10 @@ import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +33,65 @@ public class SessionServiceImpl implements SessionService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final ClassroomRepository classroomRepository;
+    private final AttendanceRecordRepository attendanceRecordRepository;
     private final SessionMapper sessionMapper;
+
+    @Override
+    @Transactional
+    public SessionDto startSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        if (session.getStatus() != SessionStatus.SCHEDULED) {
+            throw new IllegalStateException("Session must be in SCHEDULED status to start. Current status: " + session.getStatus());
+        }
+
+        session.setStatus(SessionStatus.IN_PROGRESS);
+        session.setActualStartTime(LocalDateTime.now());
+        
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto endSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        if (session.getStatus() != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Session must be IN_PROGRESS to end. Current status: " + session.getStatus());
+        }
+
+        session.setStatus(SessionStatus.COMPLETED);
+        session.setActualEndTime(LocalDateTime.now());
+
+        // Auto-Absence Logic: Mark students who didn't show up
+        if (session.getClassroom() != null) {
+            List<User> classroomStudents = userRepository.findByClassroomClassIdAndRolesName(
+                    session.getClassroom().getClassId(), "STUDENT");
+
+            for (User student : classroomStudents) {
+                if (!attendanceRecordRepository.existsByUserAndSession(student, session)) {
+                    AttendanceRecord autoAbsent = AttendanceRecord.builder()
+                            .user(student)
+                            .session(session)
+                            .status(AttendanceStatus.ABSENT)
+                            .comments("Auto-marked ABSENT upon session closure")
+                            .timestamp(LocalDateTime.now())
+                            .verifiedByTeacher(false)
+                            .qrValidated(false)
+                            .geoValidated(false)
+                            .pinValidated(false)
+                            .build();
+                    attendanceRecordRepository.save(autoAbsent);
+                }
+            }
+        }
+
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
 
     @Override
     public SessionDto createSession(SessionDto sessionDto) {

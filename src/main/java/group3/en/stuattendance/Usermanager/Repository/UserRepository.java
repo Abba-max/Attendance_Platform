@@ -27,4 +27,6 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     Page<User> findAllStaff(Pageable pageable);
 
     List<User> findByRolesName(String roleName);
+
+    List<User> findByClassroomClassIdAndRolesName(Integer classroomId, String roleName);
 }

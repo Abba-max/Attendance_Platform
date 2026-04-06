@@ -31,4 +31,8 @@ public interface SessionService {
     List<SessionDto> getSessionsByTeacherAndDate(Integer teacherId, LocalDate date);
 
     List<SessionDto> getSessionsByTeacherSorted(Integer teacherId);
+
+    SessionDto startSession(Integer sessionId);
+
+    SessionDto endSession(Integer sessionId);
 }

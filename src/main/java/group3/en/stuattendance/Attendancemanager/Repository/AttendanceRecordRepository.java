@@ -13,5 +13,6 @@ import java.util.Optional;
 public interface AttendanceRecordRepository extends JpaRepository<AttendanceRecord, Integer> {
     List<AttendanceRecord> findBySession_SessionId(Integer sessionId);
     Optional<AttendanceRecord> findByUserAndSession(User user, Session session);
+    boolean existsByUserAndSession(User user, Session session);
     List<AttendanceRecord> findByUser_UserId(Integer userId);
 }

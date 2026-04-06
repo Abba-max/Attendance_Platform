@@ -85,7 +85,8 @@ public class SecurityConfig {
                                     userDetails.getUserId(),
                                     userDetails.getFirstName(),
                                     userDetails.getLastName(),
-                                    activeYearId
+                                    activeYearId,
+                                    userDetails.getCourseIds()
                             );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
