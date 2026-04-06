@@ -8,7 +8,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/justifications")
@@ -18,19 +21,27 @@ public class JustificationController {
     private final JustificationService justificationService;
 
     @PostMapping
+    @PreAuthorize("hasRole('STUDENT')")
     public ResponseEntity<JustificationDto> createJustification(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestPart("justification") JustificationDto justificationDto,
-            @RequestPart(value = "document", required = false) MultipartFile document) {
+            @RequestPart(value = "document", required = false) org.springframework.web.multipart.MultipartFile document) {
+        
+        // Security: Ensure student can only create for themselves
+        justificationDto.setStudentId(userDetails.getUserId());
+        
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(justificationService.createJustification(justificationDto, document));
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('STUDENT', 'PEDAGOG')")
     public ResponseEntity<JustificationDto> getJustificationById(@PathVariable Integer id) {
         return ResponseEntity.ok(justificationService.getJustificationById(id));
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<Page<JustificationDto>> getAllJustifications(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -40,6 +51,7 @@ public class JustificationController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<Page<JustificationDto>> getJustificationsByStatus(
             @PathVariable JustificationStatus status,
             @RequestParam(defaultValue = "0") int page,
@@ -71,11 +83,13 @@ public class JustificationController {
     }
 
     @PutMapping("/{id}/approve")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<JustificationDto> approveJustification(@PathVariable Integer id) {
         return ResponseEntity.ok(justificationService.approveJustification(id));
     }
 
     @PutMapping("/{id}/reject")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<JustificationDto> rejectJustification(
             @PathVariable Integer id,
             @RequestParam String reasonForRejection) {

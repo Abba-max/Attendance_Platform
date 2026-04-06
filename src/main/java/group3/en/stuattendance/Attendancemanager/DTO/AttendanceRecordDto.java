@@ -32,4 +32,5 @@ public class AttendanceRecordDto {
     private Boolean pinValidated;
     private LocalDateTime observedAt;
     private LocalDateTime createdAt;
+    private java.util.List<AttendanceHourDto> hourSlots;
 }

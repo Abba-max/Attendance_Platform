@@ -16,7 +16,7 @@ public interface AttendanceService {
 
     AttendanceRecordDto studentCheckIn(Integer sessionId, Integer userId, String qrCode, String pin, String location);
     
-    AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId);
+    AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId, Integer hourIndex);
 
     List<AttendanceRecordDto> getEnrollmentStatus(Integer sessionId);
 }

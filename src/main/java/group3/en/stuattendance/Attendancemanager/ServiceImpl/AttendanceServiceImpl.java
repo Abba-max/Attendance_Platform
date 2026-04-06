@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -143,17 +145,19 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .orElse(AttendanceRecord.builder()
                         .user(student)
                         .session(session)
-                        .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) // Default to ABSENT until validated
+                        .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) 
                         .build());
 
-        // 1. QR or PIN Validation
+        // 1. Validation logic
+        boolean isValid = false;
         if (qrCode != null && qrCode.equals(session.getQrCode())) {
             record.setQrValidated(true);
+            isValid = true;
         } else if (pin != null && pin.equals(session.getTempPin())) {
             record.setPinValidated(true);
+            isValid = true;
         }
 
-        // 2. Geolocation Validation (Simple placeholder logic for now)
         if (location != null && !location.isEmpty()) {
             record.setGeoValidated(true);
             record.setLocationAtCheckin(location);
@@ -161,20 +165,30 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         record.setTimestamp(LocalDateTime.now());
         
-        // Auto-update status if all factors are met
+        if (isValid) {
+            // Mark the CURRENT hour as PRESENT
+            // Added 15-min grace period for early arrivals
+            int currentHour = (int) ChronoUnit.HOURS.between(session.getStartTime().minusMinutes(15), java.time.LocalTime.now());
+            int totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+            
+            // Safety check for early/late birds
+            if (currentHour < 0) currentHour = 0;
+            if (currentHour >= totalHours) currentHour = totalHours - 1;
+            
+            updateHourSlot(record, currentHour, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, false);
+        }
+
+        // Summary status update
         updateRecordStatus(record);
         
         AttendanceRecord saved = attendanceRecordRepository.save(record);
         AttendanceRecordDto responseDto = attendanceRecordMapper.toDto(saved);
-        
-        // Real-time roll-call update for teacher via WebSocket
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, responseDto);
-        
         return responseDto;
     }
 
     @Override
-    public AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId) {
+    public AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId, Integer hourIndex) {
         User student = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
         Session session = sessionRepository.findById(sessionId)
@@ -189,16 +203,44 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         record.setVerifiedByTeacher(true);
         
-        // Auto-update status if all factors are met
+        if (hourIndex != null) {
+            // Verify specific hour
+            updateHourSlot(record, hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, true);
+        } else {
+            // Bulk verify ALL hours
+            int totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+            if (totalHours < 1) totalHours = 1; 
+            
+            // Fix: i < totalHours instead of i <= totalHours
+            for (int i = 0; i < totalHours; i++) {
+                updateHourSlot(record, i, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, true);
+            }
+        }
+        
         updateRecordStatus(record);
         
         AttendanceRecord saved = attendanceRecordRepository.save(record);
         AttendanceRecordDto responseDto = attendanceRecordMapper.toDto(saved);
-        
-        // Real-time roll-call update for teacher via WebSocket
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, responseDto);
-        
         return responseDto;
+    }
+
+    private void updateHourSlot(AttendanceRecord record, int hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status, boolean verified) {
+        group3.en.stuattendance.Attendancemanager.Model.AttendanceHour hour = record.getHourSlots().stream()
+                .filter(h -> h.getHourIndex() == hourIndex)
+                .findFirst()
+                .orElseGet(() -> {
+                    group3.en.stuattendance.Attendancemanager.Model.AttendanceHour newHour = group3.en.stuattendance.Attendancemanager.Model.AttendanceHour.builder()
+                            .attendanceRecord(record)
+                            .hourIndex(hourIndex)
+                            .build();
+                    record.getHourSlots().add(newHour);
+                    return newHour;
+                });
+        
+        hour.setStatus(status);
+        hour.setVerifiedByTeacher(verified);
+        hour.setTimestamp(LocalDateTime.now());
     }
 
     @Override

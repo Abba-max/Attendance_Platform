@@ -11,7 +11,9 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -48,6 +50,10 @@ public class AttendanceRecord {
 
     @Column(name = "location_at_checkin", length = 100)
     private String locationAtCheckin;
+
+    @OneToMany(mappedBy = "attendanceRecord", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<AttendanceHour> hourSlots = new ArrayList<>();
 
     @OneToMany(mappedBy = "attendanceRecord", cascade = CascadeType.ALL)
     @JsonIgnore

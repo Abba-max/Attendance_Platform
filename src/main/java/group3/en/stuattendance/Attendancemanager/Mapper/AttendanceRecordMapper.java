@@ -31,6 +31,19 @@ public class AttendanceRecordMapper {
                 .pinValidated(entity.getPinValidated())
                 .observedAt(entity.getObservedAt())
                 .createdAt(entity.getCreatedAt())
+                .hourSlots(entity.getHourSlots() != null ? 
+                        entity.getHourSlots().stream().map(this::toHourDto).collect(java.util.stream.Collectors.toList()) : null)
+                .build();
+    }
+
+    public group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto toHourDto(group3.en.stuattendance.Attendancemanager.Model.AttendanceHour entity) {
+        if (entity == null) return null;
+        return group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto.builder()
+                .hourId(entity.getHourId())
+                .hourIndex(entity.getHourIndex())
+                .status(entity.getStatus())
+                .verifiedByTeacher(entity.getVerifiedByTeacher())
+                .timestamp(entity.getTimestamp())
                 .build();
     }
 
