@@ -37,6 +37,7 @@ public class JustificationServiceImpl implements JustificationService {
     private final UserRepository userRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final JustificationMapper justificationMapper;
+    private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -108,7 +109,18 @@ public class JustificationServiceImpl implements JustificationService {
                 .orElseThrow(() -> new EntityNotFoundException("Justification not found with id: " + id));
         justification.setStatus(JustificationStatus.ACCEPTED);
         justification.setReasonForRejection(null);
+        
+        // Propagate to AttendanceRecord
+        if (justification.getAttendanceRecord() != null) {
+            justification.getAttendanceRecord().setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+        }
+        
         Justification saved = justificationRepository.save(justification);
+        
+        // Notify Student
+        notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_APPROVED", 
+                "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " has been APPROVED.");
+        
         return justificationMapper.toDto(saved);
     }
 
@@ -119,6 +131,11 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setStatus(JustificationStatus.REJECTED);
         justification.setReasonForRejection(reasonForRejection);
         Justification saved = justificationRepository.save(justification);
+        
+        // Notify Student
+        notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_REJECTED", 
+                "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " was REJECTED. Reason: " + reasonForRejection);
+        
         return justificationMapper.toDto(saved);
     }
 
@@ -138,6 +155,71 @@ public class JustificationServiceImpl implements JustificationService {
     @Override
     public long countByStudent(Integer studentId) {
         return justificationRepository.countByUserUserId(studentId);
+    }
+
+    @Override
+    public group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, MultipartFile file, String reason) {
+        AttendanceRecord record = attendanceRecordRepository.findById(attendanceId)
+                .orElseThrow(() -> new EntityNotFoundException("Attendance record not found with id: " + attendanceId));
+
+        // Validation 1: Belongs to student
+        if (!record.getUser().getUserId().equals(userId)) {
+            throw new RuntimeException("Unauthorized: This attendance record does not belong to you.");
+        }
+
+        // Validation 2: Status is ABSENT
+        if (record.getStatus() != group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) {
+            throw new RuntimeException("Justification can only be submitted for ABSENT records.");
+        }
+
+        // Validation 3: Duplicate prevention
+        if (justificationRepository.existsByAttendanceRecordAttendanceId(attendanceId)) {
+            throw new RuntimeException("A justification has already been submitted for this absence.");
+        }
+
+        String path = null;
+        if (file != null && !file.isEmpty()) {
+            path = saveDocument(file);
+        }
+
+        User user = userRepository.getReferenceById(userId);
+
+        Justification justification = Justification.builder()
+                .user(user)
+                .attendanceRecord(record)
+                .documentPath(path)
+                .reason(reason)
+                .status(JustificationStatus.PENDING)
+                .build();
+
+        Justification saved = justificationRepository.save(justification);
+
+        return group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto.builder()
+                .justificationId(saved.getJustificationId())
+                .attendanceId(attendanceId)
+                .courseName(record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A")
+                .sessionDate(record.getSession().getDate())
+                .reason(saved.getReason())
+                .status(saved.getStatus())
+                .createdAt(saved.getCreatedAt())
+                .build();
+    }
+
+    @Override
+    public java.util.List<group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto> getJustificationsForStudent(Integer userId) {
+        return justificationRepository.findByUserUserId(userId, Pageable.unpaged())
+                .stream()
+                .map(j -> group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto.builder()
+                        .justificationId(j.getJustificationId())
+                        .attendanceId(j.getAttendanceRecord().getAttendanceId())
+                        .courseName(j.getAttendanceRecord().getSession().getCourse() != null ? j.getAttendanceRecord().getSession().getCourse().getCourseName() : "N/A")
+                        .sessionDate(j.getAttendanceRecord().getSession().getDate())
+                        .reason(j.getReason())
+                        .status(j.getStatus())
+                        .reasonForRejection(j.getReasonForRejection())
+                        .createdAt(j.getCreatedAt())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
     }
 
     private String saveDocument(MultipartFile document) {

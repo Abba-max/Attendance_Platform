@@ -34,6 +34,7 @@ public class SessionServiceImpl implements SessionService {
     private final UserRepository userRepository;
     private final ClassroomRepository classroomRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
     private final SessionMapper sessionMapper;
 
     @Override
@@ -85,12 +86,39 @@ public class SessionServiceImpl implements SessionService {
                             .pinValidated(false)
                             .build();
                     attendanceRecordRepository.save(autoAbsent);
+                    
+                    // Notify student of absence
+                    notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT", 
+                            "You were marked ABSENT for " + session.getCourse().getCourseName() + " on " + session.getDate());
                 }
             }
         }
 
         Session saved = sessionRepository.save(session);
         return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto cancelSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        session.setStatus(SessionStatus.CANCELLED);
+        
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    public List<SessionDto> getLiveSessionsByClassrooms(java.util.List<Integer> classroomIds) {
+        if (classroomIds == null || classroomIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return sessionRepository.findByClassroomClassIdInAndStatus(classroomIds, SessionStatus.IN_PROGRESS)
+                .stream()
+                .map(sessionMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override

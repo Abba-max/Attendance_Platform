@@ -22,6 +22,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Override
     public void sendNotification(Integer userId, String type, String message) {
@@ -36,7 +37,14 @@ public class NotificationServiceImpl implements NotificationService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        notificationRepository.save(notification);
+        Notification saved = notificationRepository.save(notification);
+        
+        // Dispatch via WebSocket
+        messagingTemplate.convertAndSendToUser(
+                user.getUsername(), 
+                "/queue/notifications", 
+                notificationMapper.toDto(saved)
+        );
     }
 
     @Override
@@ -50,7 +58,14 @@ public class NotificationServiceImpl implements NotificationService {
                     .isRead(false)
                     .createdAt(LocalDateTime.now())
                     .build();
-            notificationRepository.save(notification);
+            Notification saved = notificationRepository.save(notification);
+            
+            // Dispatch via WebSocket
+            messagingTemplate.convertAndSendToUser(
+                    user.getUsername(), 
+                    "/queue/notifications", 
+                    notificationMapper.toDto(saved)
+            );
         }
     }
 

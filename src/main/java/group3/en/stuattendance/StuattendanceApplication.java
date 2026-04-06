@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
+@org.springframework.scheduling.annotation.EnableScheduling
 public class StuattendanceApplication {
 
 	public static void main(String[] args) {

@@ -32,6 +32,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     private final ClassroomRepository classroomRepository;
     private final AcademicYearRepository academicYearRepository;
     private final UserRepository userRepository;
+    private final group3.en.stuattendance.Timetablemanager.Repository.SessionRepository sessionRepository;
     private final TimetablecontentMapper timetablecontentMapper;
 
     @Override
@@ -48,6 +49,10 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         }
 
         Long filterYearId = (academicYear != null) ? academicYear.getId() : null;
+
+        // 1. Cleanup existing SCHEDULED sessions for this week to prevent duplicates on update
+        sessionRepository.deleteByClassroomClassIdAndWeekAndStatus(
+                dto.getClassroomId(), dto.getWeek(), group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED);
 
         // Check if a timetable already exists for this classroom, academic year, week, and semester
         Timetablecontent existingTimetable = timetablecontentRepository
@@ -96,7 +101,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
 
                 TimetableEntry entry = new TimetableEntry();
 
-                // Resolve the day name: prefer explicit 'day' from DTO; fall back to deriving from dayOfWeek index
+                // Resolve the day name
                 String dayName = entryDto.getDay();
                 if ((dayName == null || dayName.isBlank()) && entryDto.getDayOfWeek() != null) {
                     dayName = group3.en.stuattendance.Timetablemanager.Mapper.TimetablecontentMapper.dayIndexToName(entryDto.getDayOfWeek());
@@ -112,7 +117,6 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                 if (Boolean.TRUE.equals(entryDto.getIsEvent()) && entryDto.getEventName() != null && !entryDto.getEventName().trim().isEmpty()) {
                     entry.setIsEvent(true);
                     entry.setEventName(entryDto.getEventName().trim());
-                    // Events don't strictly require a course or a teacher
                 } else {
                     entry.setIsEvent(false);
                     if (entryDto.getCourseId() == null) {
@@ -127,7 +131,25 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                                 .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + entryDto.getTeacherId()));
                         entry.setTeacher(teacher);
                     } else {
-                        entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null)); // Fallback to course default (first) teacher
+                        entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null));
+                    }
+                    
+                    // 2. Automatically generate Session for this Course entry
+                    if (timetablecontent.getStartDate() != null && entry.getDayOfWeek() != null) {
+                        group3.en.stuattendance.Timetablemanager.Model.Session session = 
+                            group3.en.stuattendance.Timetablemanager.Model.Session.builder()
+                                .date(timetablecontent.getStartDate().plusDays(entry.getDayOfWeek()))
+                                .startTime(entry.getStartTime())
+                                .endTime(entry.getEndTime())
+                                .week(timetablecontent.getWeek())
+                                .day(entry.getDay())
+                                .course(entry.getCourse())
+                                .teacher(entry.getTeacher())
+                                .classroom(classroom)
+                                .timetableEntry(entry)
+                                .status(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
+                                .build();
+                        sessionRepository.save(session);
                     }
                 }
                 

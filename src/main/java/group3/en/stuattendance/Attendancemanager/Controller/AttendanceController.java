@@ -22,6 +22,38 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.markAttendance(dto));
     }
 
+    /**
+     * Student multi-factor check-in (QR/PIN + Geo).
+     */
+    @PostMapping("/student/check-in")
+    public ResponseEntity<AttendanceRecordDto> studentCheckIn(@RequestBody Map<String, Object> payload) {
+        Integer sessionId = (Integer) payload.get("sessionId");
+        Integer userId = (Integer) payload.get("userId");
+        String qrCode = (String) payload.get("qrCode");
+        String pin = (String) payload.get("pin");
+        String location = (String) payload.get("location");
+        
+        return ResponseEntity.ok(attendanceService.studentCheckIn(sessionId, userId, qrCode, pin, location));
+    }
+
+    /**
+     * Teacher manual verification for a specific student.
+     */
+    @PostMapping("/teacher/verify")
+    public ResponseEntity<AttendanceRecordDto> teacherVerify(@RequestBody Map<String, Integer> payload) {
+        Integer sessionId = payload.get("sessionId");
+        Integer userId = payload.get("userId");
+        return ResponseEntity.ok(attendanceService.teacherVerify(sessionId, userId));
+    }
+
+    /**
+     * Get real-time enrollment status for a session.
+     */
+    @GetMapping("/session/{sessionId}/enrollment")
+    public ResponseEntity<List<AttendanceRecordDto>> getEnrollmentStatus(@PathVariable Integer sessionId) {
+        return ResponseEntity.ok(attendanceService.getEnrollmentStatus(sessionId));
+    }
+
     @PostMapping("/teacher-presence")
     public ResponseEntity<AttendanceRecordDto> markTeacherPresence(@RequestBody Map<String, Integer> payload) {
         Integer sessionId = payload.get("sessionId");

@@ -22,6 +22,45 @@ public class PedagogController {
 
     private final UserService userService;
     private final CourseService courseService;
+    private final group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
+    private final group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
+
+    /**
+     * Monitor active sessions in delegated classrooms.
+     */
+    @GetMapping("/sessions/live")
+    public ResponseEntity<List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto>> getLiveMonitoring(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails userDetails) {
+        return ResponseEntity.ok(sessionService.getLiveSessionsByClassrooms(userDetails.getStaffClassroomIds()));
+    }
+
+    /**
+     * Get monitoring details for a specific session.
+     */
+    @GetMapping("/sessions/{id}/monitoring")
+    public ResponseEntity<List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto>> getSessionMonitoring(@PathVariable Integer id) {
+        return ResponseEntity.ok(attendanceService.getEnrollmentStatus(id));
+    }
+
+    /**
+     * Cancel a session.
+     */
+    @PostMapping("/sessions/{id}/cancel")
+    public ResponseEntity<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> cancelSession(@PathVariable Integer id) {
+        return ResponseEntity.ok(sessionService.cancelSession(id));
+    }
+
+    /**
+     * Export attendance sheet for an assistant.
+     */
+    @GetMapping("/sessions/{id}/export")
+    public ResponseEntity<String> exportAttendance(@PathVariable Integer id) {
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"attendance_session_" + id + ".csv\"")
+                .body(attendanceExportService.generateSessionCsv(id));
+    }
 
     @PostMapping("/teachers")
     public ResponseEntity<UserDto> createTeacher(@RequestBody TeacherCreateDto dto) {
@@ -88,5 +127,34 @@ public class PedagogController {
     public ResponseEntity<List<UserDto>> getTeachersByFilter(
             @RequestParam Integer specialityId) {
         return ResponseEntity.ok(userService.getTeachersBySpeciality(specialityId));
+    }
+
+    /**
+     * List all pending justifications for review.
+     */
+    @GetMapping("/justifications/pending")
+    public ResponseEntity<org.springframework.data.domain.Page<group3.en.stuattendance.Justificationmanager.DTO.JustificationDto>> getPendingJustifications(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return ResponseEntity.ok(justificationService.getJustificationsByStatus(
+                group3.en.stuattendance.Justificationmanager.Enum.JustificationStatus.PENDING, page, size, "createdAt", "desc"));
+    }
+
+    /**
+     * Approve a justification.
+     */
+    @PostMapping("/justifications/{id}/approve")
+    public ResponseEntity<group3.en.stuattendance.Justificationmanager.DTO.JustificationDto> approveJustification(@PathVariable Integer id) {
+        return ResponseEntity.ok(justificationService.approveJustification(id));
+    }
+
+    /**
+     * Reject a justification.
+     */
+    @PostMapping("/justifications/{id}/reject")
+    public ResponseEntity<group3.en.stuattendance.Justificationmanager.DTO.JustificationDto> rejectJustification(
+            @PathVariable Integer id,
+            @RequestParam String reason) {
+        return ResponseEntity.ok(justificationService.rejectJustification(id, reason));
     }
 }

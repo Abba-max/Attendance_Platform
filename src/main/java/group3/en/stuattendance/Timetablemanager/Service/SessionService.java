@@ -35,4 +35,8 @@ public interface SessionService {
     SessionDto startSession(Integer sessionId);
 
     SessionDto endSession(Integer sessionId);
+
+    SessionDto cancelSession(Integer sessionId);
+
+    List<SessionDto> getLiveSessionsByClassrooms(java.util.List<Integer> classroomIds);
 }

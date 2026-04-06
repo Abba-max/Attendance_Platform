@@ -13,4 +13,10 @@ public interface AttendanceService {
     AttendanceRecordDto markTeacherPresence(Integer sessionId, Integer teacherId);
     void bulkMarkAbsent(Integer sessionId, List<Integer> studentIds, String comment);
     String generateSessionToken(Integer sessionId, String type); // type: QR or PIN
+
+    AttendanceRecordDto studentCheckIn(Integer sessionId, Integer userId, String qrCode, String pin, String location);
+    
+    AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId);
+
+    List<AttendanceRecordDto> getEnrollmentStatus(Integer sessionId);
 }

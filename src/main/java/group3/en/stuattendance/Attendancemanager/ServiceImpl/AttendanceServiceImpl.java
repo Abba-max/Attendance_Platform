@@ -25,6 +25,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final SessionRepository sessionRepository;
     private final UserRepository userRepository;
     private final AttendanceRecordMapper attendanceRecordMapper;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Override
     public AttendanceRecordDto markAttendance(AttendanceRecordDto dto) {
@@ -124,8 +125,127 @@ public class AttendanceServiceImpl implements AttendanceService {
             sessionRepository.save(session);
             return pin;
         } else {
-            // Placeholder for QR token generation logic
-            return "QR_" + sessionId + "_" + System.currentTimeMillis();
+            String qrToken = "QR_" + sessionId + "_" + System.currentTimeMillis();
+            session.setQrCode(qrToken);
+            sessionRepository.save(session);
+            return qrToken;
+        }
+    }
+
+    @Override
+    public AttendanceRecordDto studentCheckIn(Integer sessionId, Integer userId, String qrCode, String pin, String location) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+
+        AttendanceRecord record = attendanceRecordRepository.findByUserAndSession(student, session)
+                .orElse(AttendanceRecord.builder()
+                        .user(student)
+                        .session(session)
+                        .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) // Default to ABSENT until validated
+                        .build());
+
+        // 1. QR or PIN Validation
+        if (qrCode != null && qrCode.equals(session.getQrCode())) {
+            record.setQrValidated(true);
+        } else if (pin != null && pin.equals(session.getTempPin())) {
+            record.setPinValidated(true);
+        }
+
+        // 2. Geolocation Validation (Simple placeholder logic for now)
+        if (location != null && !location.isEmpty()) {
+            record.setGeoValidated(true);
+            record.setLocationAtCheckin(location);
+        }
+
+        record.setTimestamp(LocalDateTime.now());
+        
+        // Auto-update status if all factors are met
+        updateRecordStatus(record);
+        
+        AttendanceRecord saved = attendanceRecordRepository.save(record);
+        AttendanceRecordDto responseDto = attendanceRecordMapper.toDto(saved);
+        
+        // Real-time roll-call update for teacher via WebSocket
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, responseDto);
+        
+        return responseDto;
+    }
+
+    @Override
+    public AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+
+        AttendanceRecord record = attendanceRecordRepository.findByUserAndSession(student, session)
+                .orElse(AttendanceRecord.builder()
+                        .user(student)
+                        .session(session)
+                        .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                        .build());
+
+        record.setVerifiedByTeacher(true);
+        
+        // Auto-update status if all factors are met
+        updateRecordStatus(record);
+        
+        AttendanceRecord saved = attendanceRecordRepository.save(record);
+        AttendanceRecordDto responseDto = attendanceRecordMapper.toDto(saved);
+        
+        // Real-time roll-call update for teacher via WebSocket
+        messagingTemplate.convertAndSend("/topic/session/" + sessionId, responseDto);
+        
+        return responseDto;
+    }
+
+    @Override
+    public List<AttendanceRecordDto> getEnrollmentStatus(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+        
+        // Get all students for the session's classroom
+        if (session.getClassroom() == null) {
+            return getAttendanceBySession(sessionId);
+        }
+
+        List<User> classroomStudents = userRepository.findByClassroomClassIdAndRolesName(
+                session.getClassroom().getClassId(), "STUDENT");
+        
+        return classroomStudents.stream()
+                .map(student -> {
+                    AttendanceRecord record = attendanceRecordRepository.findByUserAndSession(student, session)
+                            .orElse(null);
+                    if (record != null) {
+                        return attendanceRecordMapper.toDto(record);
+                    } else {
+                        // Return a virtual "ABSENT" record for display
+                        return AttendanceRecordDto.builder()
+                                .userId(student.getUserId())
+                                .studentName(student.getFirstName() + " " + student.getLastName())
+                                .studentMatricule(student.getMatricule())
+                                .sessionId(sessionId)
+                                .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                                .build();
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    private void updateRecordStatus(AttendanceRecord record) {
+        boolean factorsMet = (Boolean.TRUE.equals(record.getQrValidated()) || Boolean.TRUE.equals(record.getPinValidated()))
+                && Boolean.TRUE.equals(record.getGeoValidated())
+                && Boolean.TRUE.equals(record.getVerifiedByTeacher());
+        
+        if (factorsMet) {
+            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
+        } else {
+            // Keep as ABSENT or LATE if it was already marked LATE but not yet verified
+            if (record.getStatus() == null) {
+                record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
+            }
         }
     }
 }

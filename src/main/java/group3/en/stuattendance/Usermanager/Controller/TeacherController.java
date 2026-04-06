@@ -18,6 +18,7 @@ import java.util.List;
 public class TeacherController {
 
     private final SessionService sessionService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
 
     /**
      * Get the logged-in teacher's schedule.
@@ -41,6 +42,24 @@ public class TeacherController {
     @PostMapping("/sessions/{id}/end")
     public ResponseEntity<SessionDto> endSession(@PathVariable Integer id) {
         return ResponseEntity.ok(sessionService.endSession(id));
+    }
+
+    /**
+     * Cancel a session.
+     */
+    @PostMapping("/sessions/{id}/cancel")
+    public ResponseEntity<SessionDto> cancelSession(@PathVariable Integer id) {
+        return ResponseEntity.ok(sessionService.cancelSession(id));
+    }
+
+    /**
+     * Export attendance sheet for the teacher.
+     */
+    @GetMapping("/sessions/{id}/export")
+    public ResponseEntity<String> exportAttendance(@PathVariable Integer id) {
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"attendance_session_" + id + ".csv\"")
+                .body(attendanceExportService.generateSessionCsv(id));
     }
 
     /**
