@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(
+    title='Student Dashboard | Attendee',
+    pageTitle='My Attendance',
+    pageSubtitle='Track your progress and check-in to classes.',
+    role='STUDENT',
+    content=~{::section}
+)}">
+
+<body>
+    <section class="space-y-10 animate-fade-in pb-20">
+        
+        <!-- Status & Progress -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Attendance Ring Card -->
+            <div class="glass-panel p-8 rounded-premium border border-white/40 shadow-sm flex items-center justify-between overflow-hidden relative group">
+                <div class="space-y-2 relative z-10">
+                    <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none">Global Accuracy</p>
+                    <h3 id="presence-percentage" class="text-4xl font-black text-slate-800 font-display tracking-tighter">--%</h3>
+                    <p id="status-label" class="text-[10px] font-bold px-3 py-1 bg-slate-100 text-slate-400 rounded-full inline-block uppercase tracking-widest">Calculating...</p>
+                </div>
+                
+                <!-- SVG Status Ring -->
+                <div class="relative w-28 h-28 z-10">
+                    <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="3"></circle>
+                        <circle id="status-ring-progress" cx="18" cy="18" r="16" fill="none" class="stroke-blue-500 transition-all duration-1000" 
+                                stroke-width="3" stroke-dasharray="0, 100" stroke-linecap="round"></circle>
+                    </svg>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span id="ring-text" class="text-xs font-black text-slate-800">--</span>
+                    </div>
+                </div>
+                
+                <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
+            </div>
+
+            <!-- Quick Action: Check-in -->
+            <div id="check-in-widget" class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-premium text-white shadow-xl shadow-slate-900/20 flex flex-col justify-between group overflow-hidden relative">
+                <div class="relative z-10">
+                    <p class="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Live Action</p>
+                    <h3 id="current-session-name" class="text-xl font-black font-display tracking-tight text-white/90">No active session</h3>
+                    <p id="current-session-details" class="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-1 italic">Scan ready in session vicinity</p>
+                </div>
+                
+                <button id="start-scan-btn" onclick="openScanner()" disabled 
+                        class="mt-6 w-full py-4 bg-white/10 hover:bg-white/20 text-white font-black rounded-2xl border border-white/10 backdrop-blur-md transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-30 disabled:pointer-events-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m0 11v1m9-9h1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z"></path></svg>
+                    I'm in Class
+                </button>
+                <div class="absolute -bottom-8 -right-8 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+            </div>
+        </div>
+
+        <!-- Today's Timeline -->
+        <div class="space-y-6">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xl font-black text-slate-800 tracking-tight font-display">Schedule</h3>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest" th:text="${#temporals.format(#temporals.createNow(), 'EEEE, MMM dd')}">Monday, Jan 01</span>
+            </div>
+
+            <div id="student-schedule-stack" class="space-y-4">
+                <!-- Loader Placeholder -->
+                <div class="py-10 text-center">
+                    <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p class="text-slate-400 font-bold italic font-display text-sm">Syncing your day...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Justification Panel -->
+        <div class="glass-panel p-8 rounded-premium border border-white/40 shadow-sm space-y-6">
+            <h3 class="text-xl font-black text-slate-800 tracking-tight font-display">Absence Justifications</h3>
+            
+            <div id="justification-list" class="space-y-4">
+                <!-- Dynamic Justification History -->
+            </div>
+
+            <button onclick="toggleJustifyModal()" class="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold text-xs hover:border-blue-400 hover:text-blue-500 transition-all flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                New Justification Request
+            </button>
+        </div>
+
+        <!-- QR Scanner Overlay -->
+        <div id="scanner-overlay" class="fixed inset-0 z-[200] bg-black hidden flex flex-col items-center justify-between p-10 animate-fade-in">
+             <button onclick="closeScanner()" class="self-end p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition backdrop-blur-xl">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div class="w-full max-w-sm aspect-square bg-slate-900 rounded-[3rem] border-4 border-white/20 relative overflow-hidden">
+                <div id="qr-reader" class="w-full h-full"></div>
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div class="w-64 h-64 border-2 border-blue-500/50 rounded-3xl animate-pulse"></div>
+                </div>
+            </div>
+
+            <div class="text-center text-white space-y-2 pb-10">
+                <p class="font-black text-sm uppercase tracking-widest">Scanning QR Token</p>
+                <p class="text-white/40 text-xs font-bold">Align the rotating code within the frame</p>
+            </div>
+        </div>
+
+        <!-- Justification Modal -->
+        <div id="justify-modal" class="fixed inset-0 z-[150] bg-slate-900/80 backdrop-blur-xl hidden flex items-center justify-center p-6 animate-fade-in">
+            <div class="bg-white w-full max-w-lg rounded-premium p-8 shadow-2xl relative">
+                <div class="flex items-center justify-between mb-8">
+                    <h3 class="text-2xl font-black text-slate-800 tracking-tight font-display">Justify Absence</h3>
+                    <button onclick="toggleJustifyModal()" class="text-slate-400 hover:text-slate-800 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+
+                <form id="justification-form" class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Select Absence</label>
+                        <select id="absent-sessions-select" required class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all">
+                             <!-- Dynamic Absent Sessions -->
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Reason Details</label>
+                        <textarea id="just-reason" required rows="3" placeholder="Explain your absence briefy..." 
+                                  class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all resize-none"></textarea>
+                    </div>
+
+                    <!-- NATIVE CAMERA INTEGRATION -->
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Attach Evidence (Camera/Photo)</label>
+                        <div id="file-capture-area" class="relative group">
+                            <input type="file" id="just-file" accept="image/*" capture="environment" onchange="previewFile(this)" 
+                                   class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                            <div class="p-8 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50 flex flex-col items-center justify-center gap-3 group-hover:border-blue-200 transition-all">
+                                <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tap to capture or upload</span>
+                            </div>
+                            <!-- Image Preview Overlay -->
+                            <div id="camera-preview" class="hidden absolute inset-0 rounded-3xl overflow-hidden shadow-xl border-2 border-blue-500">
+                                <img id="preview-img" src="" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                                    <span class="text-white text-[10px] font-black uppercase">Captured Ready</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 bg-[#00B0FF] text-white font-black rounded-3xl shadow-2xl shadow-blue-500/30 active:scale-95 transition-all text-sm">
+                        Submit Justification
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Phase 3 Scripts -->
+    <script th:inline="javascript">
+        window.user = {
+            id: [[${userId}]],
+            username: [[${username}]],
+            firstName: [[${firstName}]],
+            lastName: [[${lastName}]],
+        };
+    </script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="/js/student/student-dashboard.js"></script>
+</body>
+</html>
