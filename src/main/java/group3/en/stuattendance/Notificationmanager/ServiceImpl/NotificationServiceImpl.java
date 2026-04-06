@@ -41,7 +41,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     public void notifyRole(String role, String type, String message) {
-        List<User> users = userRepository.findByRole(role);
+        List<User> users = userRepository.findByRolesName(role);
         for (User user : users) {
             Notification notification = Notification.builder()
                     .user(user)

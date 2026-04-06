@@ -40,7 +40,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                         .build());
 
         record.setStatus(dto.getStatus());
-        record.setRecordedAt(LocalDateTime.now());
+        record.setTimestamp(LocalDateTime.now());
         record.setComments(dto.getComments());
         record.setVerifiedByTeacher(dto.getVerifiedByTeacher());
         
@@ -80,7 +80,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                         .build());
 
         record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
-        record.setRecordedAt(LocalDateTime.now());
+        record.setTimestamp(LocalDateTime.now());
         record.setVerifiedByTeacher(true);
         record.setComments("Teacher self-marked presence.");
 
@@ -105,7 +105,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .build());
 
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
-            record.setRecordedAt(LocalDateTime.now());
+            record.setTimestamp(LocalDateTime.now());
             record.setComments(comment);
             record.setVerifiedByTeacher(true);
 

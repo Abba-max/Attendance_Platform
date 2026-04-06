@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const section = urlParams.get('section') || 'dashboard';
     const navItem = document.querySelector(`[data-section="${section}"]`);
     if (navItem) navItem.click();
+
+    setTimeout(() => {
+        if (typeof applyStudentFilters === 'function') applyStudentFilters();
+        if (typeof applyCourseFilters === 'function') applyCourseFilters();
+    }, 200);
 });
 
 /**
@@ -584,7 +589,96 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Course Filtering Logic
+// Student Pagination State
+let currentStudentPage = 1;
+const studentsPerPage = 10;
+let filteredStudentRows = [];
+
+window.applyStudentFilters = function () {
+    const specName = document.getElementById('studentSpecFilter')?.value || '';
+    const className = document.getElementById('studentClassFilter')?.value || '';
+    const levelValue = document.getElementById('studentLevelFilter')?.value || '';
+    const searchText = document.getElementById('studentSearch')?.value.toLowerCase() || '';
+
+    const allRows = document.querySelectorAll('.student-row');
+    filteredStudentRows = [];
+
+    allRows.forEach(row => {
+        const rowSpec = row.getAttribute('data-spec') || '';
+        const rowClass = row.getAttribute('data-class') || '';
+        const rowLevel = row.getAttribute('data-level') || '';
+        const rowName = (row.getAttribute('data-name') || '').toLowerCase();
+        const rowEmail = (row.getAttribute('data-email') || '').toLowerCase();
+        const rowMatricule = (row.getAttribute('data-matricule') || '').toLowerCase();
+
+        const match = (!specName || rowSpec === specName)
+            && (!className || rowClass === className)
+            && (!levelValue || rowLevel === levelValue)
+            && (!searchText || rowName.includes(searchText) || rowEmail.includes(searchText) || rowMatricule.includes(searchText));
+
+        if (match) {
+            filteredStudentRows.push(row);
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    currentStudentPage = 1;
+    renderStudentPagination();
+};
+
+window.renderStudentPagination = function () {
+    const totalPages = Math.ceil(filteredStudentRows.length / studentsPerPage);
+    const startIdx = (currentStudentPage - 1) * studentsPerPage;
+    const endIdx = startIdx + studentsPerPage;
+
+    filteredStudentRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    let tfoot = document.getElementById('studentPaginationFooter');
+    if (!tfoot) {
+        const table = document.querySelector('#studentTableBody').parentElement;
+        tfoot = document.createElement('tfoot');
+        tfoot.id = 'studentPaginationFooter';
+        table.appendChild(tfoot);
+    }
+
+    if (totalPages > 1) {
+        let html = '<tr><td colspan="4" class="px-6 py-4"><div class="flex justify-between items-center"><div class="text-xs text-slate-500">Showing ' + (startIdx + 1) + ' to ' + Math.min(endIdx, filteredStudentRows.length) + ' of ' + filteredStudentRows.length + ' entries</div><div class="inline-flex rounded-md shadow-sm">';
+        
+        const prevDisabled = currentStudentPage === 1 ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="changeStudentPage(' + (currentStudentPage - 1) + ')" class="px-3 py-1 border border-slate-200 bg-white text-xs text-slate-600 rounded-l-md hover:bg-slate-50 ' + prevDisabled + '" ' + (currentStudentPage === 1 ? 'disabled' : '') + '>Previous</button>';
+        
+        for (let i = 1; i <= totalPages; i++) {
+            const activeClass = i === currentStudentPage ? 'bg-blue-50 text-blue-600 font-bold border-blue-500 z-10' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+            html += '<button onclick="changeStudentPage(' + i + ')" class="px-3 py-1 border -ml-px text-xs ' + activeClass + '">' + i + '</button>';
+        }
+
+        const nextDisabled = currentStudentPage === totalPages ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="changeStudentPage(' + (currentStudentPage + 1) + ')" class="px-3 py-1 border border-slate-200 -ml-px bg-white text-xs text-slate-600 rounded-r-md hover:bg-slate-50 ' + nextDisabled + '" ' + (currentStudentPage === totalPages ? 'disabled' : '') + '>Next</button>';
+        
+        html += '</div></div></td></tr>';
+        tfoot.innerHTML = html;
+    } else {
+        tfoot.innerHTML = '';
+    }
+};
+
+window.changeStudentPage = function (page) {
+    currentStudentPage = page;
+    renderStudentPagination();
+};
+
+// Course Pagination State
+let currentCoursePage = 1;
+const coursesPerPage = 10;
+let filteredCourseRows = [];
+
 window.applyCourseFilters = function () {
     const specName = document.getElementById('courseSpecFilter').value;
     const levelValue = document.getElementById('courseLevelFilter').value;
@@ -592,6 +686,7 @@ window.applyCourseFilters = function () {
     const creditValue = document.getElementById('courseCreditFilter').value;
 
     const rows = document.querySelectorAll('.course-row');
+    filteredCourseRows = [];
 
     rows.forEach(row => {
         const rowSpec = row.getAttribute('data-spec');
@@ -606,11 +701,61 @@ window.applyCourseFilters = function () {
         const searchMatch = !searchText || rowName.includes(searchText) || rowCode.includes(searchText);
 
         if (specMatch && levelMatch && creditMatch && searchMatch) {
-            row.style.display = "";
+            filteredCourseRows.push(row);
         } else {
             row.style.display = "none";
         }
     });
+
+    currentCoursePage = 1;
+    renderCoursePagination();
+};
+
+window.renderCoursePagination = function () {
+    const totalPages = Math.ceil(filteredCourseRows.length / coursesPerPage);
+    const startIdx = (currentCoursePage - 1) * coursesPerPage;
+    const endIdx = startIdx + coursesPerPage;
+
+    filteredCourseRows.forEach((row, idx) => {
+        if (idx >= startIdx && idx < endIdx) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    let tfoot = document.getElementById('coursePaginationFooter');
+    if (!tfoot) {
+        const table = document.querySelector('.course-row').closest('table');
+        tfoot = document.createElement('tfoot');
+        tfoot.id = 'coursePaginationFooter';
+        table.appendChild(tfoot);
+    }
+
+    if (totalPages > 1) {
+        let html = '<tr><td colspan="4" class="px-6 py-4"><div class="flex justify-between items-center"><div class="text-xs text-slate-500">Showing ' + (startIdx + 1) + ' to ' + Math.min(endIdx, filteredCourseRows.length) + ' of ' + filteredCourseRows.length + ' entries</div><div class="inline-flex rounded-md shadow-sm">';
+        
+        const prevDisabled = currentCoursePage === 1 ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="changeCoursePage(' + (currentCoursePage - 1) + ')" class="px-3 py-1 border border-slate-200 bg-white text-xs text-slate-600 rounded-l-md hover:bg-slate-50 ' + prevDisabled + '" ' + (currentCoursePage === 1 ? 'disabled' : '') + '>Previous</button>';
+        
+        for (let i = 1; i <= totalPages; i++) {
+            const activeClass = i === currentCoursePage ? 'bg-blue-50 text-blue-600 font-bold border-blue-500 z-10' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
+            html += '<button onclick="changeCoursePage(' + i + ')" class="px-3 py-1 border -ml-px text-xs ' + activeClass + '">' + i + '</button>';
+        }
+
+        const nextDisabled = currentCoursePage === totalPages ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="changeCoursePage(' + (currentCoursePage + 1) + ')" class="px-3 py-1 border border-slate-200 -ml-px bg-white text-xs text-slate-600 rounded-r-md hover:bg-slate-50 ' + nextDisabled + '" ' + (currentCoursePage === totalPages ? 'disabled' : '') + '>Next</button>';
+        
+        html += '</div></div></td></tr>';
+        tfoot.innerHTML = html;
+    } else {
+        tfoot.innerHTML = '';
+    }
+};
+
+window.changeCoursePage = function (page) {
+    currentCoursePage = page;
+    renderCoursePagination();
 };
 
 window.editCourse = async function (courseId) {

@@ -48,7 +48,18 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<UserDto>> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @RequestParam(required = false, defaultValue = "createdAt") String sortBy,
+            @RequestParam(required = false, defaultValue = "desc") String sortDir) {
+        if (page != null && size != null) {
+            org.springframework.data.domain.Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? 
+                    org.springframework.data.domain.Sort.Direction.DESC : org.springframework.data.domain.Sort.Direction.ASC;
+            org.springframework.data.domain.Sort sort = org.springframework.data.domain.Sort.by(direction, sortBy);
+            return ResponseEntity.ok(userService.getAllUsersPaginated(
+                    org.springframework.data.domain.PageRequest.of(page, size, sort)));
+        }
         return ResponseEntity.ok(userService.getAllUserDtos());
     }
 

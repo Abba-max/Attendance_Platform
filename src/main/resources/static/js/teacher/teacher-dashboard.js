@@ -163,7 +163,7 @@ async function loadStudents(sessionId) {
                 <tr class="hover:bg-slate-50/50 transition-colors" data-student-id="${s.userId}">
                     <td class="px-8 py-5">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs">${s.firstName[0]}${s.lastName[0]}</div>
+                            <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-500 text-xs">${(s.firstName && s.firstName.length > 0 ? s.firstName[0] : '') + (s.lastName && s.lastName.length > 0 ? s.lastName[0] : 'S')}</div>
                             <div>
                                 <p class="font-bold text-slate-800 text-sm">${s.firstName} ${s.lastName}</p>
                                 <p class="text-[10px] font-medium text-slate-400 tracking-tight">${s.matricule || 'No Matricule'}</p>

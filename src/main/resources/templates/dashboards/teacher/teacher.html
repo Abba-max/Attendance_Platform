@@ -64,9 +64,10 @@
             <div class="absolute bottom-8 left-8 right-8">
                 <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
                     <div class="flex items-center gap-3 mb-3">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold" th:text="${#strings.substring(firstName,0,1) + #strings.substring(lastName,0,1)}">JD</div>
+                        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 font-bold"
+                             th:text="${(!#strings.isEmpty(firstName) ? #strings.substring(firstName,0,1) : '') + (!#strings.isEmpty(lastName) ? #strings.substring(lastName,0,1) : 'T')}">JD</div>
                         <div>
-                            <p class="text-sm font-bold text-slate-800" th:text="${firstName + ' ' + lastName}">John Doe</p>
+                            <p class="text-sm font-bold text-slate-800" th:text="${(firstName ?: '') + ' ' + (lastName ?: '')}">John Doe</p>
                             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Professor</p>
                         </div>
                     </div>
@@ -199,6 +200,14 @@
             lastName: [[${lastName}]],
             currentWeek: [[${currentWeek}]]
         };
+    </script>
+    <script>
+        function toggleMobileMenu() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar) {
+                sidebar.classList.toggle('-translate-x-full');
+            }
+        }
     </script>
     <script src="/js/teacher/teacher-dashboard.js"></script>
 </body>

@@ -45,7 +45,7 @@ public class PedagogApiTest {
                 .successCount(5)
                 .build();
 
-        when(courseService.bulkImportCourses(any())).thenReturn(result);
+        when(courseService.bulkImportCourses(any(), org.mockito.ArgumentMatchers.anyBoolean(), any(), any())).thenReturn(result);
 
         MockMultipartFile file = new MockMultipartFile("file", "courses.csv", "text/csv", "name,code,credits\nJava,J101,3".getBytes());
 
@@ -62,7 +62,7 @@ public class PedagogApiTest {
                 .failureCount(2)
                 .build();
 
-        when(userService.bulkImportStudents(any(), any())).thenReturn(result);
+        when(userService.bulkImportStudents(any(), any(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(result);
 
         MockMultipartFile file = new MockMultipartFile("file", "students.csv", "text/csv", "firstName,lastName,email\nJohn,Doe,john@example.com".getBytes());
 

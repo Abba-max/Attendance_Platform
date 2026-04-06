@@ -13,6 +13,11 @@ let allUsers = []; // Cache for filtering
 let allRoles = [];
 let allPermissions = [];
 
+// Pagination State
+let currentPage = 0;
+let pageSize = 10;
+let totalPages = 0;
+
 // Hierarchy Filter State
 let currentCycleFilter = 'all';
 let currentDeptFilter = 'all';
@@ -133,10 +138,11 @@ async function loadDashboardData() {
 }
 
 /**
- * Load Users from API
+ * Load Users from API with Pagination
  */
-async function loadUsers() {
+async function loadUsers(page = 0) {
     try {
+        currentPage = page;
         const tableBody = document.getElementById('userTableBody');
         if (tableBody) {
             tableBody.innerHTML = `
@@ -151,11 +157,15 @@ async function loadUsers() {
             `;
         }
 
-        const response = await fetch('/api/admin/users');
+        const response = await fetch(`/api/admin/users?page=${page}&size=${pageSize}&sortBy=createdAt&sortDir=desc`);
         if (!response.ok) throw new Error('Failed to fetch users');
 
-        allUsers = await response.json();
+        const data = await response.json();
+        allUsers = data.content || [];
+        totalPages = data.totalPages || 0;
+
         renderUserTable(allUsers);
+        renderPagination(data);
         console.log('Users loaded successfully');
 
     } catch (error) {
@@ -166,6 +176,50 @@ async function loadUsers() {
             tableBody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading users</td></tr>';
         }
     }
+}
+
+/**
+ * Render Pagination
+ */
+function renderPagination(pageData) {
+    let container = document.getElementById('paginationContainer');
+    if (!container) {
+        const tableBody = document.getElementById('userTableBody');
+        if (!tableBody) return;
+        const tableContainer = tableBody.closest('table').parentElement;
+        container = document.createElement('div');
+        container.id = 'paginationContainer';
+        tableContainer.appendChild(container);
+    }
+    
+    if (!pageData) {
+        container.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="flex items-center justify-between px-4 py-3 bg-white border-t border-slate-200 mt-4 rounded-b-3xl shadow-sm">';
+    html += '<div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">';
+    html += '<div class="text-xs text-slate-500">Showing page ' + (pageData.number + 1) + ' of ' + (pageData.totalPages || 1) + ' (' + pageData.totalElements + ' total items)</div>';
+    
+    if (pageData.totalPages > 1) {
+        html += '<div><nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">';
+        
+        const prevDisabled = pageData.first ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="loadUsers(' + (pageData.number - 1) + ')" class="relative inline-flex items-center px-3 py-1.5 rounded-l-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 ' + prevDisabled + '" ' + (pageData.first ? 'disabled' : '') + '>Previous</button>';
+        
+        for (let i = 0; i < pageData.totalPages; i++) {
+            const activeClass = i === pageData.number ? 'bg-blue-50 border-blue-500 text-blue-600 z-10 font-bold' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50';
+            html += '<button onclick="loadUsers(' + i + ')" class="relative inline-flex items-center px-4 py-1.5 border text-xs font-medium ' + activeClass + '">' + (i + 1) + '</button>';
+        }
+        
+        const nextDisabled = pageData.last ? 'disabled cursor-not-allowed opacity-50' : '';
+        html += '<button onclick="loadUsers(' + (pageData.number + 1) + ')" class="relative inline-flex items-center px-3 py-1.5 rounded-r-md border border-slate-300 bg-white text-xs font-medium text-slate-500 hover:bg-slate-50 ' + nextDisabled + '" ' + (pageData.last ? 'disabled' : '') + '>Next</button>';
+        
+        html += '</nav></div>';
+    }
+    
+    html += '</div></div>';
+    container.innerHTML = html;
 }
 
 /**
