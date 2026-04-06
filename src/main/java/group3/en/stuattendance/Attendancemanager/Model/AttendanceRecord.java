@@ -56,8 +56,24 @@ public class AttendanceRecord {
     @Column(length = 500)
     private String comments;
 
+    @Column(name = "qr_validated")
+    @Builder.Default
+    private Boolean qrValidated = false;
+
+    @Column(name = "geo_validated")
+    @Builder.Default
+    private Boolean geoValidated = false;
+
+    @Column(name = "pin_validated")
+    @Builder.Default
+    private Boolean pinValidated = false;
+
     @Column(name = "verified_by_teacher")
-    private Boolean verifiedByTeacher;
+    @Builder.Default
+    private Boolean verifiedByTeacher = false;
+
+    @Column(name = "observed_at")
+    private LocalDateTime observedAt;
 
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -26,6 +26,10 @@ public class AttendanceRecordMapper {
                 .verifiedByTeacher(entity.getVerifiedByTeacher())
                 .timestamp(entity.getTimestamp())
                 .locationAtCheckin(entity.getLocationAtCheckin())
+                .qrValidated(entity.getQrValidated())
+                .geoValidated(entity.getGeoValidated())
+                .pinValidated(entity.getPinValidated())
+                .observedAt(entity.getObservedAt())
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
@@ -39,6 +43,11 @@ public class AttendanceRecordMapper {
                 .status(dto.getStatus())
                 .timestamp(dto.getTimestamp())
                 .locationAtCheckin(dto.getLocationAtCheckin())
+                .qrValidated(dto.getQrValidated() != null ? dto.getQrValidated() : false)
+                .geoValidated(dto.getGeoValidated() != null ? dto.getGeoValidated() : false)
+                .pinValidated(dto.getPinValidated() != null ? dto.getPinValidated() : false)
+                .verifiedByTeacher(dto.getVerifiedByTeacher() != null ? dto.getVerifiedByTeacher() : false)
+                .observedAt(dto.getObservedAt())
                 .build();
     }
 }

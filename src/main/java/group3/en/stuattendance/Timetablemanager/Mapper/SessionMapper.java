@@ -24,6 +24,11 @@ public class SessionMapper {
                 .teacherName(session.getTeacher() != null ? session.getTeacher().getUsername() : null)
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
                 .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : null)
+                .status(session.getStatus() != null ? session.getStatus().name() : null)
+                .actualStartTime(session.getActualStartTime())
+                .actualEndTime(session.getActualEndTime())
+                .tempPin(session.getTempPin())
+                .isValidated(session.getIsValidated())
                 .isActive(session.isActive())
                 .build();
     }
@@ -39,6 +44,11 @@ public class SessionMapper {
                 .week(dto.getWeek())
                 .locationGeographicalCoordinates(dto.getLocationGeographicalCoordinates())
                 .qrCode(dto.getQrCode())
+                .tempPin(dto.getTempPin())
+                .isValidated(dto.getIsValidated() != null ? dto.getIsValidated() : false)
+                .status(dto.getStatus() != null ? group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.valueOf(dto.getStatus()) : group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
+                .actualStartTime(dto.getActualStartTime())
+                .actualEndTime(dto.getActualEndTime())
                 .build();
     }
 }

@@ -72,6 +72,26 @@ public class Session {
     @JsonIgnore
     private Classroom classroom;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "timetable_entry_id")
+    @JsonIgnore
+    private TimetableEntry timetableEntry;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED;
+
+    @Column(name = "actual_start_time")
+    private LocalDateTime actualStartTime;
+
+    @Column(name = "actual_end_time")
+    private LocalDateTime actualEndTime;
+
+    @Column(name = "is_validated")
+    @Builder.Default
+    private Boolean isValidated = false;
+
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
     @JsonIgnore
     @Builder.Default

@@ -27,5 +27,9 @@ public class AttendanceRecordDto {
     private Boolean verifiedByTeacher;
     private LocalDateTime timestamp;
     private String locationAtCheckin;
+    private Boolean qrValidated;
+    private Boolean geoValidated;
+    private Boolean pinValidated;
+    private LocalDateTime observedAt;
     private LocalDateTime createdAt;
 }
