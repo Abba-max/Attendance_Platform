@@ -54,6 +54,9 @@ public class Session {
     @Column(name = "qr_code", unique = true, length = 500)
     private String qrCode;
 
+    @Column(name = "previous_qr_code", length = 500)
+    private String previousQrCode;
+
     @Column(name = "temp_pin", length = 10)
     private String tempPin;
 

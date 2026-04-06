@@ -127,7 +127,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             sessionRepository.save(session);
             return pin;
         } else {
-            String qrToken = "QR_" + sessionId + "_" + System.currentTimeMillis();
+            String qrToken = java.util.UUID.randomUUID().toString();
             session.setQrCode(qrToken);
             sessionRepository.save(session);
             return qrToken;
@@ -150,7 +150,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         // 1. Validation logic
         boolean isValid = false;
-        if (qrCode != null && qrCode.equals(session.getQrCode())) {
+        
+        // QR check (Accept current OR previous for grace period)
+        if (qrCode != null && (qrCode.equals(session.getQrCode()) || qrCode.equals(session.getPreviousQrCode()))) {
             record.setQrValidated(true);
             isValid = true;
         } else if (pin != null && pin.equals(session.getTempPin())) {
