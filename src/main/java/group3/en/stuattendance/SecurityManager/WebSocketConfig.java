@@ -20,14 +20,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Prefix for server-to-client messages
-        // /topic for broadcasting, /queue for user-specific
+        // Prefix for server-to-client messages: /topic for broadcasting, /queue for user-specific
         config.enableSimpleBroker("/topic", "/queue");
         
         // Prefix for client-to-server messages
         config.setApplicationDestinationPrefixes("/app");
         
-        // Prefix for private user messages (Spring Security integration)
+        // Prefix for private user messages
         config.setUserDestinationPrefix("/user");
     }
 }

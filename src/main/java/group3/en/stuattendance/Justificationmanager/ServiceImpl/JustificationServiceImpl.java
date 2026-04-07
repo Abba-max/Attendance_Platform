@@ -11,7 +11,6 @@ import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepo
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,7 +28,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class JustificationServiceImpl implements JustificationService {
 
@@ -41,6 +39,19 @@ public class JustificationServiceImpl implements JustificationService {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
+
+    public JustificationServiceImpl(
+            JustificationRepository justificationRepository,
+            UserRepository userRepository,
+            AttendanceRecordRepository attendanceRecordRepository,
+            JustificationMapper justificationMapper,
+            group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService) {
+        this.justificationRepository = justificationRepository;
+        this.userRepository = userRepository;
+        this.attendanceRecordRepository = attendanceRecordRepository;
+        this.justificationMapper = justificationMapper;
+        this.notificationService = notificationService;
+    }
 
     @Override
     public JustificationDto createJustification(JustificationDto justificationDto, MultipartFile document) {
@@ -110,14 +121,12 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setStatus(JustificationStatus.ACCEPTED);
         justification.setReasonForRejection(null);
         
-        // Propagate to AttendanceRecord
         if (justification.getAttendanceRecord() != null) {
             justification.getAttendanceRecord().setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
         }
         
         Justification saved = justificationRepository.save(justification);
         
-        // Notify Student
         notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_APPROVED", 
                 "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " has been APPROVED.");
         
@@ -132,7 +141,6 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setReasonForRejection(reasonForRejection);
         Justification saved = justificationRepository.save(justification);
         
-        // Notify Student
         notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_REJECTED", 
                 "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " was REJECTED. Reason: " + reasonForRejection);
         
@@ -162,17 +170,14 @@ public class JustificationServiceImpl implements JustificationService {
         AttendanceRecord record = attendanceRecordRepository.findById(attendanceId)
                 .orElseThrow(() -> new EntityNotFoundException("Attendance record not found with id: " + attendanceId));
 
-        // Validation 1: Belongs to student
         if (!record.getUser().getUserId().equals(userId)) {
             throw new RuntimeException("Unauthorized: This attendance record does not belong to you.");
         }
 
-        // Validation 2: Status is ABSENT
         if (record.getStatus() != group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) {
             throw new RuntimeException("Justification can only be submitted for ABSENT records.");
         }
 
-        // Validation 3: Duplicate prevention
         if (justificationRepository.existsByAttendanceRecordAttendanceId(attendanceId)) {
             throw new RuntimeException("A justification has already been submitted for this absence.");
         }
@@ -184,13 +189,12 @@ public class JustificationServiceImpl implements JustificationService {
 
         User user = userRepository.getReferenceById(userId);
 
-        Justification justification = Justification.builder()
-                .user(user)
-                .attendanceRecord(record)
-                .documentPath(path)
-                .reason(reason)
-                .status(JustificationStatus.PENDING)
-                .build();
+        Justification justification = new Justification();
+        justification.setUser(user);
+        justification.setAttendanceRecord(record);
+        justification.setDocumentPath(path);
+        justification.setReason(reason);
+        justification.setStatus(JustificationStatus.PENDING);
 
         Justification saved = justificationRepository.save(justification);
 

@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,15 @@ public class AttendanceController {
     @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
     public org.springframework.http.ResponseEntity<List<AttendanceRecordDto>> getEnrollmentStatus(@PathVariable Integer sessionId) {
         return org.springframework.http.ResponseEntity.ok(attendanceService.getEnrollmentStatus(sessionId));
+    }
+
+    /**
+     * Get unified roll-call view (Classroom students + status).
+     */
+    @GetMapping("/session/{sessionId}/students")
+    @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
+    public org.springframework.http.ResponseEntity<List<group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto>> getSessionRollCall(@PathVariable Integer sessionId) {
+        return org.springframework.http.ResponseEntity.ok(attendanceService.getRollCallForSession(sessionId));
     }
 
     @PostMapping("/teacher-presence")

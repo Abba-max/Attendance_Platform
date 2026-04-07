@@ -10,7 +10,6 @@ import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,7 +19,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRecordRepository attendanceRecordRepository;
@@ -28,6 +26,19 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final UserRepository userRepository;
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+
+    public AttendanceServiceImpl(
+            AttendanceRecordRepository attendanceRecordRepository,
+            SessionRepository sessionRepository,
+            UserRepository userRepository,
+            AttendanceRecordMapper attendanceRecordMapper,
+            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
+        this.attendanceRecordRepository = attendanceRecordRepository;
+        this.sessionRepository = sessionRepository;
+        this.userRepository = userRepository;
+        this.attendanceRecordMapper = attendanceRecordMapper;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @Override
     public AttendanceRecordDto markAttendance(AttendanceRecordDto dto) {
@@ -58,6 +69,38 @@ public class AttendanceServiceImpl implements AttendanceService {
     public List<AttendanceRecordDto> getAttendanceBySession(Integer sessionId) {
         return attendanceRecordRepository.findBySession_SessionId(sessionId).stream()
                 .map(attendanceRecordMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto> getRollCallForSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+
+        if (session.getClassroom() == null || session.getClassroom().getStudents() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Fetch all existing attendance records for the session
+        java.util.Map<Integer, AttendanceRecord> recordMap = attendanceRecordRepository.findBySession_SessionId(sessionId)
+                .stream()
+                .collect(Collectors.toMap(r -> r.getUser().getUserId(), r -> r));
+
+        return session.getClassroom().getStudents().stream()
+                .map(student -> {
+                    AttendanceRecord record = recordMap.get(student.getUserId());
+                    
+                    return group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto.builder()
+                            .userId(student.getUserId())
+                            .firstName(student.getFirstName())
+                            .lastName(student.getLastName())
+                            .matricule(student.getMatricule())
+                            .status(record != null ? record.getStatus() : null)
+                            .comments(record != null ? record.getComments() : null)
+                            .isLive(record != null && (record.getQrValidated() || record.getGeoValidated() || record.getPinValidated()))
+                            .build();
+                })
+                .sorted(java.util.Comparator.comparing(group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto::getLastName))
                 .collect(Collectors.toList());
     }
 
@@ -169,18 +212,15 @@ public class AttendanceServiceImpl implements AttendanceService {
         
         if (isValid) {
             // Mark the CURRENT hour as PRESENT
-            // Added 15-min grace period for early arrivals
             int currentHour = (int) ChronoUnit.HOURS.between(session.getStartTime().minusMinutes(15), java.time.LocalTime.now());
             int totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
             
-            // Safety check for early/late birds
             if (currentHour < 0) currentHour = 0;
             if (currentHour >= totalHours) currentHour = totalHours - 1;
             
             updateHourSlot(record, currentHour, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, false);
         }
 
-        // Summary status update
         updateRecordStatus(record);
         
         AttendanceRecord saved = attendanceRecordRepository.save(record);
@@ -206,14 +246,11 @@ public class AttendanceServiceImpl implements AttendanceService {
         record.setVerifiedByTeacher(true);
         
         if (hourIndex != null) {
-            // Verify specific hour
             updateHourSlot(record, hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, true);
         } else {
-            // Bulk verify ALL hours
             int totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
             if (totalHours < 1) totalHours = 1; 
             
-            // Fix: i < totalHours instead of i <= totalHours
             for (int i = 0; i < totalHours; i++) {
                 updateHourSlot(record, i, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, true);
             }
@@ -250,7 +287,6 @@ public class AttendanceServiceImpl implements AttendanceService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
         
-        // Get all students for the session's classroom
         if (session.getClassroom() == null) {
             return getAttendanceBySession(sessionId);
         }
@@ -265,7 +301,6 @@ public class AttendanceServiceImpl implements AttendanceService {
                     if (record != null) {
                         return attendanceRecordMapper.toDto(record);
                     } else {
-                        // Return a virtual "ABSENT" record for display
                         return AttendanceRecordDto.builder()
                                 .userId(student.getUserId())
                                 .studentName(student.getFirstName() + " " + student.getLastName())
@@ -286,7 +321,6 @@ public class AttendanceServiceImpl implements AttendanceService {
         if (factorsMet) {
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
         } else {
-            // Keep as ABSENT or LATE if it was already marked LATE but not yet verified
             if (record.getStatus() == null) {
                 record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
             }

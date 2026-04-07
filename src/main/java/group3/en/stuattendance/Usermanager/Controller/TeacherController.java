@@ -3,7 +3,9 @@ package group3.en.stuattendance.Usermanager.Controller;
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Service.SessionService;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
-import lombok.RequiredArgsConstructor;
+import group3.en.stuattendance.Usermanager.DTO.UserDto;
+import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
+import group3.en.stuattendance.Usermanager.Service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,12 +15,24 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/teacher")
-@RequiredArgsConstructor
 @PreAuthorize("hasRole('TEACHER')")
 public class TeacherController {
 
     private final SessionService sessionService;
+    private final UserService userService;
+    private final UserMapper userMapper;
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
+
+    public TeacherController(
+            SessionService sessionService,
+            UserService userService,
+            UserMapper userMapper,
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService) {
+        this.sessionService = sessionService;
+        this.userService = userService;
+        this.userMapper = userMapper;
+        this.attendanceExportService = attendanceExportService;
+    }
 
     /**
      * Get the logged-in teacher's schedule.
@@ -26,6 +40,21 @@ public class TeacherController {
     @GetMapping("/sessions/my-schedule")
     public ResponseEntity<List<SessionDto>> getMySchedule(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(sessionService.getSessionsByTeacherSorted(userDetails.getUserId()));
+    }
+
+    /**
+     * Get students enrolled for a specific session.
+     */
+    @GetMapping("/sessions/{id}/students")
+    public ResponseEntity<List<UserDto>> getSessionStudents(@PathVariable Integer id) {
+        SessionDto session = sessionService.getSessionById(id);
+        if (session.getClassroomId() == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(userService.getStudentsByClassroom(session.getClassroomId())
+                .stream()
+                .map(userMapper::toDto)
+                .toList());
     }
 
     /**

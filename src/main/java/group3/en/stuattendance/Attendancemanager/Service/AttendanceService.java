@@ -7,6 +7,7 @@ import java.util.List;
 public interface AttendanceService {
     AttendanceRecordDto markAttendance(AttendanceRecordDto dto);
     List<AttendanceRecordDto> getAttendanceBySession(Integer sessionId);
+    List<group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto> getRollCallForSession(Integer sessionId);
     List<AttendanceRecordDto> getAttendanceByUser(Integer userId);
     
     // Teacher features

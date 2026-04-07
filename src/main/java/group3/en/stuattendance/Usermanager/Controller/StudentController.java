@@ -4,7 +4,6 @@ import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.DTO.*;
 import group3.en.stuattendance.Usermanager.Service.StudentService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +15,21 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/student")
-@RequiredArgsConstructor
 @PreAuthorize("hasRole('STUDENT')")
 public class StudentController {
 
     private final StudentService studentService;
     private final group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
     private final group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService;
+
+    public StudentController(
+            StudentService studentService,
+            group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService,
+            group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService) {
+        this.studentService = studentService;
+        this.justificationService = justificationService;
+        this.sessionService = sessionService;
+    }
 
     @GetMapping("/schedule/today")
     public ResponseEntity<List<StudentScheduleDto>> getTodaySchedule(@AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -47,9 +54,6 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getCourseAttendanceStats(userDetails.getUserId()));
     }
 
-    /**
-     * Submit a justification for an absence.
-     */
     @PostMapping(value = "/justifications/upload", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto> uploadJustification(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -59,18 +63,12 @@ public class StudentController {
         return ResponseEntity.ok(justificationService.submitJustification(userDetails.getUserId(), attendanceId, file, reason));
     }
 
-    /**
-     * List all justifications submitted by the student.
-     */
     @GetMapping("/justifications")
     public ResponseEntity<List<group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto>> getMyJustifications(
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(justificationService.getJustificationsForStudent(userDetails.getUserId()));
     }
 
-    /**
-     * Student check-in endpoint (Structure only for Phase 3).
-     */
     @PostMapping("/attendance/check-in")
     public ResponseEntity<java.util.Map<String, String>> checkIn(
             @AuthenticationPrincipal CustomUserDetails userDetails,
@@ -82,9 +80,6 @@ public class StudentController {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "Session is not currently in progress."));
         }
 
-        // TODO: Implement QR/PIN validation and Geofencing logic.
-        // Action: If session is valid, temporarily mark attendance as PENDING_VALIDATION.
-        
         return ResponseEntity.ok(java.util.Map.of(
             "message", "Check-in request received. Status: PENDING_VALIDATION",
             "sessionId", String.valueOf(request.getSessionId())

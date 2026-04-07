@@ -42,7 +42,12 @@ public class StudentServiceImpl implements StudentService {
 
         return sessionRepository.findByClassroomClassIdAndDate(student.getClassroom().getClassId(), LocalDate.now())
                 .stream()
-                .map(session -> StudentScheduleDto.builder()
+                .map(session -> {
+                    String attStatus = attendanceRecordRepository.findByUserAndSession(student, session)
+                            .map(r -> r.getStatus().name())
+                            .orElse("NOT_MARKED");
+                    
+                    return StudentScheduleDto.builder()
                         .sessionId(session.getSessionId())
                         .courseName(session.getCourse() != null ? session.getCourse().getCourseName() : "N/A")
                         .teacherName(session.getTeacher() != null ? session.getTeacher().getFirstName() + " " + session.getTeacher().getLastName() : "N/A")
@@ -51,7 +56,9 @@ public class StudentServiceImpl implements StudentService {
                         .endTime(session.getEndTime())
                         .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : "N/A")
                         .status(session.getStatus().name())
-                        .build())
+                        .attendanceStatus(attStatus)
+                        .build();
+                })
                 .collect(Collectors.toList());
     }
 
@@ -106,7 +113,7 @@ public class StudentServiceImpl implements StudentService {
         long presentCount = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
         long totalAbsences = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.ABSENT).count();
         
-        long pendingJustifications = justificationRepository.countByUserUserIdAndStatus(
+        long pendingJustifications = justificationRepository.findByUserUserIdAndStatus(
                 userId, JustificationStatus.PENDING, Pageable.unpaged()).getTotalElements();
         
         double rate = totalSessions > 0 ? (double) presentCount / totalSessions * 100 : 100.0;

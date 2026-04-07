@@ -3,8 +3,8 @@ package group3.en.stuattendance.Attendancemanager.Scheduler;
 import group3.en.stuattendance.Timetablemanager.Enum.SessionStatus;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -14,12 +14,17 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class QrRotationScheduler {
+
+    private static final Logger log = LoggerFactory.getLogger(QrRotationScheduler.class);
 
     private final SessionRepository sessionRepository;
     private final SimpMessagingTemplate messagingTemplate;
+
+    public QrRotationScheduler(SessionRepository sessionRepository, SimpMessagingTemplate messagingTemplate) {
+        this.sessionRepository = sessionRepository;
+        this.messagingTemplate = messagingTemplate;
+    }
 
     /**
      * Rotates QR codes for all active sessions every 30 seconds.

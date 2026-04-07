@@ -12,6 +12,8 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
 
     List<Session> findByCourseCourseId(Integer courseId);
 
+    List<Session> findByStatus(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
     List<Session> findByTeacherUserId(Integer teacherId);
 
     List<Session> findByClassroomClassId(Integer classroomId);
