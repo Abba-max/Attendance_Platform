@@ -235,4 +235,17 @@ public class TimetablecontentController {
 
         return ResponseEntity.ok(java.util.Map.of("message", "Email distribution started for " + bccList.size() + " students."));
     }
+
+    /**
+     * Get all sessions for the Pedagogic Assistant sessions monitor.
+     * Accessible by PEDAGOG and ADMIN roles.
+     * GET /api/timetablecontent/sessions/all
+     */
+    @GetMapping("/sessions/all")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PEDAGOG','ADMIN')")
+    public ResponseEntity<List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto>> getAllSessions() {
+        List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> sessions =
+            timetablecontentService.getAllSessionsForMonitor();
+        return ResponseEntity.ok(sessions);
+    }
 }

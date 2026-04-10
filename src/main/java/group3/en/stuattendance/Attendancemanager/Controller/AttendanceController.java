@@ -79,7 +79,7 @@ public class AttendanceController {
      */
     @GetMapping("/session/{sessionId}/students")
     @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
-    public org.springframework.http.ResponseEntity<List<group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto>> getSessionRollCall(@PathVariable Integer sessionId) {
+    public org.springframework.http.ResponseEntity<List<group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto>> getSessionRollCall(@PathVariable("sessionId") Integer sessionId) {
         return org.springframework.http.ResponseEntity.ok(attendanceService.getRollCallForSession(sessionId));
     }
 
@@ -93,7 +93,7 @@ public class AttendanceController {
 
     @GetMapping("/session/{sessionId}")
     @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
-    public org.springframework.http.ResponseEntity<List<AttendanceRecordDto>> getSessionAttendance(@PathVariable Integer sessionId) {
+    public org.springframework.http.ResponseEntity<List<AttendanceRecordDto>> getSessionAttendance(@PathVariable("sessionId") Integer sessionId) {
         return org.springframework.http.ResponseEntity.ok(attendanceService.getAttendanceBySession(sessionId));
     }
 
@@ -108,14 +108,34 @@ public class AttendanceController {
 
     @PostMapping("/session/{sessionId}/submit")
     @PreAuthorize("hasRole('TEACHER')")
-    public org.springframework.http.ResponseEntity<Map<String, String>> submitAttendance(@PathVariable Integer sessionId, @RequestParam Integer teacherId) {
-        // 1. Mark teacher presence if not done
-        attendanceService.markTeacherPresence(sessionId, teacherId);
+    public org.springframework.http.ResponseEntity<Map<String, String>> submitAttendance(@PathVariable("sessionId") Integer sessionId) {
+        // 1. Mark session as validated/submitted
+        // logic here if needed or just notify
         
         // 2. Notify Pedagogic Assistants
         notificationService.notifyRole("PEDAGOG", "ATTENDANCE_SUBMISSION", 
             "Teacher has submitted the attendance sheet for Session #" + sessionId);
             
         return org.springframework.http.ResponseEntity.ok(Map.of("message", "Attendance sheet submitted successfully to the Pedagogic Assistant."));
+    }
+
+    @PostMapping("/session/{sessionId}/student/{userId}/hour/{hourIndex}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
+    public org.springframework.http.ResponseEntity<Void> markHourStatus(
+            @PathVariable("sessionId") Integer sessionId,
+            @PathVariable("userId") Integer userId,
+            @PathVariable("hourIndex") Integer hourIndex,
+            @RequestParam("status") group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
+        attendanceService.markHourStatus(sessionId, userId, hourIndex, status);
+        return org.springframework.http.ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/session/{sessionId}/mark-all")
+    @PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG')")
+    public org.springframework.http.ResponseEntity<Void> markAllSessionStatus(
+            @PathVariable("sessionId") Integer sessionId,
+            @RequestParam("status") group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
+        attendanceService.markAllSessionStatus(sessionId, status);
+        return org.springframework.http.ResponseEntity.ok().build();
     }
 }

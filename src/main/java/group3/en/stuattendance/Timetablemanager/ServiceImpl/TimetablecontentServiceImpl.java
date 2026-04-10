@@ -33,6 +33,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     private final AcademicYearRepository academicYearRepository;
     private final UserRepository userRepository;
     private final group3.en.stuattendance.Timetablemanager.Repository.SessionRepository sessionRepository;
+    private final group3.en.stuattendance.Timetablemanager.Mapper.SessionMapper sessionMapper;
     private final TimetablecontentMapper timetablecontentMapper;
 
     @Override
@@ -134,23 +135,6 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                         entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null));
                     }
                     
-                    // 2. Automatically generate Session for this Course entry
-                    if (timetablecontent.getStartDate() != null && entry.getDayOfWeek() != null) {
-                        group3.en.stuattendance.Timetablemanager.Model.Session session = 
-                            group3.en.stuattendance.Timetablemanager.Model.Session.builder()
-                                .date(timetablecontent.getStartDate().plusDays(entry.getDayOfWeek()))
-                                .startTime(entry.getStartTime())
-                                .endTime(entry.getEndTime())
-                                .week(timetablecontent.getWeek())
-                                .day(entry.getDay())
-                                .course(entry.getCourse())
-                                .teacher(entry.getTeacher())
-                                .classroom(classroom)
-                                .timetableEntry(entry)
-                                .status(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
-                                .build();
-                        sessionRepository.save(session);
-                    }
                 }
                 
                 timetablecontent.getEntries().add(entry);
@@ -158,6 +142,28 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         }
 
         Timetablecontent saved = timetablecontentRepository.save(timetablecontent);
+        
+        if (saved.getStartDate() != null) {
+            for (TimetableEntry savedEntry : saved.getEntries()) {
+                if (!Boolean.TRUE.equals(savedEntry.getIsEvent()) && savedEntry.getDayOfWeek() != null && savedEntry.getCourse() != null) {
+                    group3.en.stuattendance.Timetablemanager.Model.Session session = 
+                        group3.en.stuattendance.Timetablemanager.Model.Session.builder()
+                            .date(saved.getStartDate().plusDays(savedEntry.getDayOfWeek()))
+                            .startTime(savedEntry.getStartTime())
+                            .endTime(savedEntry.getEndTime())
+                            .week(saved.getWeek())
+                            .day(savedEntry.getDay())
+                            .course(savedEntry.getCourse())
+                            .teacher(savedEntry.getTeacher())
+                            .classroom(classroom)
+                            .timetableEntry(savedEntry)
+                            .status(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
+                            .build();
+                    sessionRepository.save(session);
+                }
+            }
+        }
+        
         return timetablecontentMapper.toDto(saved);
     }
 
@@ -204,6 +210,14 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     public List<TimetablecontentDto> getAllTimetablecontents() {
         return timetablecontentRepository.findAll().stream()
                 .map(timetablecontentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> getAllSessionsForMonitor() {
+        return sessionRepository.findAll().stream()
+                .map(sessionMapper::toDto)
                 .collect(Collectors.toList());
     }
 }

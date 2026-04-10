@@ -46,6 +46,10 @@ public class AttendanceRecord {
     @Column(nullable = false, length = 20)
     private AttendanceStatus status;
 
+    @Column(name = "hours_attended")
+    @Builder.Default
+    private Integer hoursAttended = 0;
+
     private LocalDateTime timestamp;
 
     @Column(name = "location_at_checkin", length = 100)

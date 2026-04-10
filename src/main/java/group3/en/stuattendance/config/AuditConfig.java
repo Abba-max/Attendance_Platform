@@ -1,4 +1,4 @@
-package group3.en.stuattendance.Config;
+package group3.en.stuattendance.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;

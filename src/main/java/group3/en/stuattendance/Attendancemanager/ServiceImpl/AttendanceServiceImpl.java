@@ -10,7 +10,9 @@ import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class AttendanceServiceImpl implements AttendanceService {
 
     private final AttendanceRecordRepository attendanceRecordRepository;
@@ -86,16 +89,36 @@ public class AttendanceServiceImpl implements AttendanceService {
                 .stream()
                 .collect(Collectors.toMap(r -> r.getUser().getUserId(), r -> r));
 
+        // Calculate total hours in session
+        final int totalHours = Math.max(1, (int) java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours());
+
         return session.getClassroom().getStudents().stream()
                 .map(student -> {
                     AttendanceRecord record = recordMap.get(student.getUserId());
                     
+                    List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto> hourDtoSlots = 
+                        (record != null && record.getHourSlots() != null) ? 
+                        record.getHourSlots().stream()
+                            .map(h -> group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto.builder()
+                                .hourId(h.getHourId())
+                                .hourIndex(h.getHourIndex())
+                                .status(h.getStatus())
+                                .verifiedByTeacher(h.getVerifiedByTeacher())
+                                .timestamp(h.getTimestamp())
+                                .build())
+                            .collect(Collectors.toList()) : new java.util.ArrayList<>();
+
                     return group3.en.stuattendance.Attendancemanager.DTO.TeacherRollCallDto.builder()
                             .userId(student.getUserId())
                             .firstName(student.getFirstName())
                             .lastName(student.getLastName())
+                            .email(student.getEmail())
                             .matricule(student.getMatricule())
+                            .attendanceId(record != null ? record.getAttendanceId() : null)
                             .status(record != null ? record.getStatus() : null)
+                            .hoursAttended(record != null ? record.getHoursAttended() : 0)
+                            .totalHours(totalHours)
+                            .hourSlots(hourDtoSlots)
                             .comments(record != null ? record.getComments() : null)
                             .isLive(record != null && (record.getQrValidated() || record.getGeoValidated() || record.getPinValidated()))
                             .build();
@@ -314,16 +337,72 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     private void updateRecordStatus(AttendanceRecord record) {
-        boolean factorsMet = (Boolean.TRUE.equals(record.getQrValidated()) || Boolean.TRUE.equals(record.getPinValidated()))
-                && Boolean.TRUE.equals(record.getGeoValidated())
-                && Boolean.TRUE.equals(record.getVerifiedByTeacher());
+        boolean factorsMet = Boolean.TRUE.equals(record.getVerifiedByTeacher()) || 
+                ((Boolean.TRUE.equals(record.getQrValidated()) || Boolean.TRUE.equals(record.getPinValidated()))
+                && Boolean.TRUE.equals(record.getGeoValidated()));
         
-        if (factorsMet) {
+        // Count attended hours
+        long attendedCount = record.getHourSlots().stream()
+                .filter(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT)
+                .count();
+        record.setHoursAttended((int) attendedCount);
+
+        if (factorsMet || attendedCount > 0) {
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
         } else {
             if (record.getStatus() == null) {
                 record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
             }
+        }
+    }
+
+    @Override
+    public void markHourStatus(Integer sessionId, Integer userId, Integer hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+
+        AttendanceRecord record = attendanceRecordRepository.findByUserAndSession(student, session)
+                .orElse(AttendanceRecord.builder()
+                        .user(student)
+                        .session(session)
+                        .status(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                        .build());
+
+        record.setVerifiedByTeacher(true);
+        updateHourSlot(record, hourIndex, status, true);
+        updateRecordStatus(record);
+        
+        attendanceRecordRepository.save(record);
+    }
+
+    @Override
+    public void markAllSessionStatus(Integer sessionId, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+        
+        if (session.getClassroom() == null || session.getClassroom().getStudents() == null) return;
+        
+        int totalHours = (int) java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours();
+        if (totalHours < 1) totalHours = 1;
+
+        for (User student : session.getClassroom().getStudents()) {
+            AttendanceRecord record = attendanceRecordRepository.findByUserAndSession(student, session)
+                    .orElse(AttendanceRecord.builder()
+                            .user(student)
+                            .session(session)
+                            .build());
+
+            record.setVerifiedByTeacher(true);
+            record.setStatus(status);
+            
+            for (int i = 0; i < totalHours; i++) {
+                updateHourSlot(record, i, status, true);
+            }
+            
+            updateRecordStatus(record);
+            attendanceRecordRepository.save(record);
         }
     }
 }

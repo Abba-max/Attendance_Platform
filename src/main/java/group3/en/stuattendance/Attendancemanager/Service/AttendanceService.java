@@ -20,4 +20,8 @@ public interface AttendanceService {
     AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId, Integer hourIndex);
 
     List<AttendanceRecordDto> getEnrollmentStatus(Integer sessionId);
+
+    void markHourStatus(Integer sessionId, Integer userId, Integer hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status);
+    
+    void markAllSessionStatus(Integer sessionId, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status);
 }

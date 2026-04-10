@@ -262,6 +262,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SessionDto> getSessionsByTeacherSorted(Integer teacherId) {
         return sessionRepository.findByTeacherUserIdOrderByDateAscStartTimeAsc(teacherId)
                 .stream()

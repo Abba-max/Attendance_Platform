@@ -25,6 +25,8 @@ public class SessionMapper {
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
                 .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : null)
                 .status(session.getStatus() != null ? session.getStatus().name() : null)
+                .level(session.getClassroom() != null ? session.getClassroom().getLevel() : null)
+                .specialityName(session.getClassroom() != null && session.getClassroom().getSpeciality() != null ? session.getClassroom().getSpeciality().getName() : null)
                 .actualStartTime(session.getActualStartTime())
                 .actualEndTime(session.getActualEndTime())
                 .tempPin(session.getTempPin())

@@ -1,5 +1,4 @@
-<!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org" th:fragment="layout(title, pageTitle, pageSubtitle, role, content)">
 
 <head>
     <meta charset="UTF-8">
@@ -7,8 +6,9 @@
     <meta name="theme-color" content="#00B0FF">
     <title th:text="${title ?: 'Attendee'}">Attendee</title>
     
-    <!-- PWA Manifest -->
+    <!-- PWA Manifest (disabled until manifest.json is created)
     <link rel="manifest" th:href="@{/manifest.json}">
+    -->
     <link rel="apple-touch-icon" th:href="@{/image/logo.png}">
     
     <!-- Fonts -->
@@ -90,7 +90,7 @@
         </main>
     </div>
 
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration (disabled — sw.js not yet implemented)
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -100,5 +100,6 @@
             });
         }
     </script>
+    -->
 </body>
 </html>

@@ -29,6 +29,8 @@ public class SessionDto {
     private Integer classroomId;
     private String classroomName;
     private String status;
+    private Integer level;
+    private String specialityName;
     private java.time.LocalDateTime actualStartTime;
     private java.time.LocalDateTime actualEndTime;
     private String tempPin;

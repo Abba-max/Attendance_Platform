@@ -24,11 +24,12 @@ public class AttendanceRecordDto {
     private Boolean pinValidated;
     private LocalDateTime observedAt;
     private LocalDateTime createdAt;
+    private Integer hoursAttended;
     private List<AttendanceHourDto> hourSlots;
 
     public AttendanceRecordDto() {}
 
-    public AttendanceRecordDto(Integer attendanceId, Integer userId, Integer studentId, String studentFirstName, String studentLastName, String studentName, String studentMatricule, Integer sessionId, AttendanceStatus status, String comments, Boolean verifiedByTeacher, LocalDateTime timestamp, String locationAtCheckin, Boolean qrValidated, Boolean geoValidated, Boolean pinValidated, LocalDateTime observedAt, LocalDateTime createdAt, List<AttendanceHourDto> hourSlots) {
+    public AttendanceRecordDto(Integer attendanceId, Integer userId, Integer studentId, String studentFirstName, String studentLastName, String studentName, String studentMatricule, Integer sessionId, AttendanceStatus status, String comments, Boolean verifiedByTeacher, LocalDateTime timestamp, String locationAtCheckin, Boolean qrValidated, Boolean geoValidated, Boolean pinValidated, LocalDateTime observedAt, LocalDateTime createdAt, Integer hoursAttended, List<AttendanceHourDto> hourSlots) {
         this.attendanceId = attendanceId;
         this.userId = userId;
         this.studentId = studentId;
@@ -47,6 +48,7 @@ public class AttendanceRecordDto {
         this.pinValidated = pinValidated;
         this.observedAt = observedAt;
         this.createdAt = createdAt;
+        this.hoursAttended = hoursAttended;
         this.hourSlots = hourSlots;
     }
 
@@ -109,6 +111,9 @@ public class AttendanceRecordDto {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public Integer getHoursAttended() { return hoursAttended; }
+    public void setHoursAttended(Integer hoursAttended) { this.hoursAttended = hoursAttended; }
+
     public List<AttendanceHourDto> getHourSlots() { return hourSlots; }
     public void setHourSlots(List<AttendanceHourDto> hourSlots) { this.hourSlots = hourSlots; }
 
@@ -131,6 +136,7 @@ public class AttendanceRecordDto {
         private Boolean pinValidated;
         private LocalDateTime observedAt;
         private LocalDateTime createdAt;
+        private Integer hoursAttended;
         private List<AttendanceHourDto> hourSlots;
 
         public AttendanceRecordDtoBuilder attendanceId(Integer attendanceId) { this.attendanceId = attendanceId; return this; }
@@ -151,10 +157,11 @@ public class AttendanceRecordDto {
         public AttendanceRecordDtoBuilder pinValidated(Boolean pinValidated) { this.pinValidated = pinValidated; return this; }
         public AttendanceRecordDtoBuilder observedAt(LocalDateTime observedAt) { this.observedAt = observedAt; return this; }
         public AttendanceRecordDtoBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public AttendanceRecordDtoBuilder hoursAttended(Integer hoursAttended) { this.hoursAttended = hoursAttended; return this; }
         public AttendanceRecordDtoBuilder hourSlots(List<AttendanceHourDto> hourSlots) { this.hourSlots = hourSlots; return this; }
 
         public AttendanceRecordDto build() {
-            return new AttendanceRecordDto(attendanceId, userId, studentId, studentFirstName, studentLastName, studentName, studentMatricule, sessionId, status, comments, verifiedByTeacher, timestamp, locationAtCheckin, qrValidated, geoValidated, pinValidated, observedAt, createdAt, hourSlots);
+            return new AttendanceRecordDto(attendanceId, userId, studentId, studentFirstName, studentLastName, studentName, studentMatricule, sessionId, status, comments, verifiedByTeacher, timestamp, locationAtCheckin, qrValidated, geoValidated, pinValidated, observedAt, createdAt, hoursAttended, hourSlots);
         }
     }
 }
