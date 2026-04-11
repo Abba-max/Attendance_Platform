@@ -4,6 +4,8 @@ import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import org.springframework.stereotype.Component;
 
+import java.time.temporal.ChronoUnit;
+
 @Component
 public class SessionMapper {
 
@@ -32,6 +34,8 @@ public class SessionMapper {
                 .tempPin(session.getTempPin())
                 .isValidated(session.getIsValidated())
                 .isActive(session.isActive())
+                .totalHours(session.getStartTime() != null && session.getEndTime() != null ? 
+                    (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 0)
                 .build();
     }
 

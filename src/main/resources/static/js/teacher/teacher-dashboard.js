@@ -1,12 +1,12 @@
 /**
- * Teacher Dashboard — Roll Call Engine
- * Handles: schedule loading, session filtering, start/end flow,
- *          QR/PIN generation, and manual roll call marking.
+ * Teacher Dashboard — Roll Call Engine (Aligned with Pedagog UI)
+ * Handles: multi-section navigation, schedule loading, session filtering,
+ *          start/end flow, QR/PIN generation, and manual roll call marking.
  */
 
 // ── State ─────────────────────────────────────────────────────────────────
-let allSessions     = [];   // full list from API (all weeks)
-let filteredSessions = [];  // after week/classroom filter
+let allSessions      = [];   // full list from API
+let filteredSessions = [];   // after week/classroom filter
 let activeSessionId  = null;
 let activeSession    = null;
 let stompClient      = null;
@@ -15,78 +15,110 @@ let qrInterval       = null;
 let activePin        = null;
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+function initDashboard() {
+    if (window.dashboardInitialized) return;
+    window.dashboardInitialized = true;
     loadSessions();
     setInterval(loadSessions, 300000); // refresh every 5 min
-});
+    
+    // Initial section from URL hash or default to dashboard
+    const hash = window.location.hash.replace('#', '') || 'dashboard';
+    navigateTo(hash);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+    initDashboard();
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────
+window.navigateTo = function(section) {
+    // Update Sidebar
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active', 'bg-[#00B0FF]', 'text-white');
+        item.classList.add('text-gray-700');
+        if (item.getAttribute('data-section') === section) {
+            item.classList.add('active', 'bg-[#00B0FF]', 'text-white');
+            item.classList.remove('text-gray-700');
+        }
+    });
+
+    // Update Sections
+    document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
+    const target = document.getElementById('section-' + section);
+    if (target) target.classList.remove('hidden');
+
+    window.location.hash = section;
+    
+    // Auto-load if needed
+    if (section === 'schedule' && allSessions.length === 0) loadSessions();
+};
 
 // ── 1. Load & Render Schedule ──────────────────────────────────────────────
 
 async function loadSessions() {
     const grid = document.getElementById('sessions-grid');
-    // Keep spinner visible while loading
+    if (!grid) return;
+
     grid.innerHTML = `
-        <div class="col-span-full py-20 text-center" id="sessions-loader">
+        <div class="col-span-full py-20 text-center">
             <div class="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p class="text-slate-400 font-bold font-display italic">Syncing your schedule...</p>
         </div>`;
 
-    try {
-        const res = await fetch('/api/teacher/sessions/my-schedule');
-        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
+    try {
+        const res = await fetch('/api/teacher/sessions/my-schedule', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         allSessions = await res.json();
 
-        if (!Array.isArray(allSessions)) {
-            throw new Error('Invalid response from server');
-        }
-
         populateFilters();
-        applyFilters(); // renders the grid using current filter selects
+        applyFilters();
 
     } catch (err) {
-        console.error('Schedule load error:', err);
+        clearTimeout(timeoutId);
+        console.error('[Teacher] schedule load error:', err);
         grid.innerHTML = `
             <div class="col-span-full py-16 text-center">
-                <p class="text-rose-500 font-black text-sm mb-2">Could not load your schedule.</p>
+                <p class="text-rose-500 font-black text-sm mb-2">Could not load schedule.</p>
                 <p class="text-slate-400 text-xs font-bold">${err.message}</p>
                 <button onclick="loadSessions()" class="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black hover:bg-blue-100 transition">Retry</button>
             </div>`;
-
-        // Clear stat cards safely
-        setNextClass(null);
-        document.getElementById('pending-attendance-count').textContent = '00';
     }
 }
 
-/** Build unique week and classroom options into select dropdowns */
+// ── 2. Filters ─────────────────────────────────────────────────────────────
+
 function populateFilters() {
     const weekSet  = new Set();
-    const classSet = new Map(); // classroomId → classroomName
+    const classSet = new Map();
 
     allSessions.forEach(s => {
-        if (s.week != null)                       weekSet.add(s.week);
-        if (s.classroomId && s.classroomName)     classSet.set(s.classroomId, s.classroomName);
+        if (s.week != null) weekSet.add(s.week);
+        if (s.classroomId && s.classroomName) classSet.set(s.classroomId, s.classroomName);
     });
 
-    // Try to default to the ISO week that matches today
     const todayWeek = getISOWeek(new Date());
+    const hasToday  = weekSet.has(todayWeek);
 
     const weekSel  = document.getElementById('filter-week');
     const classSel = document.getElementById('filter-classroom');
     if (!weekSel || !classSel) return;
 
-    // Rebuild week options
     weekSel.innerHTML = '<option value="">All Weeks</option>';
-    [...weekSet].sort((a,b) => a - b).forEach(w => {
+    [...weekSet].sort((a, b) => a - b).forEach(w => {
         const opt = document.createElement('option');
         opt.value = w;
         opt.textContent = `Week ${w}`;
-        if (w === todayWeek) opt.selected = true;
+        if (w === todayWeek && hasToday) opt.selected = true;
         weekSel.appendChild(opt);
     });
 
-    // Rebuild classroom options
     classSel.innerHTML = '<option value="">All Classrooms</option>';
     classSet.forEach((name, id) => {
         const opt = document.createElement('option');
@@ -96,7 +128,7 @@ function populateFilters() {
     });
 }
 
-window.applyFilters = function() {
+window.applyFilters = function () {
     const weekVal  = document.getElementById('filter-week')?.value;
     const classVal = document.getElementById('filter-classroom')?.value;
 
@@ -109,455 +141,313 @@ window.applyFilters = function() {
     renderGrid();
 };
 
+// ── 3. Render Session Grid ─────────────────────────────────────────────────
+
 function renderGrid() {
     const grid = document.getElementById('sessions-grid');
+    if (!grid) return;
 
-    if (!allSessions || allSessions.length === 0) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 font-bold italic">
-            No sessions planned for you yet.</div>`;
-        setNextClass(null);
-        document.getElementById('pending-attendance-count').textContent = '00';
+    if (!allSessions.length) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 font-bold italic">No sessions found.</div>`;
+        updateOverview(null, 0);
         return;
     }
 
-    if (!filteredSessions || filteredSessions.length === 0) {
-        const weekVal  = document.getElementById('filter-week')?.value;
-        const dynamicMsg = weekVal ? `No session planned for Week ${weekVal}.` : 'No sessions match the selected filters.';
-        grid.innerHTML = `<div class="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50">
-            <div class="empty-ico-box mx-auto mb-3 mt-4 text-slate-300">
-                <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            </div>
-            <p class="text-slate-500 font-bold font-display italic">${dynamicMsg}</p>
-        </div>`;
-        setNextClass(null);
-        document.getElementById('pending-attendance-count').textContent = '00';
+    if (!filteredSessions.length) {
+        grid.innerHTML = `<div class="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50"><p class="text-slate-500 font-bold italic">No matches for this filter.</p></div>`;
+        updateOverview(null, 0);
         return;
     }
 
     const sorted = [...filteredSessions].sort((a, b) => {
-        // Sort by date then startTime
-        const dateCmp = (a.date || '').localeCompare(b.date || '');
-        if (dateCmp !== 0) return dateCmp;
-        return (a.startTime || '').localeCompare(b.startTime || '');
+        const d = (a.date || '').localeCompare(b.date || '');
+        return d !== 0 ? d : (a.startTime || '').localeCompare(b.startTime || '');
     });
 
-    // Update stat cards
-    const next = sorted.find(s => s.status === 'SCHEDULED' || s.status === 'IN_PROGRESS') || sorted[0];
-    setNextClass(next);
+    const next = sorted.find(s => s.status === 'IN_PROGRESS' || s.status === 'SCHEDULED') || sorted[0];
     const pending = sorted.filter(s => s.status === 'SCHEDULED').length;
-    document.getElementById('pending-attendance-count').textContent = String(pending).padStart(2, '0');
+    updateOverview(next, pending);
 
-    grid.innerHTML = sorted.map(s => renderSessionCard(s)).join('');
+    grid.innerHTML = sorted.map(renderSessionCard).join('');
 }
 
-function setNextClass(s) {
-    document.getElementById('next-class-name').textContent  = s?.courseName || 'No upcoming sessions';
-    document.getElementById('next-class-time').textContent  = s?.startTime ? s.startTime.substring(0, 5) : '--:--';
-    document.getElementById('next-class-room').textContent  = s?.classroomName || s?.locationGeographicalCoordinates || 'N/A';
+function updateOverview(next, pendingCount) {
+    const name = document.getElementById('next-class-name');
+    const time = document.getElementById('next-class-time');
+    const room = document.getElementById('next-class-room');
+    if (name) name.textContent = next?.courseName || 'No upcoming sessions';
+    if (time) time.textContent = next?.startTime ? next.startTime.substring(0, 5) : '--:--';
+    if (room) room.textContent = next?.classroomName || 'N/A';
+
+    const countEl = document.getElementById('pending-attendance-count');
+    if (countEl) countEl.textContent = String(pendingCount).padStart(2, '0');
 }
 
 function renderSessionCard(s) {
-    const isActive  = s.status === 'IN_PROGRESS';
-    const isDone    = s.status === 'COMPLETED';
-    const isCancelled = s.status === 'CANCELLED';
-
-    const statusColor = isActive   ? 'bg-blue-100 text-blue-700'
-                      : isDone     ? 'bg-slate-100 text-slate-400'
-                      : isCancelled? 'bg-red-50 text-red-400'
-                      :              'bg-emerald-50 text-emerald-600';
-
-    const dateStr = s.date
-        ? new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' })
-        : (s.day || 'TBD');
-
-    const startBtn = !isDone && !isCancelled ? `
-        <button onclick="event.stopPropagation(); handleSessionAction(${s.sessionId})"
-                class="mt-4 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all
-                       ${isActive ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-blue-500 text-white hover:bg-blue-600'}">
-            ${isActive ? 'Open Roll Call' : 'Start Session'}
-        </button>` : `
-        <div class="mt-4 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest text-center
-                    ${isDone ? 'bg-slate-100 text-slate-400' : 'bg-red-50 text-red-400'}">
-            ${isDone ? 'Session Closed' : 'Cancelled'}
-        </div>`;
+    const isActive = s.status === 'IN_PROGRESS';
+    const isDone   = s.status === 'COMPLETED';
+    
+    const statusColor = isActive ? 'bg-blue-100 text-blue-700' : isDone ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600';
+    const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }) : (s.day || 'TBD');
 
     return `
-        <div class="glass-panel p-6 rounded-premium border border-white/40 shadow-sm hover:shadow-xl transition-all
-                    group flex flex-col ${isActive ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-50' : ''}">
-            ${isActive ? `<div class="flex justify-end mb-2">
-                <span class="flex h-3 w-3">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                </span>
-            </div>` : ''}
-
-            <div class="flex items-center gap-3 mb-3">
-                <div class="px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${statusColor}">
-                    ${s.status ? s.status.replace('_', ' ') : 'SCHEDULED'}
-                </div>
-                <span class="text-[10px] font-bold text-slate-400">
-                    ${s.startTime ? s.startTime.substring(0,5) : '--'} – ${s.endTime ? s.endTime.substring(0,5) : '--'}
-                </span>
+        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isActive ? 'ring-2 ring-[#00B0FF] ring-offset-4' : ''}">
+            <div class="flex items-center justify-between mb-4">
+                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusColor}">${s.status?.replace('_', ' ') || 'SCHEDULED'}</span>
+                <span class="text-[10px] font-bold text-slate-400">${s.startTime?.substring(0, 5) || '--:--'}</span>
             </div>
-
-            <h4 class="text-base font-black text-slate-800 mb-1 font-display tracking-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                ${s.courseName || 'Unnamed Course'}
-            </h4>
-
-            <div class="flex items-center gap-1.5 mt-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${dateStr}</span>
-                <span class="text-slate-200">•</span>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${s.classroomName || 'No Classroom'}</span>
-            </div>
-
-            ${startBtn}
-        </div>
-    `;
+            <h4 class="text-base font-black text-slate-800 mb-2 truncate group-hover:text-blue-600 transition-colors">${s.courseName || 'Unnamed Course'}</h4>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${dateStr} • ${s.classroomName || 'No Room'}</p>
+            
+            ${!isDone ? `
+                <button onclick="handleSessionAction(${s.sessionId})" class="mt-6 w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-[#00B0FF] text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 text-white hover:bg-black'}">
+                    ${isActive ? 'Open Roll Call Hub' : 'Start Session'}
+                </button>
+            ` : `<div class="mt-6 w-full py-3 bg-slate-50 text-slate-400 text-center rounded-2xl text-[10px] font-black uppercase tracking-widest">Session Closed</div>`}
+        </div>`;
 }
 
-// ── 2. Session Lifecycle (Start / Open Roll Call) ──────────────────────────
+// ── 4. Session Lifecycle ───────────────────────────────────────────────────
 
-window.handleSessionAction = async function(sessionId) {
+window.handleSessionAction = async function (sessionId) {
     const session = allSessions.find(s => s.sessionId === sessionId);
     if (!session) return;
 
     if (session.status === 'SCHEDULED') {
-        // Start it first, then open roll call
         try {
+            showNotification('Initializing session...', 'info');
             const res = await fetch(`/api/teacher/sessions/${sessionId}/start`, { method: 'POST' });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                showToast(err.message || 'Could not start session', 'error');
-                return;
-            }
+            if (!res.ok) throw new Error('Start failed');
+            
             const updated = await res.json();
-            // Reflect updated status
             const idx = allSessions.findIndex(s => s.sessionId === sessionId);
-            if (idx !== -1) allSessions[idx] = updated;
+            if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
+            
             renderGrid();
             openRollCall(sessionId);
         } catch (e) {
-            showToast('Network error starting session', 'error');
+            showNotification('Failed to start session', 'error');
         }
-    } else if (session.status === 'IN_PROGRESS') {
+    } else {
         openRollCall(sessionId);
     }
 };
 
-// ── 3. Roll Call Panel ─────────────────────────────────────────────────────
+// ── 5. Roll Call Hub ─────────────────────────────────────────────────────
 
 function openRollCall(sessionId) {
     activeSessionId = sessionId;
     activeSession   = allSessions.find(s => s.sessionId === sessionId);
     if (!activeSession) return;
 
-    // Header info
     document.getElementById('att-course-name').textContent = activeSession.courseName || 'Session';
-    document.getElementById('att-details').textContent =
-        `${activeSession.classroomName || 'No Room'} • ${activeSession.startTime?.substring(0,5) || '--'} – ${activeSession.endTime?.substring(0,5) || '--'}`;
+    document.getElementById('att-details').textContent = `${activeSession.classroomName || 'No Room'} • ${activeSession.startTime?.substring(0, 5) || '--'} – ${activeSession.endTime?.substring(0, 5) || '--'}`;
 
-    // Submit button
-    const btn = document.getElementById('final-submit-btn');
-    btn.textContent = 'Submit & Close';
-    btn.disabled = false;
-    btn.className = 'px-6 py-3 bg-[#00B0FF] text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 active:scale-95 transition-all text-sm';
-
-    document.getElementById('attendance-panel-container').classList.remove('hidden');
-
-    // Reset PIN display
-    document.getElementById('pin-display').textContent = '----';
-    activePin = null;
+    // Switch to Attendance Section
+    navigateTo('attendance');
+    document.getElementById('hubEmptyState').classList.add('hidden');
+    document.getElementById('hubWorkspace').classList.remove('hidden');
 
     loadRollCall(sessionId);
 }
 
 window.closeAttendance = function() {
-    document.getElementById('attendance-panel-container').classList.add('hidden');
+    document.getElementById('hubWorkspace').classList.add('hidden');
+    document.getElementById('hubEmptyState').classList.remove('hidden');
+    navigateTo('schedule');
+    activeSessionId = null;
     disconnectWebSocket();
     clearInterval(qrInterval);
-    activeSessionId = null;
-    activeSession   = null;
-    activePin       = null;
 };
 
 async function loadRollCall(sessionId) {
-    const loader    = document.getElementById('student-list-loader');
-    const container = document.getElementById('student-cards-body');
-
-    loader.classList.remove('hidden');
-    container.innerHTML = '';
+    const tbody = document.getElementById('att-table-body');
+    tbody.innerHTML = '<tr><td colspan="20" class="py-20 text-center text-slate-400 italic">Syncing roster...</td></tr>';
 
     try {
         const res = await fetch(`/api/attendance/session/${sessionId}/students`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const students = await res.json();
+        if (!res.ok) throw new Error();
+        const records = await res.json();
+        renderAttendanceGrid(records);
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="20" class="py-20 text-center text-rose-500 font-bold">Failed to load roster.</td></tr>';
+    }
+}
 
-        loader.classList.add('hidden');
+function renderAttendanceGrid(records) {
+    const tbody = document.getElementById('att-table-body');
+    const thead = document.getElementById('att-table-head');
+    const totalHours = resolveHours(activeSession);
 
-        if (!students || students.length === 0) {
-            container.innerHTML = `<div class="col-span-full py-10 text-center text-slate-400 font-bold italic">
-                No students found in this classroom. Ensure students are assigned to the classroom.</div>`;
-            return;
+    // Dynamic Headers
+    let headHtml = `<th class="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest min-w-[250px]">Student Information</th>`;
+    for (let i = 0; i < totalHours; i++) {
+        headHtml += `<th class="px-4 py-4 text-center min-w-[70px] text-[10px] font-black text-slate-400 uppercase tracking-widest">H${i+1}</th>`;
+    }
+    thead.innerHTML = headHtml;
+
+    tbody.innerHTML = records.map(r => {
+        const initials = ((r.firstName||'')[0] || '') + ((r.lastName||'')[0] || '');
+        let hoursHtml = '';
+        for (let i = 0; i < totalHours; i++) {
+            const slot = r.hourSlots?.find(h => h.hourIndex === i);
+            const present = slot?.status === 'PRESENT';
+            hoursHtml += `
+                <td class="px-4 py-4 text-center">
+                    <div class="flex flex-col items-center gap-1.5">
+                        <input type="checkbox" ${present ? 'checked' : ''} onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
+                               class="w-6 h-6 rounded-lg border-slate-200 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-transform hover:scale-110 accent-emerald-500">
+                        <span class="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Hour ${i+1}</span>
+                    </div>
+                </td>`;
         }
-        container.innerHTML = students.map(renderStudentCard).join('');
 
-    } catch (err) {
-        loader.classList.add('hidden');
-        container.innerHTML = `<div class="col-span-full py-10 text-center text-rose-500 font-bold">
-            Failed to load students: ${err.message}</div>`;
+        return `
+            <tr class="hover:bg-slate-50 transition border-b border-slate-50 student-row" data-student-id="${r.userId}">
+                <td class="px-6 py-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-400 text-xs">${initials || 'S'}</div>
+                        <div>
+                            <div class="text-sm font-black text-slate-800">${r.firstName} ${r.lastName}</div>
+                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${r.matricule || 'NO-MATRIC'}</div>
+                        </div>
+                    </div>
+                </td>
+                ${hoursHtml}
+            </tr>`;
+    }).join('');
+}
+
+// ── 6. Marking & Lifecycle ────────────────────────────────────────────────
+
+function resolveHours(s) { 
+    if (s.totalHours > 0) return s.totalHours;
+    if (s.startTime && s.endTime) {
+        const [sh, sm] = s.startTime.split(':').map(Number);
+        const [eh, em] = s.endTime.split(':').map(Number);
+        return Math.max(1, Math.round((eh * 60 + em - sh * 60 - sm) / 60));
     }
+    return 1;
 }
 
-function renderStudentCard(s) {
-    const status    = s.status || 'NOT_MARKED';
-    const isPresent = status === 'PRESENT';
-    const isLate    = status === 'LATE';
-    const isAbsent  = status === 'ABSENT';
-    const firstName = s.firstName || '?';
-    const lastName  = s.lastName  || '?';
-    const initials  = firstName[0].toUpperCase() + lastName[0].toUpperCase();
-
-    return `
-        <div class="glass-panel p-5 rounded-[2rem] border border-white/40 shadow-sm flex flex-col gap-4" data-student-id="${s.userId}">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-gradient-to-br from-blue-50 to-slate-100 border border-slate-100 rounded-2xl
-                            flex items-center justify-center font-black text-slate-400 text-lg">
-                    ${initials}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <h4 class="text-sm font-black text-slate-800 truncate">${firstName} ${lastName}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${s.matricule || '—'}</p>
-                    ${s.isLive ? '<span class="text-[9px] font-black text-emerald-500">● Live Check-In</span>' : ''}
-                </div>
-            </div>
-
-            <!-- 3-state toggle -->
-            <div class="grid grid-cols-3 gap-1.5 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                <button onclick="markStatus(${s.userId}, 'PRESENT')"
-                        class="status-btn-present flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all
-                               ${isPresent ? 'bg-emerald-500 text-white shadow-md' : 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50'}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                    </svg>
-                </button>
-                <button onclick="markStatus(${s.userId}, 'LATE')"
-                        class="status-btn-late flex items-center justify-center py-3 rounded-xl transition-all
-                               ${isLate ? 'bg-amber-500 text-white shadow-md' : 'text-slate-400 hover:text-amber-500 hover:bg-amber-50'}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </button>
-                <button onclick="markStatus(${s.userId}, 'ABSENT')"
-                        class="status-btn-absent flex items-center justify-center py-3 rounded-xl transition-all
-                               ${isAbsent ? 'bg-rose-500 text-white shadow-md' : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-// ── 4. Mark Attendance ─────────────────────────────────────────────────────
-
-window.markStatus = async (studentId, status) => {
+window.markHourStatus = async (sid, hi, isP) => {
+    const status = isP ? 'PRESENT' : 'ABSENT';
     try {
-        const res = await fetch('/api/attendance/mark', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId:          studentId,
-                sessionId:       activeSessionId,
-                status:          status,
-                verifiedByTeacher: true
-            })
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        // Optimistic UI update
-        const card = document.querySelector(`[data-student-id="${studentId}"]`);
-        if (!card) return;
-
-        // Reset all three buttons
-        card.querySelector('.status-btn-present').className =
-            card.querySelector('.status-btn-present').className.replace(
-                /bg-emerald-500 text-white shadow-md/, 'text-slate-400 hover:text-emerald-500 hover:bg-emerald-50');
-        card.querySelector('.status-btn-late').className =
-            card.querySelector('.status-btn-late').className.replace(
-                /bg-amber-500 text-white shadow-md/, 'text-slate-400 hover:text-amber-500 hover:bg-amber-50');
-        card.querySelector('.status-btn-absent').className =
-            card.querySelector('.status-btn-absent').className.replace(
-                /bg-rose-500 text-white shadow-md/, 'text-slate-400 hover:text-rose-500 hover:bg-rose-50');
-
-        // Activate the right one
-        const colorMap = { PRESENT: 'emerald', LATE: 'amber', ABSENT: 'rose' };
-        const btn = card.querySelector(`.status-btn-${status.toLowerCase()}`);
-        const c   = colorMap[status];
-        btn.classList.add(`bg-${c}-500`, 'text-white', 'shadow-md');
-        btn.classList.remove('text-slate-400', `hover:text-${c}-500`, `hover:bg-${c}-50`);
-
-    } catch (err) {
-        showToast('Marking failed — please retry', 'error');
+        await fetch(`/api/attendance/session/${activeSessionId}/student/${sid}/hour/${hi}?status=${status}`, { method: 'POST' });
+    } catch (e) {
+        showNotification('Update failed', 'error');
+        loadRollCall(activeSessionId);
     }
 };
 
-// ── 5. Filter Tabs ─────────────────────────────────────────────────────────
-
-window.filterByStatus = function(filter) {
-    document.querySelectorAll('#student-cards-body > div[data-student-id]').forEach(card => {
-        if (filter === 'all') { card.style.display = ''; return; }
-        const pBtn = card.querySelector('.status-btn-present');
-        const lBtn = card.querySelector('.status-btn-late');
-        const aBtn = card.querySelector('.status-btn-absent');
-        const isPresent = pBtn?.classList.contains('bg-emerald-500');
-        const isLate    = lBtn?.classList.contains('bg-amber-500');
-        const isAbsent  = aBtn?.classList.contains('bg-rose-500');
-        if (filter === 'absent')     card.style.display = isAbsent ? '' : 'none';
-        if (filter === 'not-marked') card.style.display = (!isPresent && !isLate && !isAbsent) ? '' : 'none';
-    });
+window.markAllSessionStatus = async (status) => {
+    if (!confirm(`Mark everyone as ${status.toLowerCase()}?`)) return;
+    try {
+        await fetch(`/api/attendance/session/${activeSessionId}/mark-all?status=${status}`, { method: 'POST' });
+        showNotification(`All students marked ${status.toLowerCase()}`, 'success');
+        loadRollCall(activeSessionId);
+    } catch (e) {
+        showNotification('Bulk update failed', 'error');
+    }
 };
 
-// ── 6. QR Code Flow ────────────────────────────────────────────────────────
+window.submitRollCall = async () => {
+    if (!confirm('End session and finalize roll call?')) return;
+    try {
+        await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
+        showNotification('Session completed successfully!', 'success');
+        closeAttendance();
+        loadSessions();
+    } catch (e) { showNotification('Failed to end session', 'error'); }
+};
 
-window.toggleQrView = function() {
-    const overlay  = document.getElementById('qr-overlay');
-    const isOpen   = !overlay.classList.contains('hidden');
+// ── 7. QR & PIN (Same as previous but with pedagog style notifications) ────
 
-    if (isOpen) {
-        overlay.classList.add('hidden');
-        disconnectWebSocket();
-        clearInterval(qrInterval);
-        return;
-    }
+window.generatePin = async function () {
+    try {
+        const res = await fetch('/api/attendance/session-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: activeSessionId, type: 'PIN' }) });
+        const data = await res.json();
+        document.getElementById('pin-display').textContent = data.token;
+        showNotification(`New active PIN: ${data.token}`, 'success');
+    } catch (e) { showNotification('Failed to generate PIN', 'error'); }
+};
 
-    if (!activeSessionId) { showToast('Open a session first', 'error'); return; }
-
-    overlay.classList.remove('hidden');
-    connectWebSocket();
-    startQrTimer();
-    generateNewQr();
+window.toggleQrView = function () {
+    const overlay = document.getElementById('qr-overlay');
+    const isOpen = !overlay.classList.contains('hidden');
+    if (isOpen) { overlay.classList.add('hidden'); disconnectWebSocket(); clearInterval(qrInterval); }
+    else { overlay.classList.remove('hidden'); connectWebSocket(); startQrTimer(); generateNewQr(); }
 };
 
 async function generateNewQr() {
     try {
-        const res = await fetch('/api/attendance/session-token', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ sessionId: activeSessionId, type: 'QR' })
-        });
-        if (!res.ok) throw new Error('Token request failed');
+        const res = await fetch('/api/attendance/session-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: activeSessionId, type: 'QR' }) });
         const data = await res.json();
-        renderQrCode(data.token);
-    } catch (err) {
-        document.getElementById('qr-canvas-placeholder').innerHTML =
-            `<p class="text-rose-400 font-bold text-sm">${err.message}</p>`;
-    }
+        if (typeof QRCode !== 'undefined') {
+            const ph = document.getElementById('qr-canvas-placeholder');
+            ph.innerHTML = '<canvas id="qr-canvas" class="w-full h-full rounded-2xl"></canvas>';
+            QRCode.toCanvas(document.getElementById('qr-canvas'), data.token, { width: 300, margin: 2, color: { dark: '#0F172A', light: '#FFFFFF' } });
+        }
+    } catch (e) {}
 }
 
-function renderQrCode(token) {
-    const ph = document.getElementById('qr-canvas-placeholder');
-    ph.innerHTML = '<canvas id="qr-canvas" class="w-full h-full rounded-2xl"></canvas>';
-    QRCode.toCanvas(document.getElementById('qr-canvas'), token, {
-        width: 300, margin: 2,
-        color: { dark: '#0F172A', light: '#FFFFFF' }
-    });
-    document.getElementById('qr-title').textContent = activeSession?.courseName || 'Session';
+// ── 8. Utility: Notifications (Pedagog Style) ──────────────────────────────
+
+function showNotification(message, type = 'info') {
+    const existing = document.getElementById('tt-toast');
+    if (existing) existing.remove();
+
+    const icons = {
+        success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+        error:   `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+        info:    `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>`
+    };
+    const palettes = {
+        success: { bg: '#ECFDF5', border: '#10B981', text: '#065F46' },
+        error:   { bg: '#FEF2F2', border: '#EF4444', text: '#7F1D1D' },
+        info:    { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A5F' }
+    };
+    const p = palettes[type] || palettes.info;
+
+    const toast = document.createElement('div');
+    toast.id = 'tt-toast';
+    toast.style.cssText = `position:fixed; top:80px; right:24px; z-index:9999; background:${p.bg}; border:1.5px solid ${p.border}; border-radius:14px; box-shadow:0 8px 32px rgba(0,0,0,0.1); padding:16px 20px; display:flex; align-items:center; gap:12px; transition: 0.35s ease; opacity:0; transform:translateX(20px);`;
+
+    toast.innerHTML = `
+        <span style="color:${p.border}">${icons[type]}</span>
+        <div style="flex:1"><p style="margin:0; font-weight:700; font-size:13px; color:${p.text}">${message}</p></div>
+        <button onclick="this.closest('#tt-toast').remove()" style="background:none; border:none; cursor:pointer; color:${p.border}">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>`;
+
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; }, 10);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 4000);
 }
 
-// ── 7. PIN Flow ────────────────────────────────────────────────────────────
-
-window.generatePin = async function() {
-    if (!activeSessionId) { showToast('Start a session first', 'error'); return; }
-    try {
-        const res = await fetch('/api/attendance/session-token', {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ sessionId: activeSessionId, type: 'PIN' })
-        });
-        if (!res.ok) throw new Error('PIN request failed');
-        const data = await res.json();
-        activePin = data.token;
-        document.getElementById('pin-display').textContent = activePin;
-        showToast(`PIN generated: ${activePin}`, 'success');
-    } catch (err) {
-        showToast('Failed to generate PIN', 'error');
-    }
-};
-
-// ── 8. WebSocket for live QR rotation ────────────────────────────────────
+// ── WebSocket & Helpers ────────────────────────────────────────────────────
 
 function connectWebSocket() {
     if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') return;
-    const socket = new SockJS('/ws');
-    stompClient  = Stomp.over(socket);
-    stompClient.debug = null;
+    const socket = new SockJS('/ws'); stompClient = Stomp.over(socket); stompClient.debug = null;
     stompClient.connect({}, () => {
-        stompClient.subscribe(`/topic/session/${activeSessionId}/qr`, msg => {
-            renderQrCode(msg.body);
-            resetQrTimer();
-        });
+        stompClient.subscribe(`/topic/session/${activeSessionId}/qr`, msg => { generateNewQr(); resetQrTimer(); });
+        stompClient.subscribe(`/topic/session/${activeSessionId}`, () => loadRollCall(activeSessionId));
     });
 }
-
-function disconnectWebSocket() {
-    if (stompClient && stompClient.connected) stompClient.disconnect();
-    stompClient = null;
-}
-
+function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }
 function startQrTimer() {
-    clearInterval(qrInterval);
-    qrTimer = 30;
-    const progress = document.getElementById('qr-timer-progress');
-    const text     = document.getElementById('qr-timer-text');
+    clearInterval(qrInterval); qrTimer = 30;
     qrInterval = setInterval(() => {
         qrTimer--;
-        if (qrTimer < 0) qrTimer = 30;
-        if (text)     text.textContent = qrTimer;
-        if (progress) progress.style.width = `${(qrTimer / 30) * 100}%`;
+        document.getElementById('qr-timer-text').textContent = qrTimer;
+        document.getElementById('qr-timer-progress').style.width = `${(qrTimer/30)*100}%`;
+        if (qrTimer <= 0) { generateNewQr(); qrTimer = 30; }
     }, 1000);
 }
-
 function resetQrTimer() { qrTimer = 30; }
-
-// ── 9. Submit Roll Call ────────────────────────────────────────────────────
-
-window.submitRollCall = async () => {
-    if (!confirm('Finalize roll call and close the session? Students without a mark will be auto-marked ABSENT.')) return;
-    try {
-        const res = await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        showToast('Session closed successfully!', 'success');
-        closeAttendance();
-        loadSessions();
-    } catch (err) {
-        showToast('Failed to close session', 'error');
-    }
-};
-
-// ── 10. Utilities ──────────────────────────────────────────────────────────
-
-/** ISO week number (1-53) for a given Date */
-function getISOWeek(date) {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-}
-
-/** Non-intrusive toast notification */
-function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.className = 'fixed bottom-6 right-6 z-[9999] flex flex-col gap-2';
-        document.body.appendChild(container);
-    }
-    const toast = document.createElement('div');
-    const colors = { success: 'bg-emerald-500', error: 'bg-rose-500', info: 'bg-blue-500' };
-    toast.className = `px-5 py-3 ${colors[type] || colors.info} text-white text-sm font-bold rounded-2xl shadow-xl animate-fade-in`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    setTimeout(() => toast.remove(), 3500);
+function getISOWeek(d) {
+    const d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d2.setUTCDate(d2.getUTCDate() + 4 - (d2.getUTCDay() || 7));
+    return Math.ceil((((d2 - new Date(Date.UTC(d2.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
 }

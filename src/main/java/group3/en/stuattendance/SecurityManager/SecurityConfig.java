@@ -68,6 +68,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/pedagog/**", "/api/pedagog/**").hasRole("PEDAGOG")
+                        .requestMatchers("/teacher/**", "/api/teacher/**").hasRole("TEACHER")
                         .requestMatchers("/api/attendance/**").hasAnyRole("TEACHER", "PEDAGOG")
                         .anyRequest().authenticated()  // ← doit toujours être en dernier
                 )

@@ -36,4 +36,5 @@ public class SessionDto {
     private String tempPin;
     private Boolean isValidated;
     private Boolean isActive;
+    private Integer totalHours;
 }
