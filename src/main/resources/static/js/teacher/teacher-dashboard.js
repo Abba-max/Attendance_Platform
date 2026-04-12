@@ -1,27 +1,27 @@
 /**
- * Teacher Dashboard — Roll Call Engine (Aligned with Pedagog UI)
- * Handles: multi-section navigation, schedule loading, session filtering,
- *          start/end flow, QR/PIN generation, and manual roll call marking.
+ * Teacher Dashboard — Roll Call Engine & Stats (Dieter Rams Flat UI Pattern)
  */
 
-// ── State ─────────────────────────────────────────────────────────────────
-let allSessions      = [];   // full list from API
-let filteredSessions = [];   // after week/classroom filter
-let activeSessionId  = null;
-let activeSession    = null;
-let stompClient      = null;
-let qrTimer          = 30;
-let qrInterval       = null;
-let activePin        = null;
+let allSessions = [];
+let filteredSessions = [];
+let activeSession = null;
+let activeSessionId = null;
+let attendanceData = [];
+let nextSessionContext = null; // Stores the next session for quick-start
+let stompClient = null;
+let qrTimer = 30;
+let qrInterval = null;
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────
 function initDashboard() {
     if (window.dashboardInitialized) return;
     window.dashboardInitialized = true;
-    loadSessions();
-    setInterval(loadSessions, 300000); // refresh every 5 min
     
-    // Initial section from URL hash or default to dashboard
+    loadSessions();
+    loadTeacherStats(); // Load stats dynamically
+    
+    setInterval(loadSessions, 300000); // 5m refresh
+    
+    // Initial Route
     const hash = window.location.hash.replace('#', '') || 'dashboard';
     navigateTo(hash);
 }
@@ -32,83 +32,65 @@ if (document.readyState === 'loading') {
     initDashboard();
 }
 
-// ── Navigation ───────────────────────────────────────────────────────────
 window.navigateTo = function(section) {
-    // Update Sidebar
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active', 'bg-[#00B0FF]', 'text-white');
-        item.classList.add('text-gray-700');
+    // Desktop Nav States
+    document.querySelectorAll('.nav-desktop').forEach(item => {
+        item.classList.remove('active', 'text-slate-900', 'font-bold');
+        item.classList.add('text-slate-500');
         if (item.getAttribute('data-section') === section) {
-            item.classList.add('active', 'bg-[#00B0FF]', 'text-white');
-            item.classList.remove('text-gray-700');
+            item.classList.add('active', 'text-slate-900', 'font-bold');
+            item.classList.remove('text-slate-500');
         }
     });
 
-    // Update Sections
+    // Mobile Nav States
+    document.querySelectorAll('.nav-mobile').forEach(item => {
+        item.classList.remove('active', 'text-slate-900', 'font-bold');
+        item.classList.add('text-slate-500');
+        if (item.getAttribute('data-section') === section) {
+            item.classList.add('active', 'text-slate-900', 'font-bold');
+            item.classList.remove('text-slate-500');
+        }
+    });
+
+    // Section Toggling
     document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
     const target = document.getElementById('section-' + section);
     if (target) target.classList.remove('hidden');
 
     window.location.hash = section;
-    
-    // Auto-load if needed
-    if (section === 'schedule' && allSessions.length === 0) loadSessions();
 };
 
-// ── 1. Load & Render Schedule ──────────────────────────────────────────────
-
+// ── Schedule Core ────────────────────────────────────────────────────────
 async function loadSessions() {
     const grid = document.getElementById('sessions-grid');
     if (!grid) return;
-
+    
     if (!allSessions.length) {
-        grid.innerHTML = `
-            <div class="col-span-full py-20 text-center">
-                <div class="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p class="text-slate-400 font-bold font-display italic">Syncing your schedule...</p>
-            </div>`;
+        grid.innerHTML = `<div class="col-span-full py-10 text-center"><p class="text-sm text-slate-500">Loading schedule...</p></div>`;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
-
     try {
-        const res = await fetch('/api/teacher/sessions/my-schedule', { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch('/api/teacher/sessions/my-schedule');
+        if (!res.ok) throw new Error();
         allSessions = await res.json();
-
+        
         populateFilters();
         applyFilters();
-
-    } catch (err) {
-        clearTimeout(timeoutId);
-        console.error('[Teacher] schedule load error:', err);
-        grid.innerHTML = `
-            <div class="col-span-full py-16 text-center">
-                <p class="text-rose-500 font-black text-sm mb-2">Could not load schedule.</p>
-                <p class="text-slate-400 text-xs font-bold">${err.message}</p>
-                <button onclick="loadSessions()" class="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl text-xs font-black hover:bg-blue-100 transition">Retry</button>
-            </div>`;
+    } catch (e) {
+        grid.innerHTML = `<div class="col-span-full py-10 text-center"><p class="text-sm text-red-600">Failed to sync schedule.</p></div>`;
     }
 }
 
-// ── 2. Filters ─────────────────────────────────────────────────────────────
-
 function populateFilters() {
-    const weekSet  = new Set();
+    const weekSet = new Set();
     const classSet = new Map();
-
     allSessions.forEach(s => {
         if (s.week != null) weekSet.add(s.week);
         if (s.classroomId && s.classroomName) classSet.set(s.classroomId, s.classroomName);
     });
 
-    const todayWeek = getISOWeek(new Date());
-    const hasToday  = weekSet.has(todayWeek);
-
-    const weekSel  = document.getElementById('filter-week');
+    const weekSel = document.getElementById('filter-week');
     const classSel = document.getElementById('filter-classroom');
     if (!weekSel || !classSel) return;
 
@@ -117,61 +99,43 @@ function populateFilters() {
 
     weekSel.innerHTML = '<option value="">All Weeks</option>';
     [...weekSet].sort((a, b) => a - b).forEach(w => {
-        const opt = document.createElement('option');
-        opt.value = w;
-        opt.textContent = `Week ${w}`;
-        if (w == savedWeek || (!savedWeek && w === todayWeek && hasToday)) opt.selected = true;
-        weekSel.appendChild(opt);
+        const val = String(w);
+        weekSel.add(new Option(`Week ${w}`, val, false, val === savedWeek));
     });
 
-    classSel.innerHTML = '<option value="">All Classrooms</option>';
+    classSel.innerHTML = '<option value="">All Rooms</option>';
     classSet.forEach((name, id) => {
-        const opt = document.createElement('option');
-        opt.value = id;
-        opt.textContent = name;
-        if (id == savedClass) opt.selected = true;
-        classSel.appendChild(opt);
+        classSel.add(new Option(name, String(id), false, String(id) === savedClass));
     });
 }
 
-window.applyFilters = function () {
-    const weekVal  = document.getElementById('filter-week')?.value;
-    const classVal = document.getElementById('filter-classroom')?.value;
-    const statusVal = document.getElementById('filter-status')?.value;
+window.applyFilters = function() {
+    const w = document.getElementById('filter-week')?.value;
+    const c = document.getElementById('filter-classroom')?.value;
+    const s = document.getElementById('filter-status')?.value;
 
-    filteredSessions = allSessions.filter(s => {
-        const weekMatch   = !weekVal   || String(s.week)        === weekVal;
-        const classMatch  = !classVal  || String(s.classroomId) === classVal;
-        const statusMatch = !statusVal || String(s.status)      === statusVal;
-        return weekMatch && classMatch && statusMatch;
+    filteredSessions = allSessions.filter(st => {
+        const mw = !w || String(st.week) === w;
+        const mc = !c || String(st.classroomId) === c;
+        const ms = !s || String(st.status) === s;
+        return mw && mc && ms;
     });
 
     renderGrid();
 };
 
-// ── 3. Render Session Grid ─────────────────────────────────────────────────
-
 function renderGrid() {
     const grid = document.getElementById('sessions-grid');
     if (!grid) return;
 
-    if (!allSessions.length) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center text-slate-400 font-bold italic">No sessions found.</div>`;
-        updateOverview(null, 0);
-        return;
-    }
-
     if (!filteredSessions.length) {
-        grid.innerHTML = `<div class="col-span-full py-12 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-slate-50"><p class="text-slate-500 font-bold italic">No matches for this filter.</p></div>`;
+        grid.innerHTML = `<div class="col-span-full py-10 text-center border border-dashed border-slate-200 rounded-xl"><p class="text-sm text-slate-500">No sessions match current filters.</p></div>`;
         updateOverview(null, 0);
         return;
     }
 
-    const sorted = [...filteredSessions].sort((a, b) => {
-        const d = (a.date || '').localeCompare(b.date || '');
-        return d !== 0 ? d : (a.startTime || '').localeCompare(b.startTime || '');
-    });
-
+    const sorted = [...filteredSessions].sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.startTime||'').localeCompare(b.startTime||''));
+    
     const next = sorted.find(s => s.status === 'IN_PROGRESS' || s.status === 'SCHEDULED') || sorted[0];
     const pending = sorted.filter(s => s.status === 'SCHEDULED').length;
     updateOverview(next, pending);
@@ -180,76 +144,88 @@ function renderGrid() {
 }
 
 function updateOverview(next, pendingCount) {
-    const name = document.getElementById('next-class-name');
-    const time = document.getElementById('next-class-time');
-    const room = document.getElementById('next-class-room');
-    if (name) name.textContent = next?.courseName || 'No upcoming sessions';
-    if (time) time.textContent = next?.startTime ? next.startTime.substring(0, 5) : '--:--';
-    if (room) room.textContent = next?.classroomName || 'N/A';
+    const titleEl = document.getElementById('next-class-name');
+    const timeEl = document.getElementById('next-class-time');
+    const roomEl = document.getElementById('next-class-room');
+    const btnTake = document.getElementById('btn-take-attendance-overview');
 
+    if (!next) {
+        titleEl.textContent = 'None Scheduled';
+        timeEl.textContent = '--:--';
+        roomEl.textContent = 'No Room';
+        btnTake?.classList.add('hidden');
+        nextSessionContext = null;
+    } else {
+        titleEl.textContent = next.courseName || 'Unknown Course';
+        timeEl.textContent = next.startTime?.substring(0,5) || '--:--';
+        roomEl.textContent = next.classroomName || 'No Room';
+        
+        // Show button if session is live or scheduled
+        btnTake?.classList.remove('hidden');
+        nextSessionContext = next;
+    }
+    
     const countEl = document.getElementById('pending-attendance-count');
-    if (countEl) countEl.textContent = String(pendingCount).padStart(2, '0');
+    if (countEl) countEl.textContent = String(pendingCount);
 }
+
+window.takeAttendanceFromOverview = function() {
+    if (!nextSessionContext) return;
+    window.handleSessionAction(nextSessionContext.sessionId);
+};
 
 function renderSessionCard(s) {
     const isActive = s.status === 'IN_PROGRESS';
-    const isDone   = s.status === 'COMPLETED';
-    const isValid  = s.isValidated === true;
+    const isDone = s.status === 'COMPLETED';
+    const isValid = s.isValidated === true;
     
-    let statusLabel = s.status?.replace('_', ' ') || 'SCHEDULED';
-    let statusColor = 'bg-emerald-50 text-emerald-600';
+    let statusLabel = s.status || 'SCHEDULED';
+    let statusClasses = 'bg-slate-100 text-slate-500 border border-slate-200';
     
     if (isActive) {
-        statusColor = 'bg-blue-100 text-blue-700';
+        statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
+        statusLabel = 'LIVE NOW';
     } else if (isDone) {
-        statusColor = isValid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
-        statusLabel = isValid ? 'VALIDATED' : 'CLOSED (PENDING)';
+        statusClasses = isValid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-slate-200';
+        statusLabel = isValid ? 'VALIDATED' : 'CLOSED';
     }
 
-    const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }) : (s.day || 'TBD');
+    const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short'}) : 'TBD';
 
     return `
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isActive ? 'ring-2 ring-[#00B0FF] ring-offset-4' : ''}">
+        <div class="bg-white p-6 rounded-2xl border-2 ${isActive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-100 hover:border-[#00B0FF]/30'} transition-all flex flex-col group relative overflow-hidden">
+            ${isActive ? '<div class="absolute top-0 right-0 w-16 h-16 bg-[#00B0FF]/5 rounded-bl-full"></div>' : ''}
             <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusColor}">${statusLabel}</span>
-                    ${isValid ? `
-                        <div class="w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm" title="Attendance Validated">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                        </div>
-                    ` : ''}
-                </div>
-                <div class="flex items-center gap-2">
-                    ${isDone ? `
-                        <button onclick="viewAttendancePdf(${s.sessionId})" class="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl border border-slate-100 transition shadow-sm" title="View PDF">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        </button>
-                    ` : ''}
-                    <span class="text-[10px] font-bold text-slate-400">${s.startTime?.substring(0, 5) || '--:--'}</span>
-                </div>
+                <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusClasses}">${statusLabel}</span>
+                <span class="text-xs font-bold text-slate-400 font-mono">${s.startTime?.substring(0,5) || '--:--'}</span>
             </div>
-            <h4 class="text-base font-black text-slate-800 mb-2 truncate group-hover:text-blue-600 transition-colors">${s.courseName || 'Unnamed Course'}</h4>
-            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${dateStr} • ${s.classroomName || 'No Room'}</p>
             
+            <h4 class="text-base font-black text-[#00B0FF] mb-1 truncate drop-shadow-sm">${s.courseName || 'Course'}</h4>
+            <p class="text-xs font-bold text-slate-500 tracking-tight flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
+                ${s.classroomName || 'Room'} • ${dateStr}
+            </p>
+            
+            <div class="mt-6 pt-5 border-t border-slate-50 mt-auto">
             ${!isDone ? `
-                <button onclick="handleSessionAction(${s.sessionId})" class="mt-6 w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-[#00B0FF] text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 text-white hover:bg-black'}">
-                    ${isActive ? 'Open Roll Call Hub' : 'Start Session'}
+                <button onclick="handleSessionAction(${s.sessionId})" class="w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 shadow-sm ${isActive ? 'bg-[#00B0FF] text-white hover:bg-blue-600 shadow-blue-500/20' : 'bg-white border-2 border-[#00B0FF] text-[#00B0FF] hover:bg-blue-50'}">
+                    ${isActive ? 'Manage Session' : 'Start Session'}
                 </button>
             ` : (isValid ? `
-                <div class="mt-6 flex gap-2">
-                    <button onclick="viewAttendancePdf(${s.sessionId})" class="flex-1 py-3 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition">View PDF</button>
-                    <button onclick="downloadAttendanceCsv(${s.sessionId})" class="flex-1 py-3 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition">Download CSV</button>
+                <div class="flex gap-2">
+                    <button onclick="viewAttendancePdf(${s.sessionId})" class="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[#00B0FF] border border-slate-200 rounded-xl text-xs font-black transition-all">PDF</button>
+                    <button onclick="downloadAttendanceCsv(${s.sessionId})" class="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[#00B0FF] border border-slate-200 rounded-xl text-xs font-black transition-all">CSV</button>
                 </div>
             ` : `
-                <button onclick="handleSessionAction(${s.sessionId})" class="mt-6 w-full py-3 bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition shadow-lg shadow-amber-500/20">
+                <button onclick="handleSessionAction(${s.sessionId})" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
                     Finalize Roll Call
                 </button>
             `)}
+            </div>
         </div>`;
 }
 
-// ── 4. Session Lifecycle ───────────────────────────────────────────────────
-
+// ── Roll Call Engine ──────────────────────────────────────────────────────
 window.handleSessionAction = async function (sessionId) {
     const session = allSessions.find(s => s.sessionId === sessionId);
     if (!session) return;
@@ -258,45 +234,40 @@ window.handleSessionAction = async function (sessionId) {
         try {
             showNotification('Initializing session...', 'info');
             const res = await fetch(`/api/teacher/sessions/${sessionId}/start`, { method: 'POST' });
-            if (!res.ok) throw new Error('Start failed');
-            
+            if (!res.ok) throw new Error();
             const updated = await res.json();
+            
             const idx = allSessions.findIndex(s => s.sessionId === sessionId);
             if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
             
             renderGrid();
             openRollCall(sessionId);
         } catch (e) {
-            showNotification('Failed to start session', 'error');
+            showNotification('Failed to start session.', 'error');
         }
     } else {
         openRollCall(sessionId);
     }
 };
 
-// ── 5. Roll Call Hub ─────────────────────────────────────────────────────
-
 function openRollCall(sessionId) {
     activeSessionId = sessionId;
-    activeSession   = allSessions.find(s => s.sessionId === sessionId);
-    if (!activeSession) return;
+    activeSession = allSessions.find(s => s.sessionId === sessionId);
+    
+    document.getElementById('att-course-name').textContent = activeSession.courseName || 'Course';
+    document.getElementById('att-details').textContent = `${activeSession.classroomName} • ${activeSession.startTime?.substring(0,5)} – ${activeSession.endTime?.substring(0,5)}`;
 
-    document.getElementById('att-course-name').textContent = activeSession.courseName || 'Session';
-    document.getElementById('att-details').textContent = `${activeSession.classroomName || 'No Room'} • ${activeSession.startTime?.substring(0, 5) || '--'} – ${activeSession.endTime?.substring(0, 5) || '--'}`;
-
-    // Show/Hide buttons based on status
-    const btnSubmit = document.getElementById('btn-submit-rollcall');
-    const btnConfirm = document.getElementById('btn-confirm-export');
+    const btnSub = document.getElementById('btn-submit-rollcall');
+    const btnCon = document.getElementById('btn-confirm-export');
     
     if (activeSession.status === 'COMPLETED') {
-        btnSubmit?.classList.add('hidden');
-        btnConfirm?.classList.remove('hidden');
+        btnSub?.classList.add('hidden');
+        btnCon?.classList.remove('hidden');
     } else {
-        btnSubmit?.classList.remove('hidden');
-        btnConfirm?.classList.add('hidden');
+        btnSub?.classList.remove('hidden');
+        btnCon?.classList.add('hidden');
     }
 
-    // Switch to Attendance Section
     navigateTo('attendance');
     document.getElementById('hubEmptyState').classList.add('hidden');
     document.getElementById('hubWorkspace').classList.remove('hidden');
@@ -310,69 +281,21 @@ window.closeAttendance = function() {
     navigateTo('schedule');
     activeSessionId = null;
     disconnectWebSocket();
-    clearInterval(qrInterval);
 };
 
 async function loadRollCall(sessionId) {
     const tbody = document.getElementById('att-table-body');
-    tbody.innerHTML = '<tr><td colspan="20" class="py-20 text-center text-slate-400 italic">Syncing roster...</td></tr>';
-
+    tbody.innerHTML = '<tr><td colspan="10" class="py-10 text-center text-slate-500 text-sm">Loading roster...</td></tr>';
+    
     try {
         const res = await fetch(`/api/attendance/session/${sessionId}/students`);
         if (!res.ok) throw new Error();
         const records = await res.json();
         renderAttendanceGrid(records);
     } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="20" class="py-20 text-center text-rose-500 font-bold">Failed to load roster.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="py-10 text-center text-red-600 text-sm">Failed to load roster.</td></tr>';
     }
 }
-
-function renderAttendanceGrid(records) {
-    const tbody = document.getElementById('att-table-body');
-    const thead = document.getElementById('att-table-head');
-    const totalHours = resolveHours(activeSession);
-
-    // Dynamic Headers
-    let headHtml = `<th class="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest min-w-[250px]">Student Information</th>`;
-    for (let i = 0; i < totalHours; i++) {
-        headHtml += `<th class="px-4 py-4 text-center min-w-[70px] text-[10px] font-black text-slate-400 uppercase tracking-widest">H${i+1}</th>`;
-    }
-    thead.innerHTML = headHtml;
-
-    tbody.innerHTML = records.map(r => {
-        const initials = ((r.firstName||'')[0] || '') + ((r.lastName||'')[0] || '');
-        let hoursHtml = '';
-        for (let i = 0; i < totalHours; i++) {
-            const slot = r.hourSlots?.find(h => h.hourIndex === i);
-            const present = slot?.status === 'PRESENT' || slot?.status === 'LATE';
-            hoursHtml += `
-                <td class="px-4 py-4 text-center">
-                    <div class="flex flex-col items-center gap-1.5">
-                        <input type="checkbox" ${present ? 'checked' : ''} onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
-                               class="w-6 h-6 rounded-lg border-slate-200 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-transform hover:scale-110 accent-emerald-500 slot-checkbox"
-                               data-user-id="${r.userId}" data-hour="${i}">
-                        <span class="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Hour ${i+1}</span>
-                    </div>
-                </td>`;
-        }
-
-        return `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-50 student-row" data-student-id="${r.userId}">
-                <td class="px-6 py-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-400 text-xs">${initials || 'S'}</div>
-                        <div>
-                            <div class="text-sm font-black text-slate-800">${r.firstName} ${r.lastName}</div>
-                            <div class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">${r.matricule || 'NO-MATRIC'}</div>
-                        </div>
-                    </div>
-                </td>
-                ${hoursHtml}
-            </tr>`;
-    }).join('');
-}
-
-// ── 6. Marking & Lifecycle ────────────────────────────────────────────────
 
 function resolveHours(s) { 
     if (s.totalHours > 0) return s.totalHours;
@@ -384,244 +307,236 @@ function resolveHours(s) {
     return 1;
 }
 
+function renderAttendanceGrid(records) {
+    const tbody = document.getElementById('att-table-body');
+    const thead = document.getElementById('att-table-head');
+    const totalHours = resolveHours(activeSession);
+
+    let headHtml = `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-1/3">Student Name</th>`;
+    for (let i = 0; i < totalHours; i++) {
+        headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">Hour ${i+1}</th>`;
+    }
+    thead.innerHTML = headHtml;
+
+    tbody.innerHTML = records.map(r => {
+        let hoursHtml = '';
+        for (let i = 0; i < totalHours; i++) {
+            const slot = r.hourSlots?.find(h => h.hourIndex === i);
+            const isPresent = slot?.status === 'PRESENT' || slot?.status === 'LATE';
+            hoursHtml += `
+            <td class="px-4 py-3 text-center align-middle">
+                <input type="checkbox" ${isPresent ? 'checked' : ''} onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
+                       class="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer accent-emerald-500 slot-checkbox"
+                       data-user-id="${r.userId}">
+            </td>`;
+        }
+
+        return `
+            <tr class="student-row hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0" data-student-id="${r.userId}">
+                <td class="px-5 py-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-black text-slate-900">${r.firstName} ${r.lastName}</span>
+                        <span class="text-[10px] font-bold text-slate-400 font-mono tracking-tight">${r.matricule || 'NO-MATRIC'}</span>
+                    </div>
+                </td>
+                ${hoursHtml}
+            </tr>`;
+    }).join('');
+}
+
 window.markHourStatus = async (sid, hi, isP) => {
-    const status = isP ? 'PRESENT' : 'ABSENT';
     try {
-        await fetch(`/api/attendance/session/${activeSessionId}/student/${sid}/hour/${hi}?status=${status}`, { method: 'POST' });
-        // Update checkbox directly for immediate feedback on Mark All if needed, but here it's already triggered by change
-    } catch (e) {
+        await fetch(`/api/attendance/session/${activeSessionId}/student/${sid}/hour/${hi}?status=${isP ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
+    } catch {
         showNotification('Update failed', 'error');
-        // Revert UI on failure
-        const cb = document.querySelector(`.slot-checkbox[data-user-id="${sid}"][data-hour="${hi}"]`);
-        if (cb) cb.checked = !isP;
     }
 };
 
-window.markAllSessionStatus = async (status) => {
-    const confirmed = await ModernConfirm({
-        title: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}?`,
-        message: `This will update the status for everyone in this session to ${status.toLowerCase()}.`,
-        confirmText: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}`,
-        type: status === 'PRESENT' ? 'info' : 'warning'
-    });
-    if (!confirmed) return;
+window.markAllSessionStatus = async (s) => {
     try {
-        await fetch(`/api/attendance/session/${activeSessionId}/mark-all?status=${status}`, { method: 'POST' });
-        showNotification(`All students marked ${status.toLowerCase()}`, 'success');
-        
-        // Immediate UI Update for checkboxes
-        const checkboxes = document.querySelectorAll('.slot-checkbox');
-        checkboxes.forEach(cb => {
-            cb.checked = (status === 'PRESENT');
-        });
-    } catch (e) {
-        showNotification('Bulk update failed', 'error');
-        loadRollCall(activeSessionId);
-    }
+        await fetch(`/api/attendance/session/${activeSessionId}/mark-all?status=${s}`, { method: 'POST' });
+        document.querySelectorAll('.slot-checkbox').forEach(cb => cb.checked = (s === 'PRESENT'));
+    } catch {}
 };
 
 window.submitRollCall = async () => {
-    const confirmed = await ModernConfirm({
-        title: "Finalize Roll Call?",
-        message: "This will end the session. Students who haven't checked in will be automatically marked as ABSENT.",
-        confirmText: "End & Finalize",
-        type: "warning"
-    });
-    if (!confirmed) return;
     try {
         const res = await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
         if (!res.ok) throw new Error();
         
-        showNotification('Session completed! Please confirm and export the final sheet.', 'success');
-        
-        // Refresh local session state
         const updated = await res.json();
         const idx = allSessions.findIndex(s => s.sessionId === activeSessionId);
         if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
         activeSession = allSessions[idx];
 
-        // Update Buttons
-        document.getElementById('btn-submit-rollcall')?.classList.add('hidden');
-        document.getElementById('btn-confirm-export')?.classList.remove('hidden');
+        // Trigger modal instead of inline button switch
+        document.getElementById('finalize-modal').classList.remove('hidden');
         
-        // Reload roll call to show auto-absences
         loadRollCall(activeSessionId);
-    } catch (e) { showNotification('Failed to end session', 'error'); }
+    } catch { showNotification('Failed to finalize', 'error'); }
+};
+
+window.closeFinalizeModal = function() {
+    document.getElementById('finalize-modal').classList.add('hidden');
+    closeAttendance(); // Return to dashboard
+    loadSessions();
 };
 
 window.confirmAndExportAttendance = async () => {
-    const confirmed = await ModernConfirm({
-        title: "Submit Attendance Report?",
-        message: "This will finalize the attendance sheet and broadcast the reports to the Pedagogic Assistant. This action is permanent.",
-        confirmText: "Submit & Export",
-        type: "info"
-    });
-    if (!confirmed) return;
-    
     try {
-        showNotification('Finalizing attendance...', 'info');
-        const res = await fetch(`/api/teacher/sessions/${activeSessionId}/confirm-attendance`, { method: 'POST' });
-        if (!res.ok) throw new Error();
+        await fetch(`/api/teacher/sessions/${activeSessionId}/confirm-attendance`, { method: 'POST' });
+        showNotification('Attendance confirmed.', 'success');
         
-        showNotification('Attendance confirmed and sent!', 'success');
-        
-        // Trigger Exports in parallel
         downloadAttendancePdf(activeSessionId);
-        downloadAttendanceCsv(activeSessionId);
         
         closeAttendance();
         loadSessions();
+    } catch {}
+};
+
+// ── Teacher Stats Integration ──────────────────────────────────────────────
+async function loadTeacherStats() {
+    try {
+        const res = await fetch('/api/teacher/stats/classes');
+        const groups = await res.json();
+        const select = document.getElementById('stats-course-selector');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Select a Course Context...</option>';
+        groups.forEach(g => {
+            select.add(new Option(`${g.classroomName} • ${g.courseName}`, `${g.classroomId}-${g.courseId}`));
+        });
     } catch (e) {
-        showNotification('Confirmation failed', 'error');
+        console.error("Failed to load stats classes", e);
+    }
+}
+
+window.loadStatsForDetailedView = async function() {
+    const val = document.getElementById('stats-course-selector').value;
+    const tbody = document.getElementById('stats-table-body');
+    
+    if (!val) {
+        tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">Select a course to view its attendance yields.</td></tr>';
+        return;
+    }
+
+    const [classId, courseId] = val.split('-');
+    tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">Calculating yields...</td></tr>';
+    
+    try {
+        const res = await fetch(`/api/teacher/stats/classes/${classId}/courses/${courseId}`);
+        const stats = await res.json();
+        
+        if (stats.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">No students found.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = stats.map(st => {
+            const pct = isNaN(st.attendanceRate) ? 0 : Math.round(st.attendanceRate);
+            let barColor = 'bg-gradient-to-r from-blue-500 to-[#00B0FF]';
+            if (pct < 75) barColor = 'bg-red-500';
+            else if (pct < 90) barColor = 'bg-amber-500';
+
+            return `
+            <tr class="hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0">
+                <td class="px-6 py-5">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-black text-slate-900">${st.studentName}</span>
+                        <span class="text-[10px] font-black text-[#00B0FF] uppercase mt-1 tracking-tight">${st.attendedHours} / ${st.totalCourseHours} Hours Fullfilled</span>
+                    </div>
+                </td>
+                <td class="px-6 py-5 align-middle">
+                    <div class="flex flex-col items-end gap-2 w-56 ml-auto">
+                        <div class="flex items-center justify-between w-full mb-1">
+                             <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance Yield</span>
+                             <span class="text-xs font-black text-slate-900">${pct}%</span>
+                        </div>
+                        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                            <div class="h-full ${barColor} shadow-sm transition-all duration-1000" style="width: ${pct}%"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    } catch {
+        tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-red-600 text-sm">Failed to generate yield report.</td></tr>';
     }
 };
 
-window.viewAttendancePdf = function(sessionId) {
-    window.open(`/api/teacher/sessions/${sessionId}/export/pdf`, '_blank');
-};
-
-window.downloadAttendancePdf = function(sessionId) {
-    const link = document.createElement('a');
-    link.href = `/api/teacher/sessions/${sessionId}/export/pdf`;
-    link.download = `Attendance_Session_${sessionId}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-window.downloadAttendanceCsv = function(sessionId) {
-    const link = document.createElement('a');
-    link.href = `/api/teacher/sessions/${sessionId}/export`;
-    link.download = `Attendance_Session_${sessionId}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-// ── 7. QR & PIN ───────────────────────────────────────────────────────────
-
-window.generatePin = async function () {
-    try {
-        const res = await fetch('/api/attendance/session-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: activeSessionId, type: 'PIN' }) });
-        const data = await res.json();
-        document.getElementById('pin-display').textContent = data.token;
-        showNotification(`New active PIN: ${data.token}`, 'success');
-    } catch (e) { showNotification('Failed to generate PIN', 'error'); }
-};
-
-window.toggleQrView = function () {
-    const overlay = document.getElementById('qr-overlay');
-    const isOpen = !overlay.classList.contains('hidden');
-    if (isOpen) { overlay.classList.add('hidden'); disconnectWebSocket(); clearInterval(qrInterval); }
-    else { overlay.classList.remove('hidden'); connectWebSocket(); startQrTimer(); generateNewQr(); }
-};
-
-async function generateNewQr() {
-    try {
-        const res = await fetch('/api/attendance/session-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId: activeSessionId, type: 'QR' }) });
-        const data = await res.json();
-        if (typeof QRCode !== 'undefined') {
-            const ph = document.getElementById('qr-canvas-placeholder');
-            ph.innerHTML = '<canvas id="qr-canvas" class="w-full h-full rounded-2xl"></canvas>';
-            QRCode.toCanvas(document.getElementById('qr-canvas'), data.token, { width: 300, margin: 2, color: { dark: '#0F172A', light: '#FFFFFF' } });
-        }
-    } catch (e) {}
-}
-
-// ── 8. Utility: Notifications (Pedagog Style) ──────────────────────────────
-
-function showNotification(message, type = 'info') {
+// ── Notifications (Minimal) ────────────────────────────────────────────────
+function showNotification(msg, type='info') {
     const existing = document.getElementById('tt-toast');
     if (existing) existing.remove();
 
-    const icons = {
-        success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
-        error:   `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
-        info:    `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>`
-    };
-    const palettes = {
-        success: { bg: '#ECFDF5', border: '#10B981', text: '#065F46' },
-        error:   { bg: '#FEF2F2', border: '#EF4444', text: '#7F1D1D' },
-        info:    { bg: '#EFF6FF', border: '#3B82F6', text: '#1E3A5F' }
-    };
-    const p = palettes[type] || palettes.info;
-
     const toast = document.createElement('div');
     toast.id = 'tt-toast';
-    toast.style.cssText = `position:fixed; top:80px; right:24px; z-index:9999; background:${p.bg}; border:1.5px solid ${p.border}; border-radius:14px; box-shadow:0 8px 32px rgba(0,0,0,0.1); padding:16px 20px; display:flex; align-items:center; gap:12px; transition: 0.35s ease; opacity:0; transform:translateX(20px);`;
+    
+    // Color logic
+    const bgColor = type === 'error' ? 'bg-rose-600 shadow-rose-500/30' : 'bg-[#00B0FF] shadow-blue-500/20';
+    
+    toast.className = `fixed top-4 right-4 z-[300] ${bgColor} text-white px-5 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all transform translate-y-2 opacity-0 flex items-center gap-3 active:scale-95 cursor-pointer shadow-xl`;
+    
+    const icon = type === 'error' 
+        ? `<svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
+        : `<svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 
-    toast.innerHTML = `
-        <span style="color:${p.border}">${icons[type]}</span>
-        <div style="flex:1"><p style="margin:0; font-weight:700; font-size:13px; color:${p.text}">${message}</p></div>
-        <button onclick="this.closest('#tt-toast').remove()" style="background:none; border:none; cursor:pointer; color:${p.border}">
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
-        </button>`;
+    toast.innerHTML = `${icon}<span>${msg}</span>`;
+    toast.onclick = () => toast.remove();
 
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '1'; toast.style.transform = 'translateX(0)'; }, 10);
-    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 4000);
+    setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
+    setTimeout(() => { 
+        toast.classList.add('opacity-0'); 
+        setTimeout(() => toast.remove(), 300); 
+    }, type === 'error' ? 5000 : 3000); // Errors stay longer
 }
 
-// ── WebSocket & Helpers ────────────────────────────────────────────────────
+// ── Simple Actions ────────────────────────────────────────────────────────
+window.downloadAttendancePdf = (id) => window.open(`/api/teacher/sessions/${id}/export/pdf`, '_blank');
+window.downloadAttendanceCsv = (id) => window.open(`/api/teacher/sessions/${id}/export`, '_blank');
+window.viewAttendancePdf = window.downloadAttendancePdf;
+
+window.generatePin = async () => {
+    try {
+        const res = await fetch('/api/attendance/session-token', { method: 'POST', body: JSON.stringify({sessionId:activeSessionId, type:'PIN'}), headers:{'Content-Type':'application/json'} });
+        const data = await res.json();
+        document.getElementById('pin-display').textContent = data.token;
+    } catch {}
+};
+
+window.toggleQrView = () => {
+    const ov = document.getElementById('qr-overlay');
+    if (ov.classList.contains('hidden')) {
+        ov.classList.remove('hidden');
+        generateQr();
+        connectWebSocket();
+    } else {
+        ov.classList.add('hidden');
+        disconnectWebSocket();
+    }
+};
+
+async function generateQr() {
+    try {
+        const res = await fetch('/api/attendance/session-token', { method: 'POST', body: JSON.stringify({sessionId:activeSessionId, type:'QR'}), headers:{'Content-Type':'application/json'} });
+        const data = await res.json();
+        if (typeof window.QRCode !== 'undefined') {
+            const cv = document.createElement('canvas');
+            cv.className = 'w-full h-full rounded-xl';
+            document.getElementById('qr-canvas-placeholder').innerHTML = '';
+            document.getElementById('qr-canvas-placeholder').appendChild(cv);
+            window.QRCode.toCanvas(cv, data.token, { width: 250, margin: 1, color: { dark: '#0F172A', light: '#FFFFFF' } });
+        }
+    } catch {}
+}
 
 function connectWebSocket() {
-    if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') return;
-    const socket = new SockJS('/ws'); stompClient = Stomp.over(socket); stompClient.debug = null;
+    if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
+    const socket = new window.SockJS('/ws'); stompClient = window.Stomp.over(socket); stompClient.debug = null;
     stompClient.connect({}, () => {
-        stompClient.subscribe(`/topic/session/${activeSessionId}/qr`, msg => { generateNewQr(); resetQrTimer(); });
+        stompClient.subscribe(`/topic/session/${activeSessionId}/qr`, generateQr);
         stompClient.subscribe(`/topic/session/${activeSessionId}`, () => loadRollCall(activeSessionId));
     });
 }
 function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }
-function startQrTimer() {
-    clearInterval(qrInterval); qrTimer = 30;
-    qrInterval = setInterval(() => {
-        qrTimer--;
-        document.getElementById('qr-timer-text').textContent = qrTimer;
-        document.getElementById('qr-timer-progress').style.width = `${(qrTimer/30)*100}%`;
-        if (qrTimer <= 0) { generateNewQr(); qrTimer = 30; }
-    }, 1000);
-}
-function resetQrTimer() { qrTimer = 30; }
-// ── 9. Table Filtering ─────────────────────────────────────────────────────
-
-window.filterByStatus = function(status, btn) {
-    // 1. UI: Update button styles
-    document.querySelectorAll('.status-filter-btn').forEach(b => {
-        b.classList.remove('bg-blue-50', 'text-blue-600');
-        b.classList.add('text-slate-400', 'hover:text-slate-800');
-    });
-    btn.classList.add('bg-blue-50', 'text-blue-600');
-    btn.classList.remove('text-slate-400', 'hover:text-slate-800');
-
-    // 2. Logic: Filter Table Rows
-    const rows = document.querySelectorAll('.student-row');
-    rows.forEach(row => {
-        if (status === 'all') {
-            row.classList.remove('hidden');
-            return;
-        }
-
-        // We check checkboxes in each row to see status
-        const checkboxes = row.querySelectorAll('.slot-checkbox');
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
-
-        if (status === 'absent') {
-            // Row is "absent" if NONE of the checkboxes are checked
-            if (!anyChecked) row.classList.remove('hidden');
-            else row.classList.add('hidden');
-        } else if (status === 'not-marked') {
-            // Manual required if some are checked but not all? Or just if it's not fully present.
-            // Let's define "Manual Required" as anyone who hasn't been marked at all (absent).
-            if (!anyChecked) row.classList.remove('hidden');
-            else row.classList.add('hidden');
-        }
-    });
-};
-
-function getISOWeek(d) {
-    const d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d2.setUTCDate(d2.getUTCDate() + 4 - (d2.getUTCDay() || 7));
-    return Math.ceil((((d2 - new Date(Date.UTC(d2.getUTCFullYear(), 0, 1))) / 86400000) + 1) / 7);
-}

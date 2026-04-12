@@ -3,298 +3,330 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Attendee - Student Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Attendee</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/main.css}">
     <link rel="stylesheet" th:href="@{/css/admin-dashboard.css}">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .nav-item.active { background: #00B0FF; color: white; }
-        .glass-panel { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.3); }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* Modern Desktop Navigation States */
+        .nav-desktop.active { font-weight: 800; background-color: #00B0FF; color: white !important; display: flex; transition: all 0.2s; box-shadow: 0 4px 12px rgba(0, 176, 255, 0.2); }
+        .nav-desktop.active svg { color: white !important; }
+        .nav-desktop.active span { color: white !important; }
+        .nav-desktop.active:hover { background-color: #0091D5; }
+        
+        /* PWA Mobile Navigation States */
+        .nav-mobile { color: #94A3B8; transition: color 0.15s ease; }
+        .nav-mobile.active { color: #00B0FF !important; font-weight: 800; }
+        .nav-mobile.active svg { color: #00B0FF !important; }
+        
+        /* Custom Scrollbar for Desktop */
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 10px; }
     </style>
 </head>
 
-<body class="font-sans antialiased text-slate-800 bg-slate-50">
-    <div class="flex h-screen overflow-hidden relative">
-        <!-- Sidebar -->
-        <aside id="sidebar" class="sidebar fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60] bg-white -translate-x-full lg:translate-x-0">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo" class="w-12 h-12 object-contain rounded-xl shadow-sm">
-                        <span class="text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
-                    </div>
+<body class="antialiased text-slate-800 bg-slate-50 overscroll-none">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Desktop Sidebar -->
+        <aside class="hidden md:flex flex-col w-72 h-screen flex-shrink-0 bg-white border-r border-slate-200 z-40">
+            <div class="p-6">
+                <div class="flex items-center gap-3">
+                    <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo" class="w-16 h-16 md:w-20 md:h-20 object-contain rounded-xl shadow-sm border-2 border-blue-50">
+                    <span class="text-lg md:text-xl font-bold text-slate-800 tracking-tight">Attendee</span>
                 </div>
             </div>
 
-            <nav class="p-4 overflow-y-auto h-[calc(100vh-100px)]">
-                <ul class="space-y-2">
-                    <li>
-                        <a href="#" onclick="switchTab('status')" id="nav-status" class="nav-item active flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 transition-all duration-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
-                            <span class="font-medium">Overview</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="switchTab('calendar')" id="nav-calendar" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            <span class="font-medium">My Schedule Focus</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="switchTab('courses')" id="nav-courses" class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-blue-50 transition-all duration-200">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                            <span class="font-medium">Course Metrics & Export</span>
-                        </a>
-                    </li>
-                </ul>
+            <nav class="flex-1 px-4 py-2 space-y-2 overflow-y-auto">
+                <a href="#" onclick="switchTab('status')" id="nav-desk-status" class="nav-desktop active flex items-center gap-4 px-4 py-3 xl:px-6 xl:py-4 rounded-xl transition-all duration-200 text-slate-500 hover:bg-blue-50">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="font-medium">Overview</span>
+                </a>
+                <a href="#" onclick="switchTab('calendar')" id="nav-desk-calendar" class="nav-desktop flex items-center gap-4 px-4 py-3 xl:px-6 xl:py-4 rounded-xl transition-all duration-200 text-slate-500 hover:bg-blue-50">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="font-medium">Check-In</span>
+                </a>
+                <a href="#" onclick="switchTab('justification')" id="nav-desk-justification" class="nav-desktop flex items-center gap-4 px-4 py-3 xl:px-6 xl:py-4 rounded-xl transition-all duration-200 text-slate-500 hover:bg-blue-50">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span class="font-medium">Absences</span>
+                </a>
+                <a href="#" onclick="switchTab('courses')" id="nav-desk-courses" class="nav-desktop flex items-center gap-4 px-4 py-3 xl:px-6 xl:py-4 rounded-xl transition-all duration-200 text-slate-500 hover:bg-blue-50">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span class="font-medium">Courses</span>
+                </a>
+                <a href="#" onclick="switchTab('stats')" id="nav-desk-stats" class="nav-desktop flex items-center gap-4 px-4 py-3 xl:px-6 xl:py-4 rounded-xl transition-all duration-200 text-slate-500 hover:bg-blue-50">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="font-medium">Reports</span>
+                </a>
             </nav>
         </aside>
 
         <!-- Main Content -->
-        <main id="main-content" class="flex-1 overflow-y-auto custom-scrollbar relative">
-            <!-- Header -->
-            <header class="sticky top-4 mx-4 my-4 rounded-2xl glass-panel z-50 px-8 py-4 flex items-center justify-between shadow-premium border border-white/30">
-                <div class="flex items-center gap-4">
-                    <h1 class="text-2xl font-black text-slate-800 tracking-tight">Student Console</h1>
-                    <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
-                        <span>Academic Services</span>
-                        <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                        <span class="text-blue-600">Student View</span>
-                    </p>
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50 relative pb-[80px] md:pb-0">
+            <!-- Header (Mobile + Desktop) -->
+            <header class="flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200 sticky top-0 z-30">
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900">Dashboard</h1>
                 </div>
 
                 <div class="flex items-center gap-3">
                     <div class="relative group" id="profile-dropdown">
-                        <button class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white rounded-2xl transition-all duration-300">
-                            <div class="w-9 h-9 bg-fuchsia-500 rounded-xl flex items-center justify-center text-white font-bold">
+                        <button class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 rounded-2xl transition-all duration-300 focus:outline-none">
+                            <div class="w-9 h-9 bg-[#00B0FF] rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-lg shadow-blue-500/20">
                                 <span th:text="${!#strings.isEmpty(username) ? #strings.substring(username,0,1).toUpperCase() : 'S'}">S</span>
                             </div>
-                            <div class="text-left hidden md:block">
-                                <p class="text-[13px] font-bold text-slate-800 leading-none" th:text="${firstName + ' ' + lastName}">Student Name</p>
-                                <p class="text-[11px] text-slate-500 font-medium mt-0.5" th:text="${username}">username</p>
+                            <div class="text-left hidden lg:block">
+                                <p class="text-[13px] font-bold text-slate-800 leading-none" th:text="${firstName + ' ' + lastName}">Student</p>
+                                <p class="text-[11px] text-slate-500 font-medium mt-0.5" th:text="${username}">Account</p>
                             </div>
+                            <svg class="w-4 h-4 text-slate-400 hidden lg:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
-                        <div class="absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl py-2 hidden group-hover:block z-50">
-                            <a th:href="@{/logout}" class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                Sign Out
-                            </a>
+                        <div class="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg py-1 hidden group-hover:block z-50">
+                            <div class="px-4 py-2 border-b border-slate-100 mb-1">
+                                <p class="text-sm font-semibold text-slate-800 truncate" th:text="${firstName + ' ' + lastName}">Name</p>
+                                <p class="text-xs text-slate-500 truncate" th:text="${username}">username</p>
+                            </div>
+                            <a th:href="@{/logout}" class="block px-4 py-2 text-sm text-red-600 hover:bg-slate-50">Sign Out</a>
                         </div>
                     </div>
                 </div>
             </header>
 
-            <div class="p-8">
+            <!-- Scrolling Content -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar px-4 pb-4 pt-2 md:px-8 md:pb-8 md:pt-4">
                 
                 <!-- VIEW: STATUS (HOME) -->
-                <div id="view-status" class="space-y-10 transition-opacity duration-300">
-                    <div class="mb-2">
-                        <h2 class="text-3xl font-bold text-slate-800">Welcome, <span th:text="${firstName}">Student</span>!</h2>
-                        <p class="text-slate-500">Here is your academic status and live check-in access.</p>
+                <div id="view-status" class="space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Welcome, <span th:text="${firstName}">Student</span></h2>
+                        <p class="text-sm text-slate-500">Here's an overview of your academic status.</p>
                     </div>
 
-                    <!-- Status & Progress -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Attendance Ring Card -->
-                        <div class="glass-panel p-8 rounded-premium border border-white/40 shadow-sm flex items-center justify-between overflow-hidden relative group">
-                            <div class="space-y-2 relative z-10">
-                                <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none">Global Accuracy</p>
-                                <h3 id="presence-percentage" class="text-4xl font-black text-slate-800 font-display tracking-tighter">--%</h3>
-                                <p id="status-label" class="text-[10px] font-bold px-3 py-1 bg-slate-100 text-slate-400 rounded-full inline-block uppercase tracking-widest">Calculating...</p>
-                            </div>
-                            
-                            <!-- SVG Status Ring -->
-                            <div class="relative w-28 h-28 z-10">
-                                <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                    <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="3"></circle>
-                                    <circle id="status-ring-progress" cx="18" cy="18" r="16" fill="none" class="stroke-blue-500 transition-all duration-1000" 
-                                            stroke-width="3" stroke-dasharray="0, 100" stroke-linecap="round"></circle>
-                                </svg>
-                                <div class="absolute inset-0 flex items-center justify-center">
-                                    <span id="ring-text" class="text-xs font-black text-slate-800">--</span>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Pure PWA Ring Card -->
+                        <div class="bg-white border-2 border-blue-200 p-6 rounded-3xl shadow-lg shadow-blue-500/5 hover:shadow-blue-500/10 transition-all flex items-center justify-between relative overflow-hidden group">
+                            <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl group-hover:bg-blue-500/10 transition-colors"></div>
+                            <div class="space-y-1 relative z-10">
+                                <p class="text-xs font-bold text-[#00B0FF] uppercase tracking-wide">Attendance Rate</p>
+                                <h3 id="presence-percentage" class="text-4xl font-black text-slate-900">--%</h3>
+                                <div class="mt-2">
+                                    <span id="status-label" class="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 bg-blue-50 text-[#00B0FF] border border-blue-100 rounded-lg">Calculating...</span>
                                 </div>
                             </div>
                             
-                            <div class="absolute -right-4 -bottom-4 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
+                            <div class="relative w-24 h-24 relative z-10">
+                                <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                                    <circle cx="18" cy="18" r="16" fill="none" class="stroke-slate-100" stroke-width="4"></circle>
+                                    <circle id="status-ring-progress" cx="18" cy="18" r="16" fill="none" class="stroke-[#00B0FF] transition-all duration-1000 ease-out" stroke-width="4" stroke-dasharray="0, 100" stroke-linecap="round"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span id="ring-text" class="text-sm font-black text-slate-900 font-mono">--</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Quick Action: Check-in -->
-                        <div id="check-in-widget" class="bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-premium text-white shadow-xl shadow-slate-900/20 flex flex-col justify-between group overflow-hidden relative">
+                        <!-- Current Class Widget -->
+                        <div id="check-in-widget" class="bg-blue border-2 border-[#00B0FF] p-6 rounded-3xl shadow-lg shadow-blue-500/10 flex flex-col justify-between relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-blue-500/20 group">
+                            <div class="absolute -right-10 -top-10 w-40 h-40 bg-[#00B0FF]/5 rounded-full blur-2xl group-hover:bg-[#00B0FF]/10 transition-colors"></div>
                             <div class="relative z-10">
-                                <p class="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Live Action</p>
-                                <h3 id="current-session-name" class="text-xl font-black font-display tracking-tight text-white/90">No active session</h3>
-                                <p id="current-session-details" class="text-white/40 text-[10px] font-bold uppercase tracking-widest mt-1 italic">Scan ready in session vicinity</p>
+                                <p class="text-xs font-bold text-[#00B0FF] uppercase tracking-wide mb-1">Current Class</p>
+                                <h3 id="current-session-name" class="text-xl font-black text-slate-900 mb-2">No active classes</h3>
+                                <p id="current-session-details" class="text-xs font-bold text-slate-400">Sessions will appear here when ready.</p>
                             </div>
                             
-                            <button id="start-scan-btn" onclick="openScanner()" disabled 
-                                    class="mt-6 w-full py-4 bg-white/10 hover:bg-white/20 text-white font-black rounded-2xl border border-white/10 backdrop-blur-md transition-all active:scale-95 flex items-center justify-center gap-3 disabled:opacity-30 disabled:pointer-events-none">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m0 11v1m9-9h1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z"></path></svg>
-                                I'm in Class
+                            <button id="start-scan-btn" onclick="openScanner()" disabled class="mt-6 w-full py-3.5 bg-[#00B0FF] text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2 shadow-md shadow-blue-500/20 active:scale-95">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m0 11v1m9-9h1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z"></path></svg>
+                                Check In Now
                             </button>
-                            <div class="absolute -bottom-8 -right-8 w-40 h-40 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW: CALENDAR / SCHEDULE -->
+                <div id="view-calendar" class="hidden space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Active Schedule</h2>
+                            <p class="text-sm text-slate-500">Track and check-in to your upcoming sessions.</p>
+                        </div>
+                        
+                        <div class="flex bg-blue-50/50 p-1 border border-blue-100 rounded-xl self-start sm:self-auto overflow-x-auto w-full sm:w-auto text-sm hide-scrollbar">
+                            <button onclick="filterGrid('ALL')" id="filter-ALL" class="flex-1 sm:flex-none px-5 py-2 whitespace-nowrap bg-[#00B0FF] text-white rounded-lg shadow-md shadow-blue-500/10 font-black uppercase tracking-widest text-[10px] transition-all hover:bg-white hover:text-slate-900 border border-transparent hover:border-blue-100">All</button>
+                            <button onclick="filterGrid('IN_PROGRESS')" id="filter-IN_PROGRESS" class="flex-1 sm:flex-none px-5 py-2 whitespace-nowrap text-[#00B0FF] font-black uppercase tracking-widest text-[10px] rounded-lg transition-all hover:bg-white hover:text-slate-900 border border-transparent hover:border-blue-100">Live</button>
+                            <button onclick="filterGrid('SCHEDULED')" id="filter-SCHEDULED" class="flex-1 sm:flex-none px-5 py-2 whitespace-nowrap text-[#00B0FF] font-black uppercase tracking-widest text-[10px] rounded-lg transition-all hover:bg-white hover:text-slate-900 border border-transparent hover:border-blue-100">Upcoming</button>
+                            <button onclick="filterGrid('COMPLETED')" id="filter-COMPLETED" class="flex-1 sm:flex-none px-5 py-2 whitespace-nowrap text-[#00B0FF] font-black uppercase tracking-widest text-[10px] rounded-lg transition-all hover:bg-white hover:text-slate-900 border border-transparent hover:border-blue-100">Done</button>
                         </div>
                     </div>
 
+                    <div id="student-schedule-stack" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <p class="text-slate-500 text-sm italic col-span-full py-6 text-center">Loading schedule...</p>
+                    </div>
+                </div>
+
+                <!-- VIEW: JUSTIFICATIONS -->
+                <div id="view-justification" class="hidden space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Absence Log</h2>
+                        <p class="text-sm text-slate-500">Manage and submit justifications for missed sessions.</p>
+                    </div>
+
                     <!-- Justification Panel -->
-                    <div class="glass-panel p-8 rounded-premium border border-white/40 shadow-sm space-y-6">
-                        <h3 class="text-xl font-black text-slate-800 tracking-tight font-display">Absence Justifications</h3>
-                        <div id="justification-list" class="space-y-4">
-                            <!-- Dynamic Justification History -->
+                    <div class="bg-white p-6 rounded-3xl border-2 border-amber-200 shadow-lg shadow-amber-500/5 hover:shadow-amber-500/10 transition-all space-y-5 relative overflow-hidden group">
+                        <div class="absolute -left-6 -bottom-6 w-24 h-24 bg-amber-500/5 rounded-full blur-xl group-hover:bg-amber-500/10 transition-colors"></div>
+                        <h3 class="text-lg font-black text-slate-900 border-b border-amber-50 pb-3 relative z-10">Submit Justification</h3>
+                        <div id="justification-list" class="space-y-3 relative z-10">
+                            <!-- Dynamic Justifications -->
                         </div>
 
-                        <button onclick="toggleJustifyModal()" class="w-full py-4 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold text-xs hover:border-blue-400 hover:text-blue-500 transition-all flex items-center justify-center gap-2">
+                        <button onclick="toggleJustifyModal()" class="w-full py-3.5 border-2 border-[#00B0FF] rounded-xl text-[#00B0FF] font-black text-xs uppercase tracking-widest hover:bg-[#00B0FF] hover:text-white transition-all flex items-center justify-center gap-2 relative z-10 active:scale-95 shadow-sm">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                             New Justification Request
                         </button>
                     </div>
                 </div>
 
-                <!-- VIEW: CALENDAR / GRID -->
-                <div id="view-calendar" class="space-y-6 hidden transition-opacity duration-300">
-                    <div class="flex items-center justify-between mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold text-slate-800">My Schedule</h2>
-                            <p class="text-slate-500">Track and filter all your sessions seamlessly.</p>
-                        </div>
-                        
-                        <!-- Filter Bar -->
-                        <div class="flex items-center gap-2 bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
-                            <button onclick="filterGrid('ALL')" id="filter-ALL" class="px-5 py-2 whitespace-nowrap bg-slate-800 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">All</button>
-                            <button onclick="filterGrid('IN_PROGRESS')" id="filter-IN_PROGRESS" class="px-5 py-2 whitespace-nowrap bg-transparent text-slate-400 hover:text-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-transparent">Live</button>
-                            <button onclick="filterGrid('SCHEDULED')" id="filter-SCHEDULED" class="px-5 py-2 whitespace-nowrap bg-transparent text-slate-400 hover:text-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-transparent">Upcoming</button>
-                            <button onclick="filterGrid('COMPLETED')" id="filter-COMPLETED" class="px-5 py-2 whitespace-nowrap bg-transparent text-slate-400 hover:text-slate-800 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-transparent">Done</button>
-                        </div>
+                <!-- VIEW: STATS -->
+                <div id="view-stats" class="hidden space-y-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-slate-900 tracking-tight">Performance Reports</h2>
+                        <p class="text-sm text-slate-500">Detailed attendance yields per course.</p>
                     </div>
 
-                    <!-- The Grid -->
-                    <div id="student-schedule-stack" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <!-- Loader Placeholder -->
-                        <div class="py-10 text-center col-span-full">
-                            <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                            <p class="text-slate-400 font-bold italic font-display text-sm">Syncing grid data...</p>
-                        </div>
+                    <div id="detailed-reports-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Detail Yield Panels -->
                     </div>
                 </div>
 
                 <!-- VIEW: COURSES & STATS -->
-                <div id="view-courses" class="space-y-6 hidden transition-opacity duration-300">
-                    <div class="flex items-center justify-between mb-8">
+                <div id="view-courses" class="hidden space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
                         <div>
-                            <h2 class="text-3xl font-bold text-slate-800">Enrolled Courses</h2>
-                            <p class="text-slate-500 hidden sm:block">Detailed course metrics and historical progression.</p>
+                            <h2 class="text-2xl font-bold text-slate-900">Courses</h2>
+                            <p class="text-sm text-slate-500">Your enrollment metrics.</p>
                         </div>
-                        <div class="flex items-center gap-4">
-                            <div class="relative hidden sm:block">
-                                <svg class="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                <input type="text" id="course-search-input" onkeyup="searchCourses()" placeholder="Search courses..." class="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none w-48 lg:w-64 shadow-sm transition-all">
+                        <div class="flex items-center gap-3 w-full md:w-auto">
+                            <div class="relative flex-1 md:flex-none md:w-64">
+                                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                <input type="text" id="course-search-input" onkeyup="searchCourses()" placeholder="Search courses..." class="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-sm placeholder-slate-400 focus:border-[#00B0FF] focus:ring-2 focus:ring-[#00B0FF]/20 outline-none transition-all">
                             </div>
-                            <a href="/api/student/attendance/export" class="px-6 py-3 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition flex items-center gap-2">
+                            <a href="/api/student/attendance/export" class="px-5 py-2.5 bg-[#00B0FF] shadow-lg shadow-blue-500/20 text-white rounded-xl font-black uppercase tracking-widest text-[11px] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2 whitespace-nowrap border-2 border-transparent">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                                <span class="hidden md:inline">Export Official Sheet</span>
-                                <span class="md:hidden">Export</span>
+                                <span>Export Status</span>
                             </a>
                         </div>
                     </div>
                     
-                    <div id="course-stats-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <!-- Dynamic Course Stats -->
-                       <div class="py-10 text-center col-span-full text-slate-400 font-bold italic text-sm">Loading course metrics...</div>
+                    <div id="course-stats-container" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                       <p class="text-slate-500 text-sm italic col-span-full py-6 text-center">Loading course stats...</p>
                     </div>
                 </div>
 
             </div>
+            
+            <!-- Mobile Bottom Navigation (PWA Pattern) -->
+            <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe z-40 flex items-center justify-around px-2 pt-2 pb-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button onclick="switchTab('status')" id="nav-mob-status" class="nav-mobile active flex flex-col items-center gap-1 w-20 py-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    <span class="text-[10px] font-medium">Home</span>
+                </button>
+                <button onclick="switchTab('calendar')" id="nav-mob-calendar" class="nav-mobile flex flex-col items-center gap-1 w-20 py-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <span class="text-[10px] font-medium">Schedule</span>
+                </button>
+                <button onclick="switchTab('courses')" id="nav-mob-courses" class="nav-mobile flex flex-col items-center gap-1 w-20 py-1">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span class="text-[10px] font-medium">Courses</span>
+                </button>
+            </nav>
         </main>
     </div>
 
-    <!-- Unified Multi-Step Check-In Modal -->
-    <div id="scanner-overlay" class="fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 animate-fade-in">
-         <button onclick="closeScanner()" class="absolute top-8 right-8 p-4 bg-white/10 text-white rounded-full hover:bg-white/20 transition">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    <!-- Scanner Modal -->
+    <div id="scanner-overlay" class="fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-md hidden flex-col items-center justify-center p-4">
+        <button onclick="closeScanner()" class="absolute top-4 right-4 sm:top-8 sm:right-8 p-3 bg-white/20 text-white rounded-full hover:bg-white/30 transition-colors z-[210]">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
         
-        <div class="w-full max-w-md bg-white rounded-premium overflow-hidden shadow-2xl relative transition-all duration-500" id="checkin-step-container">
-            
+        <div class="w-full max-w-[92vw] sm:max-w-[400px] bg-white rounded-[2rem] overflow-hidden shadow-2xl relative" id="checkin-step-container">
             <!-- STEP 1: Scanner -->
-            <div id="step-qr" class="p-6 sm:p-8 pb-8 sm:pb-10 flex flex-col items-center text-center">
-                <h3 class="text-2xl font-black text-slate-800 font-display mb-2">Scan Token</h3>
-                <p class="text-slate-400 text-xs font-bold mb-6 sm:mb-8">Align the teacher's rotating code in the frame.</p>
+            <div id="step-qr" class="p-6 flex flex-col items-center text-center">
+                <h3 class="text-xl font-bold text-slate-900 mb-1">Scan QR Code</h3>
+                <p class="text-slate-500 text-sm mb-6">Align the instructor's code in the frame.</p>
                 
-                <div class="w-full max-w-[280px] sm:max-w-xs mx-auto aspect-square bg-slate-50 rounded-3xl border-4 border-slate-100 relative overflow-hidden mb-6">
+                <div class="w-full max-w-[240px] aspect-square bg-slate-50 rounded-2xl border-4 border-slate-100 relative overflow-hidden mb-4">
                     <div id="qr-reader" class="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full flex items-center justify-center"></div>
                     <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                        <div class="w-3/4 h-3/4 border-2 border-blue-500/50 rounded-2xl animate-pulse"></div>
+                        <div class="w-2/3 h-2/3 border-2 border-blue-500/50 rounded-xl relative">
+                           <div class="absolute inset-0 bg-blue-500/5"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- STEP 2: PIN Entry -->
-            <div id="step-pin" class="p-6 sm:p-8 pb-8 sm:pb-10 flex flex-col items-center text-center hidden">
-                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
-                    <svg class="w-7 h-7 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <div id="step-pin" class="p-6 flex flex-col items-center text-center hidden">
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
                 </div>
-                <h3 class="text-2xl font-black text-slate-800 font-display mb-2">Enter Session PIN</h3>
-                <p class="text-slate-400 text-xs font-bold mb-6 sm:mb-8">Now enter the 4-digit code provided to finalize check-in.</p>
+                <h3 class="text-xl font-bold text-slate-900 mb-1">Enter PIN</h3>
+                <p class="text-slate-500 text-sm mb-6">Enter the 4-digit code provided.</p>
                 
-                <input type="text" id="pin-input" maxlength="4" placeholder="----" class="w-full text-center text-4xl sm:text-5xl font-black tracking-[0.5em] sm:tracking-[1em] text-slate-800 bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 sm:p-6 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all mb-6">
+                <input type="number" pattern="\d*" id="pin-input" maxlength="4" placeholder="----" class="w-full text-center text-4xl font-bold tracking-[0.5em] text-slate-900 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:border-[#00B0FF] focus:ring-2 focus:ring-[#00B0FF]/20 outline-none transition-all mb-6 shadow-inner">
                 
-                <button onclick="submitFinalCheckin()" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm uppercase tracking-widest rounded-2xl transition shadow-lg shadow-blue-500/30">
-                    Finalize Check-in
+                <button onclick="submitFinalCheckin()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-[#00B0FF] hover:opacity-90 shadow-lg shadow-blue-500/20 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:-translate-y-0.5 mb-2">
+                    Confirm Attendance
+                </button>
+                <button onclick="closeScanner()" class="w-full py-3 bg-slate-50 text-slate-500 font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-slate-100 transition-all sm:hidden">
+                    Close
                 </button>
             </div>
         </div>
     </div>
 
     <!-- Justification Modal -->
-    <div id="justify-modal" class="fixed inset-0 z-[150] bg-slate-900/80 backdrop-blur-xl hidden flex items-center justify-center p-6 animate-fade-in">
-        <div class="bg-white w-full max-w-lg rounded-premium p-8 shadow-2xl relative">
-            <div class="flex items-center justify-between mb-8">
-                <h3 class="text-2xl font-black text-slate-800 tracking-tight font-display">Justify Absence</h3>
-                <button onclick="toggleJustifyModal()" class="text-slate-400 hover:text-slate-800 transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+    <div id="justify-modal" class="fixed inset-0 z-[150] bg-slate-900/60 hidden flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-[400px] rounded-2xl shadow-xl relative flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
+                <h3 class="text-lg font-bold text-slate-900">Justify Absence</h3>
+                <button onclick="toggleJustifyModal()" class="text-slate-400 hover:text-slate-600 transition p-1"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
             </div>
 
-            <form id="justification-form" class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Select Absence</label>
-                    <select id="absent-sessions-select" required class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all">
-                         <!-- Dynamic Absent Sessions -->
+            <form id="justification-form" class="p-5 space-y-4 overflow-y-auto">
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-600 ml-1">Absence Session</label>
+                    <select id="absent-sessions-select" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 focus:bg-white outline-none">
                     </select>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Reason Details</label>
-                    <textarea id="just-reason" required rows="3" placeholder="Explain your absence briefy..." 
-                              class="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-blue-400 focus:bg-white outline-none transition-all resize-none"></textarea>
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-600 ml-1">Reason</label>
+                    <textarea id="just-reason" required rows="3" placeholder="Explain briefy..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:border-[#00B0FF] focus:outline-none focus:ring-[#00B0FF]/20 resize-none shadow-sm"></textarea>
                 </div>
 
-                <!-- NATIVE CAMERA INTEGRATION -->
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Attach Evidence (Camera/Photo)</label>
+                <!-- Camera/Photo -->
+                <div class="space-y-1.5">
+                    <label class="text-xs font-semibold text-slate-600 ml-1">Attachment</label>
                     <div id="file-capture-area" class="relative group">
-                        <input type="file" id="just-file" accept="image/*" capture="environment" onchange="previewFile(this)" 
-                               class="absolute inset-0 opacity-0 cursor-pointer z-10">
-                        <div class="p-8 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50 flex flex-col items-center justify-center gap-3 group-hover:border-blue-200 transition-all">
-                            <svg class="w-8 h-8 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tap to capture or upload</span>
+                        <input type="file" id="just-file" accept="image/*" capture="environment" onchange="previewFile(this)" class="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full">
+                        <div class="p-5 border border-dashed border-slate-300 rounded-xl bg-slate-50 flex flex-col items-center justify-center gap-2 group-hover:bg-slate-100 transition-colors h-32">
+                            <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span class="text-xs font-medium text-slate-500">Tap to attach photo</span>
                         </div>
-                        <div id="camera-preview" class="hidden absolute inset-0 rounded-3xl overflow-hidden shadow-xl border-2 border-blue-500">
+                        <div id="camera-preview" class="hidden absolute inset-0 rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-black">
                             <img id="preview-img" src="" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                                <span class="text-white text-[10px] font-black uppercase">Captured Ready</span>
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-3xl shadow-lg shadow-blue-500/30 active:scale-95 transition-all text-sm uppercase tracking-widest">
-                    Submit Justification
+                <button type="submit" class="w-full py-3 mt-4 bg-gradient-to-r from-blue-600 to-[#00B0FF] hover:opacity-90 shadow-lg shadow-blue-500/20 text-white font-semibold rounded-xl transition-all hover:-translate-y-0.5 text-sm">
+                    Submit For Review
                 </button>
             </form>
         </div>

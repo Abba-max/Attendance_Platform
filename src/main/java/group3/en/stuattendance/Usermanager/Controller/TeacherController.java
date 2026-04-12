@@ -7,7 +7,10 @@ import group3.en.stuattendance.Attendancemanager.Service.AttendanceService;
 import group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
+import group3.en.stuattendance.Usermanager.DTO.TeacherClassCourseDto;
+import group3.en.stuattendance.Usermanager.DTO.TeacherStudentStatDto;
 import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
+import group3.en.stuattendance.Usermanager.Service.TeacherStatsService;
 import group3.en.stuattendance.Usermanager.Service.UserService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -31,6 +34,7 @@ public class TeacherController {
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
     private final PdfExportService pdfExportService;
     private final AttendanceService attendanceService;
+    private final TeacherStatsService teacherStatsService;
 
     public TeacherController(
             SessionService sessionService,
@@ -38,13 +42,15 @@ public class TeacherController {
             UserMapper userMapper,
             group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService,
             PdfExportService pdfExportService,
-            AttendanceService attendanceService) {
+            AttendanceService attendanceService,
+            TeacherStatsService teacherStatsService) {
         this.sessionService = sessionService;
         this.userService = userService;
         this.userMapper = userMapper;
         this.attendanceExportService = attendanceExportService;
         this.pdfExportService = pdfExportService;
         this.attendanceService = attendanceService;
+        this.teacherStatsService = teacherStatsService;
     }
 
     /**
@@ -137,5 +143,23 @@ public class TeacherController {
     @GetMapping("/sessions/{id}")
     public ResponseEntity<SessionDto> getSession(@PathVariable Integer id) {
         return ResponseEntity.ok(sessionService.getSessionById(id));
+    }
+
+    /**
+     * Get Course & Classroom mappings for this teacher.
+     */
+    @GetMapping("/stats/classes")
+    public ResponseEntity<List<TeacherClassCourseDto>> getTeacherClasses(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(teacherStatsService.getTeacherClassesAndCourses(userDetails.getUserId()));
+    }
+
+    /**
+     * Get Student attendance stats for a specific classroom and course.
+     */
+    @GetMapping("/stats/classes/{classroomId}/courses/{courseId}")
+    public ResponseEntity<List<TeacherStudentStatDto>> getStudentAttendanceStats(
+            @PathVariable Integer classroomId,
+            @PathVariable Integer courseId) {
+        return ResponseEntity.ok(teacherStatsService.getStudentAttendanceForCourse(classroomId, courseId));
     }
 }

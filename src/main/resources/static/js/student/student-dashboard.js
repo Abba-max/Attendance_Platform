@@ -25,25 +25,42 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function switchTab(tabId) {
     // Hide all views
-    document.getElementById('view-status').classList.add('hidden');
-    document.getElementById('view-calendar').classList.add('hidden');
-    document.getElementById('view-courses').classList.add('hidden');
+    document.querySelectorAll('.content-section, #view-status, #view-checkin, #view-justification, #view-courses, #view-stats, #view-calendar').forEach(el => el.classList.add('hidden'));
     
     // Show selected
-    document.getElementById('view-' + tabId).classList.remove('hidden');
+    const target = document.getElementById('view-' + tabId);
+    if (target) target.classList.remove('hidden');
     
     // Update Tab Styles
-    const tabs = ['status', 'calendar', 'courses'];
+    const tabs = ['status', 'checkin', 'justification', 'courses', 'stats', 'calendar'];
     tabs.forEach(t => {
-        const el = document.getElementById('nav-' + t);
-        if (t === tabId) {
-            el.classList.add('active');
-            el.classList.remove('hover:bg-blue-50');
-        } else {
-            el.classList.remove('active');
-            el.classList.add('hover:bg-blue-50');
+        // Desktop
+        const deskEl = document.getElementById('nav-desk-' + t);
+        if (deskEl) {
+            if (t === tabId) {
+                deskEl.classList.add('active');
+                deskEl.classList.remove('text-slate-500');
+            } else {
+                deskEl.classList.remove('active');
+                deskEl.classList.add('text-slate-500');
+            }
+        }
+        
+        // Mobile
+        const mobEl = document.getElementById('nav-mob-' + t);
+        if (mobEl) {
+            if (t === tabId) {
+                mobEl.classList.add('active');
+            } else {
+                mobEl.classList.remove('active');
+            }
         }
     });
+
+    // Specific triggers
+    if (tabId === 'checkin' || tabId === 'calendar') loadGridSessions();
+    if (tabId === 'stats' || tabId === 'courses') loadCourseStats();
+    if (tabId === 'justification') loadJustifications();
 }
 
 /**
@@ -103,7 +120,7 @@ function enableCheckinWidget(session) {
     const desc = document.getElementById('current-session-details');
     const btn = document.getElementById('start-scan-btn');
     
-    widget.classList.add('ring-4', 'ring-blue-500/40', 'cursor-pointer');
+    widget.classList.add('ring-2', 'ring-blue-400', 'cursor-pointer');
     
     const safeStart = session.startTime ? String(session.startTime).substring(0,5) : '--:--';
     const safeEnd = session.endTime ? String(session.endTime).substring(0,5) : '--:--';
@@ -112,13 +129,12 @@ function enableCheckinWidget(session) {
 
     title.textContent = session.courseName || 'Unknown Course';
     desc.innerHTML = `Live Now • ${safeStart} - ${safeEnd}<br>Prof. ${profName} • ${roomName}`;
-    desc.classList.remove('text-[10px]', 'italic');
-    desc.classList.add('text-[11px]');
-
+    desc.classList.remove('text-[10px]', 'italic', 'text-slate-300');
+    desc.classList.add('text-xs', 'text-blue-100');
     
     btn.disabled = false;
-    btn.classList.add('bg-blue-500', 'hover:bg-blue-600', 'shadow-lg', 'shadow-blue-500/30');
-    btn.classList.remove('bg-white/10');
+    btn.classList.add('bg-white', 'text-blue-600', 'hover:bg-blue-50', 'shadow-md');
+    btn.classList.remove('bg-white/10', 'text-white');
     
     // Bind click wrapper bounds
     const trigger = (e) => {
@@ -159,24 +175,30 @@ function filterGrid(status) {
     ['ALL', 'IN_PROGRESS', 'SCHEDULED', 'COMPLETED'].forEach(f => {
         const el = document.getElementById('filter-' + f);
         if (f === status) {
-            el.classList.replace('bg-white', 'bg-slate-800');
-            el.classList.replace('text-slate-400', 'text-white');
-            el.classList.remove('border-slate-200');
-            el.classList.add('border-slate-800');
+            el.classList.add('bg-[#00B0FF]', 'text-white', 'shadow-md', 'shadow-blue-500/10');
+            el.classList.remove('text-[#00B0FF]', 'bg-white', 'hover:bg-white', 'hover:text-slate-900');
         } else {
-            el.classList.replace('bg-slate-800', 'bg-white');
-            el.classList.replace('text-white', 'text-slate-400');
-            el.classList.replace('border-slate-800', 'border-slate-200');
-            if(!el.classList.contains('border')) el.classList.add('border');
+            el.classList.remove('bg-[#00B0FF]', 'text-white', 'shadow-md', 'shadow-blue-500/10');
+            el.classList.add('text-[#00B0FF]', 'hover:bg-white', 'hover:text-slate-900');
         }
     });
 
-    // Render Data
+    // Render Data with Priority Sorting
     const stack = document.getElementById('student-schedule-stack');
-    const filtered = status === 'ALL' ? allGridSessions : allGridSessions.filter(s => s.status === status);
+    let filtered = status === 'ALL' ? allGridSessions : allGridSessions.filter(s => s.status === status);
     
+    // Status Priority: IN_PROGRESS (1) > SCHEDULED (2) > COMPLETED (3)
+    const priority = { 'IN_PROGRESS': 1, 'SCHEDULED': 2, 'COMPLETED': 3 };
+    filtered.sort((a, b) => {
+        const pA = priority[a.status] || 99;
+        const pB = priority[b.status] || 99;
+        if (pA !== pB) return pA - pB;
+        // Secondary sort by date/time
+        return (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || '');
+    });
+
     if (filtered.length === 0) {
-        stack.innerHTML = `<div class="py-12 glass-panel rounded-premium text-center text-slate-400 font-bold italic col-span-full">No sessions found for this filter.</div>`;
+        stack.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm col-span-full">No sessions found for this filter.</div>`;
         return;
     }
 
@@ -188,30 +210,31 @@ function renderSessionCard(s) {
     const isAttended = s.attendanceStatus === 'PRESENT' || s.attendanceStatus === 'LATE';
     
     return `
-        <div class="glass-panel p-6 rounded-premium border border-white/40 shadow-sm flex flex-col justify-between transition-all hover:scale-[1.02] ${isLive ? 'ring-2 ring-blue-500 ring-offset-4' : ''}">
+        <div class="bg-white p-6 rounded-3xl border-2 ${isLive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-50 hover:border-[#00B0FF]/30'} transition-all flex flex-col justify-between group relative overflow-hidden">
+            ${isLive ? '<div class="absolute top-0 right-0 w-16 h-16 bg-[#00B0FF]/5 rounded-bl-full"></div>' : ''}
             <div class="flex items-start justify-between mb-4">
-                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${isLive ? 'bg-blue-600 text-white animate-pulse' : (s.status === 'COMPLETED' ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600')}">
+                <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${isLive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : (s.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-200')}">
                     ${isLive ? 'Live' : s.status}
                 </span>
-                ${isAttended ? '<span class="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg></span>' : ''}
+                ${isAttended ? '<div class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
             </div>
             
             <div class="mb-6">
-                <h4 class="text-lg font-black text-slate-800 leading-tight mb-2">${s.courseName}</h4>
-                <div class="space-y-1">
-                    <p class="text-xs font-bold text-slate-400 flex items-center gap-2"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${s.date} • ${s.startTime.substring(0,5)}</p>
-                    <p class="text-xs font-bold text-slate-400 flex items-center gap-2"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> ${s.teacherName}</p>
-                    <p class="text-xs font-bold text-slate-400 flex items-center gap-2"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> ${s.classroomName || 'Room TBD'}</p>
+                <h4 class="text-base font-black text-[#00B0FF] leading-tight mb-3 drop-shadow-sm">${s.courseName}</h4>
+                <div class="space-y-1.5">
+                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${s.date} • ${s.startTime.substring(0,5)}</p>
+                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> ${s.teacherName}</p>
+                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> ${s.classroomName || 'Room TBD'}</p>
                 </div>
             </div>
 
             ${isLive && !isAttended ? `
-                <button onclick="openScanner(${s.sessionId})" class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl transition shadow-lg shadow-blue-500/30">
-                    Check-in Now
+                <button onclick="openScanner(${s.sessionId})" class="w-full py-3 bg-[#00B0FF] shadow-lg shadow-blue-500/20 hover:bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:-translate-y-0.5 active:scale-95">
+                    Check In Now
                 </button>
             ` : `
-                <div class="w-full py-3 bg-slate-50 text-slate-400 text-center font-black text-xs uppercase tracking-widest rounded-xl border border-dashed border-slate-200">
-                    ${isAttended ? 'Attendance Logged' : 'Unavailable'}
+                <div class="w-full py-3 bg-slate-50 text-slate-400 text-center font-black text-[10px] uppercase tracking-widest rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2">
+                    ${isAttended ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> Attendance Logged' : 'Registration Closed'}
                 </div>
             `}
         </div>
@@ -228,30 +251,67 @@ async function loadCourseStats() {
         const stats = await response.json();
         
         if (stats.length === 0) {
-            container.innerHTML = `<div class="py-12 glass-panel rounded-premium text-center text-slate-400 font-bold italic col-span-full">No courses enrolled.</div>`;
+            container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm col-span-full">No courses enrolled.</div>`;
             return;
         }
 
-        container.innerHTML = stats.map(c => `
-            <div class="p-6 bg-white border border-slate-100 rounded-2xl shadow-sm flex flex-col justify-between">
-                <div>
-                    <h4 class="text-sm font-black text-slate-800 mb-1 truncate">${c.courseName}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 mb-4 truncate flex items-center gap-1">
-                        <svg class="w-3 h-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        ${c.teacherName || 'TBD'} • ${c.teacherEmail || 'N/A'}
-                    </p>
-                </div>
-                <div>
-                    <div class="flex items-end justify-between mb-2 mt-4">
-                        <span class="text-3xl font-black font-display text-slate-800 tracking-tighter">${c.studentAttendedHours}<span class="text-sm text-slate-400">/${c.courseTotalHours}h</span></span>
-                        <span class="px-2 py-1 bg-blue-50 text-blue-600 rounded-md font-bold text-[10px] uppercase tracking-widest">${Math.round(c.attendanceRate)}% Presence</span>
+        const html = stats.map(c => {
+            const pct = Math.round(c.attendanceRate);
+            let colorClass = 'text-[#00B0FF] bg-blue-50 border-blue-100';
+            let barClass = 'from-blue-500 to-[#00B0FF]';
+            
+            if (pct < 75) {
+                colorClass = 'text-red-600 bg-red-50 border-red-100';
+                barClass = 'from-red-500 to-rose-600';
+            } else if (pct < 90) {
+                colorClass = 'text-amber-600 bg-amber-50 border-amber-100';
+                barClass = 'from-amber-400 to-amber-600';
+            }
+
+            return `
+            <div class="bg-[#00B0FF] p-6 rounded-3xl border-2 border-white/20 hover:bg-[#0091EA] hover:shadow-xl hover:shadow-blue-500/30 transition-all flex flex-col justify-between group relative overflow-hidden shadow-lg shadow-blue-500/10">
+                <div class="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
+                
+                <div class="relative z-10">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="space-y-1">
+                            <h4 class="text-lg font-black text-white leading-tight">${c.courseName}</h4>
+                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Academic Insight</p>
+                        </div>
+                        <div class="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 group-hover:bg-white/20 shadow-inner overflow-hidden backdrop-blur-sm">
+                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        </div>
                     </div>
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div class="bg-blue-500 h-full rounded-full transition-all duration-1000" style="width: ${c.attendanceRate}%"></div>
+                </div>
+
+                <div class="relative z-10 pt-4 border-t border-white/10 mt-4">
+                    <div class="flex items-center justify-between mb-3 text-xs">
+                         <div class="flex items-center gap-2">
+                             <div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+                             <span class="font-black text-white/90 uppercase tracking-tighter">${c.teacherName || 'TBD'}</span>
+                         </div>
+                         <div class="px-2 py-0.5 rounded-lg border border-white/30 bg-white/10 font-black text-[9px] uppercase tracking-widest text-white">${pct}% Global Yield</div>
+                    </div>
+
+                    <div class="flex items-baseline gap-1.5 mb-2.5 text-white">
+                        <span class="text-2xl font-black">${c.studentAttendedHours}<span class="text-xs font-bold text-white/50 ml-1">Attended Hours</span></span>
+                    </div>
+
+                    <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden shadow-inner flex">
+                        <div class="bg-white h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(255,255,255,0.4)]" style="width: ${pct}%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between mt-1.5">
+                        <span class="text-[9px] font-black text-white/40 uppercase tracking-tighter">Objective: ${c.courseTotalHours}h</span>
+                        <span class="text-[9px] font-black text-white uppercase tracking-tight">${pct}% Goal Milestone</span>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            </div>`;
+        }).join('');
+
+        if (container) container.innerHTML = html;
+        const detailContainer = document.getElementById('detailed-reports-container');
+        if (detailContainer) detailContainer.innerHTML = html;
 
     } catch (err) {
         container.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Failed to load courses: ${err.message}</p>`;
@@ -442,22 +502,24 @@ async function loadJustifications() {
         
         list.innerHTML = justifications.length > 0 
             ? justifications.map(j => `
-                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                <div class="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
                     <div>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Claim: ${j.id}</p>
-                        <p class="text-sm font-bold text-slate-800 line-clamp-1">${j.reason}</p>
+                        <p class="text-[13px] font-bold text-slate-900 group-hover:text-[#00B0FF] transition-colors line-clamp-1">${j.reason}</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Ref ID: ${j.id}</p>
                     </div>
-                    <span class="px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${getStatusStyle(j.status)}">${j.status}</span>
+                    <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${getStatusStyle(j.status)}">
+                        ${j.status}
+                    </span>
                 </div>
             `).join('')
-            : '<p class="text-slate-400 text-xs font-bold text-center py-4">No justification records found.</p>';
+            : '<p class="text-slate-500 text-xs text-center py-4">No justification records found.</p>';
     } catch (err) {}
 }
 
 function getStatusStyle(status) {
     switch(status) {
-        case 'APPROVED': return 'bg-emerald-50 text-emerald-600';
-        case 'REJECTED': return 'bg-rose-50 text-rose-600';
-        default: return 'bg-amber-50 text-amber-600';
+        case 'APPROVED': return 'bg-emerald-50 text-emerald-700';
+        case 'REJECTED': return 'bg-red-50 text-red-700';
+        default: return 'bg-orange-50 text-orange-700';
     }
 }
