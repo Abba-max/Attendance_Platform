@@ -61,11 +61,13 @@ async function loadSessions() {
     const grid = document.getElementById('sessions-grid');
     if (!grid) return;
 
-    grid.innerHTML = `
-        <div class="col-span-full py-20 text-center">
-            <div class="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p class="text-slate-400 font-bold font-display italic">Syncing your schedule...</p>
-        </div>`;
+    if (!allSessions.length) {
+        grid.innerHTML = `
+            <div class="col-span-full py-20 text-center">
+                <div class="animate-spin w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p class="text-slate-400 font-bold font-display italic">Syncing your schedule...</p>
+            </div>`;
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -110,12 +112,15 @@ function populateFilters() {
     const classSel = document.getElementById('filter-classroom');
     if (!weekSel || !classSel) return;
 
+    const savedWeek = weekSel.value;
+    const savedClass = classSel.value;
+
     weekSel.innerHTML = '<option value="">All Weeks</option>';
     [...weekSet].sort((a, b) => a - b).forEach(w => {
         const opt = document.createElement('option');
         opt.value = w;
         opt.textContent = `Week ${w}`;
-        if (w === todayWeek && hasToday) opt.selected = true;
+        if (w == savedWeek || (!savedWeek && w === todayWeek && hasToday)) opt.selected = true;
         weekSel.appendChild(opt);
     });
 
@@ -124,6 +129,7 @@ function populateFilters() {
         const opt = document.createElement('option');
         opt.value = id;
         opt.textContent = name;
+        if (id == savedClass) opt.selected = true;
         classSel.appendChild(opt);
     });
 }
@@ -131,11 +137,13 @@ function populateFilters() {
 window.applyFilters = function () {
     const weekVal  = document.getElementById('filter-week')?.value;
     const classVal = document.getElementById('filter-classroom')?.value;
+    const statusVal = document.getElementById('filter-status')?.value;
 
     filteredSessions = allSessions.filter(s => {
-        const weekMatch  = !weekVal  || String(s.week)        === weekVal;
-        const classMatch = !classVal || String(s.classroomId) === classVal;
-        return weekMatch && classMatch;
+        const weekMatch   = !weekVal   || String(s.week)        === weekVal;
+        const classMatch  = !classVal  || String(s.classroomId) === classVal;
+        const statusMatch = !statusVal || String(s.status)      === statusVal;
+        return weekMatch && classMatch && statusMatch;
     });
 
     renderGrid();
@@ -186,15 +194,39 @@ function updateOverview(next, pendingCount) {
 function renderSessionCard(s) {
     const isActive = s.status === 'IN_PROGRESS';
     const isDone   = s.status === 'COMPLETED';
+    const isValid  = s.isValidated === true;
     
-    const statusColor = isActive ? 'bg-blue-100 text-blue-700' : isDone ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600';
+    let statusLabel = s.status?.replace('_', ' ') || 'SCHEDULED';
+    let statusColor = 'bg-emerald-50 text-emerald-600';
+    
+    if (isActive) {
+        statusColor = 'bg-blue-100 text-blue-700';
+    } else if (isDone) {
+        statusColor = isValid ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
+        statusLabel = isValid ? 'VALIDATED' : 'CLOSED (PENDING)';
+    }
+
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }) : (s.day || 'TBD');
 
     return `
         <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all group flex flex-col ${isActive ? 'ring-2 ring-[#00B0FF] ring-offset-4' : ''}">
             <div class="flex items-center justify-between mb-4">
-                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusColor}">${s.status?.replace('_', ' ') || 'SCHEDULED'}</span>
-                <span class="text-[10px] font-bold text-slate-400">${s.startTime?.substring(0, 5) || '--:--'}</span>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${statusColor}">${statusLabel}</span>
+                    ${isValid ? `
+                        <div class="w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm" title="Attendance Validated">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="flex items-center gap-2">
+                    ${isDone ? `
+                        <button onclick="viewAttendancePdf(${s.sessionId})" class="p-2 bg-slate-50 text-slate-400 hover:text-blue-600 rounded-xl border border-slate-100 transition shadow-sm" title="View PDF">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </button>
+                    ` : ''}
+                    <span class="text-[10px] font-bold text-slate-400">${s.startTime?.substring(0, 5) || '--:--'}</span>
+                </div>
             </div>
             <h4 class="text-base font-black text-slate-800 mb-2 truncate group-hover:text-blue-600 transition-colors">${s.courseName || 'Unnamed Course'}</h4>
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${dateStr} • ${s.classroomName || 'No Room'}</p>
@@ -203,7 +235,16 @@ function renderSessionCard(s) {
                 <button onclick="handleSessionAction(${s.sessionId})" class="mt-6 w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? 'bg-[#00B0FF] text-white shadow-lg shadow-blue-500/20' : 'bg-slate-900 text-white hover:bg-black'}">
                     ${isActive ? 'Open Roll Call Hub' : 'Start Session'}
                 </button>
-            ` : `<div class="mt-6 w-full py-3 bg-slate-50 text-slate-400 text-center rounded-2xl text-[10px] font-black uppercase tracking-widest">Session Closed</div>`}
+            ` : (isValid ? `
+                <div class="mt-6 flex gap-2">
+                    <button onclick="viewAttendancePdf(${s.sessionId})" class="flex-1 py-3 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100 transition">View PDF</button>
+                    <button onclick="downloadAttendanceCsv(${s.sessionId})" class="flex-1 py-3 bg-slate-50 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition">Download CSV</button>
+                </div>
+            ` : `
+                <button onclick="handleSessionAction(${s.sessionId})" class="mt-6 w-full py-3 bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-600 transition shadow-lg shadow-amber-500/20">
+                    Finalize Roll Call
+                </button>
+            `)}
         </div>`;
 }
 
@@ -242,6 +283,18 @@ function openRollCall(sessionId) {
 
     document.getElementById('att-course-name').textContent = activeSession.courseName || 'Session';
     document.getElementById('att-details').textContent = `${activeSession.classroomName || 'No Room'} • ${activeSession.startTime?.substring(0, 5) || '--'} – ${activeSession.endTime?.substring(0, 5) || '--'}`;
+
+    // Show/Hide buttons based on status
+    const btnSubmit = document.getElementById('btn-submit-rollcall');
+    const btnConfirm = document.getElementById('btn-confirm-export');
+    
+    if (activeSession.status === 'COMPLETED') {
+        btnSubmit?.classList.add('hidden');
+        btnConfirm?.classList.remove('hidden');
+    } else {
+        btnSubmit?.classList.remove('hidden');
+        btnConfirm?.classList.add('hidden');
+    }
 
     // Switch to Attendance Section
     navigateTo('attendance');
@@ -291,12 +344,13 @@ function renderAttendanceGrid(records) {
         let hoursHtml = '';
         for (let i = 0; i < totalHours; i++) {
             const slot = r.hourSlots?.find(h => h.hourIndex === i);
-            const present = slot?.status === 'PRESENT';
+            const present = slot?.status === 'PRESENT' || slot?.status === 'LATE';
             hoursHtml += `
                 <td class="px-4 py-4 text-center">
                     <div class="flex flex-col items-center gap-1.5">
                         <input type="checkbox" ${present ? 'checked' : ''} onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
-                               class="w-6 h-6 rounded-lg border-slate-200 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-transform hover:scale-110 accent-emerald-500">
+                               class="w-6 h-6 rounded-lg border-slate-200 text-emerald-600 focus:ring-emerald-500/20 cursor-pointer transition-transform hover:scale-110 accent-emerald-500 slot-checkbox"
+                               data-user-id="${r.userId}" data-hour="${i}">
                         <span class="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Hour ${i+1}</span>
                     </div>
                 </td>`;
@@ -334,34 +388,117 @@ window.markHourStatus = async (sid, hi, isP) => {
     const status = isP ? 'PRESENT' : 'ABSENT';
     try {
         await fetch(`/api/attendance/session/${activeSessionId}/student/${sid}/hour/${hi}?status=${status}`, { method: 'POST' });
+        // Update checkbox directly for immediate feedback on Mark All if needed, but here it's already triggered by change
     } catch (e) {
         showNotification('Update failed', 'error');
-        loadRollCall(activeSessionId);
+        // Revert UI on failure
+        const cb = document.querySelector(`.slot-checkbox[data-user-id="${sid}"][data-hour="${hi}"]`);
+        if (cb) cb.checked = !isP;
     }
 };
 
 window.markAllSessionStatus = async (status) => {
-    if (!confirm(`Mark everyone as ${status.toLowerCase()}?`)) return;
+    const confirmed = await ModernConfirm({
+        title: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}?`,
+        message: `This will update the status for everyone in this session to ${status.toLowerCase()}.`,
+        confirmText: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}`,
+        type: status === 'PRESENT' ? 'info' : 'warning'
+    });
+    if (!confirmed) return;
     try {
         await fetch(`/api/attendance/session/${activeSessionId}/mark-all?status=${status}`, { method: 'POST' });
         showNotification(`All students marked ${status.toLowerCase()}`, 'success');
-        loadRollCall(activeSessionId);
+        
+        // Immediate UI Update for checkboxes
+        const checkboxes = document.querySelectorAll('.slot-checkbox');
+        checkboxes.forEach(cb => {
+            cb.checked = (status === 'PRESENT');
+        });
     } catch (e) {
         showNotification('Bulk update failed', 'error');
+        loadRollCall(activeSessionId);
     }
 };
 
 window.submitRollCall = async () => {
-    if (!confirm('End session and finalize roll call?')) return;
+    const confirmed = await ModernConfirm({
+        title: "Finalize Roll Call?",
+        message: "This will end the session. Students who haven't checked in will be automatically marked as ABSENT.",
+        confirmText: "End & Finalize",
+        type: "warning"
+    });
+    if (!confirmed) return;
     try {
-        await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
-        showNotification('Session completed successfully!', 'success');
-        closeAttendance();
-        loadSessions();
+        const res = await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
+        if (!res.ok) throw new Error();
+        
+        showNotification('Session completed! Please confirm and export the final sheet.', 'success');
+        
+        // Refresh local session state
+        const updated = await res.json();
+        const idx = allSessions.findIndex(s => s.sessionId === activeSessionId);
+        if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
+        activeSession = allSessions[idx];
+
+        // Update Buttons
+        document.getElementById('btn-submit-rollcall')?.classList.add('hidden');
+        document.getElementById('btn-confirm-export')?.classList.remove('hidden');
+        
+        // Reload roll call to show auto-absences
+        loadRollCall(activeSessionId);
     } catch (e) { showNotification('Failed to end session', 'error'); }
 };
 
-// ── 7. QR & PIN (Same as previous but with pedagog style notifications) ────
+window.confirmAndExportAttendance = async () => {
+    const confirmed = await ModernConfirm({
+        title: "Submit Attendance Report?",
+        message: "This will finalize the attendance sheet and broadcast the reports to the Pedagogic Assistant. This action is permanent.",
+        confirmText: "Submit & Export",
+        type: "info"
+    });
+    if (!confirmed) return;
+    
+    try {
+        showNotification('Finalizing attendance...', 'info');
+        const res = await fetch(`/api/teacher/sessions/${activeSessionId}/confirm-attendance`, { method: 'POST' });
+        if (!res.ok) throw new Error();
+        
+        showNotification('Attendance confirmed and sent!', 'success');
+        
+        // Trigger Exports in parallel
+        downloadAttendancePdf(activeSessionId);
+        downloadAttendanceCsv(activeSessionId);
+        
+        closeAttendance();
+        loadSessions();
+    } catch (e) {
+        showNotification('Confirmation failed', 'error');
+    }
+};
+
+window.viewAttendancePdf = function(sessionId) {
+    window.open(`/api/teacher/sessions/${sessionId}/export/pdf`, '_blank');
+};
+
+window.downloadAttendancePdf = function(sessionId) {
+    const link = document.createElement('a');
+    link.href = `/api/teacher/sessions/${sessionId}/export/pdf`;
+    link.download = `Attendance_Session_${sessionId}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+window.downloadAttendanceCsv = function(sessionId) {
+    const link = document.createElement('a');
+    link.href = `/api/teacher/sessions/${sessionId}/export`;
+    link.download = `Attendance_Session_${sessionId}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// ── 7. QR & PIN ───────────────────────────────────────────────────────────
 
 window.generatePin = async function () {
     try {
@@ -446,6 +583,43 @@ function startQrTimer() {
     }, 1000);
 }
 function resetQrTimer() { qrTimer = 30; }
+// ── 9. Table Filtering ─────────────────────────────────────────────────────
+
+window.filterByStatus = function(status, btn) {
+    // 1. UI: Update button styles
+    document.querySelectorAll('.status-filter-btn').forEach(b => {
+        b.classList.remove('bg-blue-50', 'text-blue-600');
+        b.classList.add('text-slate-400', 'hover:text-slate-800');
+    });
+    btn.classList.add('bg-blue-50', 'text-blue-600');
+    btn.classList.remove('text-slate-400', 'hover:text-slate-800');
+
+    // 2. Logic: Filter Table Rows
+    const rows = document.querySelectorAll('.student-row');
+    rows.forEach(row => {
+        if (status === 'all') {
+            row.classList.remove('hidden');
+            return;
+        }
+
+        // We check checkboxes in each row to see status
+        const checkboxes = row.querySelectorAll('.slot-checkbox');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+
+        if (status === 'absent') {
+            // Row is "absent" if NONE of the checkboxes are checked
+            if (!anyChecked) row.classList.remove('hidden');
+            else row.classList.add('hidden');
+        } else if (status === 'not-marked') {
+            // Manual required if some are checked but not all? Or just if it's not fully present.
+            // Let's define "Manual Required" as anyone who hasn't been marked at all (absent).
+            if (!anyChecked) row.classList.remove('hidden');
+            else row.classList.add('hidden');
+        }
+    });
+};
+
 function getISOWeek(d) {
     const d2 = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     d2.setUTCDate(d2.getUTCDate() + 4 - (d2.getUTCDay() || 7));

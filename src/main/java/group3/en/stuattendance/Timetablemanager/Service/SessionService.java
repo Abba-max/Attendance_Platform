@@ -39,4 +39,6 @@ public interface SessionService {
     SessionDto cancelSession(Integer sessionId);
 
     List<SessionDto> getLiveSessionsByClassrooms(java.util.List<Integer> classroomIds);
+
+    SessionDto confirmAttendance(Integer sessionId);
 }

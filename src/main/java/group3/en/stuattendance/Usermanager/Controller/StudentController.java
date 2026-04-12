@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 
@@ -21,19 +23,30 @@ public class StudentController {
     private final StudentService studentService;
     private final group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
     private final group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
 
     public StudentController(
             StudentService studentService,
             group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService,
-            group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService) {
+            group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService,
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService,
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService) {
         this.studentService = studentService;
         this.justificationService = justificationService;
         this.sessionService = sessionService;
+        this.attendanceService = attendanceService;
+        this.attendanceExportService = attendanceExportService;
     }
 
     @GetMapping("/schedule/today")
     public ResponseEntity<List<StudentScheduleDto>> getTodaySchedule(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(studentService.getTodaySchedule(userDetails.getUserId()));
+    }
+
+    @GetMapping("/sessions/grid")
+    public ResponseEntity<List<StudentScheduleDto>> getSessionsForGrid(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(studentService.getSessionsForGrid(userDetails.getUserId()));
     }
 
     @GetMapping("/attendance/history")
@@ -69,8 +82,21 @@ public class StudentController {
         return ResponseEntity.ok(justificationService.getJustificationsForStudent(userDetails.getUserId()));
     }
 
+    @GetMapping("/attendance/export")
+    public ResponseEntity<byte[]> exportAttendanceSheet(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        String csvContent = attendanceExportService.generateStudentCsv(userDetails.getUserId());
+        byte[] bytes = csvContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDispositionFormData("attachment", "attendance_sheet.csv");
+        headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+
+        return ResponseEntity.ok().headers(headers).body(bytes);
+    }
+
     @PostMapping("/attendance/check-in")
-    public ResponseEntity<java.util.Map<String, String>> checkIn(
+    public ResponseEntity<?> checkIn(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody group3.en.stuattendance.Attendancemanager.DTO.AttendanceRequestDTO request) {
         
@@ -80,9 +106,21 @@ public class StudentController {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "Session is not currently in progress."));
         }
 
-        return ResponseEntity.ok(java.util.Map.of(
-            "message", "Check-in request received. Status: PENDING_VALIDATION",
-            "sessionId", String.valueOf(request.getSessionId())
-        ));
+        try {
+            String location = (request.getLatitude() != null && request.getLongitude() != null) 
+                    ? request.getLatitude() + "," + request.getLongitude() 
+                    : null;
+                    
+            var record = attendanceService.studentCheckIn(
+                    request.getSessionId(), 
+                    userDetails.getUserId(), 
+                    request.getQrData(), 
+                    request.getPinCode(), 
+                    location);
+                    
+            return ResponseEntity.ok(record);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 }

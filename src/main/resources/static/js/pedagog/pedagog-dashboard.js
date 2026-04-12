@@ -2442,10 +2442,10 @@ function renderSessionsTable() {
         return;
     }
 
-    // Sort by date then startTime
+     // Sort by date DESC then startTime DESC (Most recent first)
     sessions.sort((a, b) => {
-        const d = (a.date || '').localeCompare(b.date || '');
-        return d !== 0 ? d : (a.startTime || '').localeCompare(b.startTime || '');
+        const d = (b.date || '').localeCompare(a.date || '');
+        return d !== 0 ? d : (b.startTime || '').localeCompare(a.startTime || '');
     });
 
     tbody.innerHTML = sessions.map(s => renderSessionRow(s)).join('');
@@ -2475,10 +2475,15 @@ function renderSessionRow(s) {
            '</div>'
         : '<span style="font-size:11px;color:var(--text-3)">—</span>';
 
-    return '<tr style="border-top:1px solid #f1f5f9;transition:background .15s" onmouseover="this.style.background=\'#fafcff\'" onmouseout="this.style.background=\'\'">' +
+     return '<tr style="border-top:1px solid #f1f5f9;transition:background .15s" onmouseover="this.style.background=\'#fafcff\'" onmouseout="this.style.background=\'\'">' +
             '<td style="padding:13px 16px">' +
-                '<div style="font-weight:600;font-size:13px;color:var(--text)">' + (s.courseName || 'Event') + '</div>' +
-                '<div style="font-size:11px;color:var(--text-3)">Week ' + (s.week || '—') + '</div>' +
+                '<div style="display:flex;align-items:center;gap:8px">' +
+                    '<div>' +
+                        '<div style="font-weight:600;font-size:13px;color:var(--text)">' + (s.courseName || 'Event') + '</div>' +
+                        '<div style="font-size:11px;color:var(--text-3)">Week ' + (s.week || '—') + '</div>' +
+                    '</div>' +
+                    (s.isValidated ? '<div style="width:16px;height:16px;background:#10b981;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold" title="Validated">âœ“</div>' : '') +
+                '</div>' +
                 (s.specialityName ? '<span style="font-size:9px;color:var(--text-3)">' + s.specialityName + ' (L' + s.level + ')</span>' : '') +
             '</td>' +
             '<td style="padding:13px 16px">' +
@@ -2497,17 +2502,28 @@ function renderSessionRow(s) {
             '</td>' +
             '<td style="padding:13px 16px;min-width:120px">' + attBar + '</td>' +
             '<td style="padding:13px 16px;text-align:right">' +
-                '<button onclick="viewSessionDetails(' + s.sessionId + ')" ' +
-                        'style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:11px;font-weight:600;color:var(--text-2);cursor:pointer;white-space:nowrap">' +
-                    'View' +
-                '</button>' +
-                ((s.status !== 'CANCELLED' && s.status !== 'COMPLETED') ? ('<button onclick="cancelSession(' + s.sessionId + ')" style="margin-left:4px;padding:5px 10px;border:1px solid #fecdd3;background:#fff1f2;border-radius:8px;font-size:11px;font-weight:600;color:#e11d48;cursor:pointer;white-space:nowrap">Cancel</button>') : '') +
+                '<div style="display:flex;justify-content:flex-end;gap:4px">' +
+                    (s.status === 'COMPLETED' ? '<button onclick="viewSessionPdf(' + s.sessionId + ')" style="padding:5px;border:1px solid var(--border);background:var(--surface);border-radius:8px;cursor:pointer" title="View Attendance PDF">' +
+                        '<svg style="width:14px;height:14px;color:#64748b" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>' +
+                    '</button>' : '') +
+                    '<button onclick="viewSessionDetails(' + s.sessionId + ')" ' +
+                            'style="padding:5px 10px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:11px;font-weight:600;color:var(--text-2);cursor:pointer;white-space:nowrap">' +
+                        'View' +
+                    '</button>' +
+                    ((s.status !== 'CANCELLED' && s.status !== 'COMPLETED') ? ('<button onclick="cancelSession(' + s.sessionId + ')" style="padding:5px 10px;border:1px solid #fecdd3;background:#fff1f2;border-radius:8px;font-size:11px;font-weight:600;color:#e11d48;cursor:pointer;white-space:nowrap">Cancel</button>') : '') +
+                '</div>' +
             '</td>' +
         '</tr>';
 }
 
 window.cancelSession = async function(sessionId) {
-    if (!confirm("Are you sure you want to cancel this session?")) return;
+    const confirmed = await ModernConfirm({
+        title: "Cancel this session?",
+        message: "This will remove the session from the schedule and notify the teacher. This action is permanent.",
+        confirmText: "Yes, Cancel Session",
+        type: "danger"
+    });
+    if (!confirmed) return;
     try {
         const res = await fetch("/api/sessions/" + sessionId, { method: 'DELETE' });
         if (!res.ok) throw new Error("Could not cancel session");
@@ -2517,6 +2533,10 @@ window.cancelSession = async function(sessionId) {
         console.error(e);
         showNotification("Could not cancel session.", "error");
     }
+};
+
+window.viewSessionPdf = function(sessionId) {
+    window.open(`/api/teacher/sessions/${sessionId}/export/pdf`, '_blank');
 };
 
 window.viewSessionDetails = function(sessionId) {
@@ -2736,6 +2756,18 @@ window.hubMarkAll = async function(status) {
     const sessionId = document.getElementById('hubSessionFilter').value;
     if (!sessionId) return;
     
+    const confirmed = await ModernConfirm({
+        title: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}?`,
+        message: `This will update the entire roster for this session to ${status.toLowerCase()}.`,
+        confirmText: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}`,
+        type: status === 'PRESENT' ? 'info' : 'warning'
+    });
+    if (!confirmed) return;
+
+    // Snappy UI: Update all checkboxes immediately
+    const checkboxes = document.querySelectorAll('#hubRosterBody input[type="checkbox"]');
+    checkboxes.forEach(cb => cb.checked = (status === 'PRESENT'));
+
     try {
         const res = await fetch("/api/attendance/session/" + sessionId + "/mark-all?status=" + status, { method: 'POST' });
         if (!res.ok) throw new Error();
@@ -2743,6 +2775,7 @@ window.hubMarkAll = async function(status) {
         loadHubRoster();
     } catch (e) {
         showNotification("Failed to update roster", "error");
+        loadHubRoster(); // Reset on failure
     }
 };
 
@@ -2775,3 +2808,58 @@ window.navigateTo = function(section) {
         else loadHubSessions();
     }
 };
+
+// ==========================================
+// REAL-TIME NOTIFICATIONS
+// ==========================================
+
+window.initializeNotifications = function() {
+    console.log("Initializing Real-Time Notifications...");
+    
+    if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
+        console.warn("WebSocket libraries not loaded yet. Retrying in 2s...");
+        setTimeout(initializeNotifications, 2000);
+        return;
+    }
+
+    const socket = new SockJS('/ws');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+
+    stompClient.connect({}, function (frame) {
+        console.log('Connected to WebSocket');
+        
+        // Subscribe to user-specific notifications
+        stompClient.subscribe('/user/queue/notifications', function (msg) {
+            const notification = JSON.parse(msg.body);
+            handleIncomingNotification(notification);
+        });
+    }, function (error) {
+        console.error('WebSocket connection error:', error);
+        // Retry connection after 5s
+        setTimeout(initializeNotifications, 5000);
+    });
+};
+
+function handleIncomingNotification(n) {
+    console.log("New Notification:", n);
+    
+    // Show Toast
+    if (typeof showNotification === 'function') {
+        showNotification(n.message, n.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
+    }
+    
+    // Update UI (e.g., refresh sessions if on that page)
+    const currentSection = new URLSearchParams(window.location.search).get('section');
+    if (currentSection === 'sessions' || document.getElementById('section-sessions')?.offsetParent !== null) {
+        if (typeof loadSessionsMonitor === 'function') loadSessionsMonitor();
+    }
+    
+    // Update Badge (if any)
+    const badge = document.querySelector('.notification-badge');
+    if (badge) {
+        badge.classList.remove('hidden');
+        const count = parseInt(badge.textContent || '0');
+        badge.textContent = count + 1;
+    }
+}

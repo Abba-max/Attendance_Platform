@@ -37,4 +37,5 @@ public class SessionDto {
     private Boolean isValidated;
     private Boolean isActive;
     private Integer totalHours;
+    private Double attendanceRate;
 }

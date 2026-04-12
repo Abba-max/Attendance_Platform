@@ -115,6 +115,8 @@ public class SecurityConfig {
                                 response.sendRedirect("/pedagog/dashboard");
                             } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"))) {
                                 response.sendRedirect("/teacher/dashboard");
+                            } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
+                                response.sendRedirect("/student/dashboard");
                             } else {
                                 response.sendRedirect("/"); // Or some default page
                             }

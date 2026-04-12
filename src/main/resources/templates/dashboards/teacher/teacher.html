@@ -157,6 +157,12 @@
                             <select id="filter-classroom" onchange="applyFilters()" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
                                 <option value="">All Classrooms</option>
                             </select>
+                            <select id="filter-status" onchange="applyFilters()" class="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="">All Statuses</option>
+                                <option value="SCHEDULED">Scheduled</option>
+                                <option value="IN_PROGRESS">In Progress</option>
+                                <option value="COMPLETED">Completed</option>
+                            </select>
                         </div>
                     </div>
 
@@ -206,8 +212,11 @@
                                 <button onclick="toggleQrView()" class="p-4 bg-white border border-slate-100 rounded-2xl hover:bg-slate-50 transition shadow-sm text-blue-500" title="Show QR Code">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m0 14v1m8-8h-1M5 12H4m13.657-6.343l-.707.707M6.05 17.95l-.707.707m12.02 0l-.707-.707M6.757 6.757l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
                                 </button>
-                                <button onclick="submitRollCall()" class="px-8 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition active:scale-95 text-xs uppercase tracking-widest">
+                                <button id="btn-submit-rollcall" onclick="submitRollCall()" class="px-8 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-lg shadow-emerald-500/20 hover:bg-emerald-700 transition active:scale-95 text-xs uppercase tracking-widest">
                                     Complete Session
+                                </button>
+                                <button id="btn-confirm-export" onclick="confirmAndExportAttendance()" class="px-8 py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition active:scale-95 text-xs uppercase tracking-widest hidden">
+                                    Confirm & Export to Pedagog
                                 </button>
                             </div>
                         </div>
@@ -286,5 +295,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <script src="/js/teacher/teacher-dashboard.js"></script>
+    
+    <!-- Shared UI Components -->
+    <div th:replace="~{fragments/ui :: modernConfirm}"></div>
 </body>
 </html>

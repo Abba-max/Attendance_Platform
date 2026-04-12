@@ -88,13 +88,55 @@ public class SessionServiceImpl implements SessionService {
                     attendanceRecordRepository.save(autoAbsent);
                     
                     // Notify student of absence
-                    notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT", 
-                            "You were marked ABSENT for " + session.getCourse().getCourseName() + " on " + session.getDate());
+                    try {
+                        String courseName = "this course";
+                        if (session.getCourse() != null && session.getCourse().getCourseName() != null) {
+                            courseName = session.getCourse().getCourseName();
+                        }
+                        
+                        notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT", 
+                                "You were marked ABSENT for " + courseName + " on " + session.getDate());
+                    } catch (Exception e) {
+                        // Senior Dev: Non-critical notification failure should not rollback the critical session end transaction
+                        System.err.println("Failed to send absence notification to user " + student.getUserId() + ": " + e.getMessage());
+                    }
                 }
             }
         }
 
         Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto confirmAttendance(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        // If it's still in progress, end it first
+        if (session.getStatus() == SessionStatus.IN_PROGRESS) {
+            // We call endSession within the same transactional context
+            this.endSession(sessionId);
+            // Refresh to get updated status and timestamps
+            session = sessionRepository.findById(sessionId).get();
+        } else if (session.getStatus() == SessionStatus.SCHEDULED) {
+            throw new IllegalStateException("Cannot confirm attendance for a SCHEDULED session. Start it first.");
+        }
+
+        session.setIsValidated(true);
+        Session saved = sessionRepository.save(session);
+        
+        // Notify Pedagogic Assistants of that specialty
+        if (saved.getCourse() != null && saved.getCourse().getSpeciality() != null) {
+            String courseName = saved.getCourse().getCourseName();
+            String teacherName = saved.getTeacher() != null ? saved.getTeacher().getFirstName() + " " + saved.getTeacher().getLastName() : "A teacher";
+            notificationService.notifyRoleBySpeciality("PEDAGOG", 
+                saved.getCourse().getSpeciality().getSpecialityId(),
+                "ATTENDANCE_SUBMITTED",
+                teacherName + " has finalized the attendance for " + courseName + ".");
+        }
+
         return sessionMapper.toDto(saved);
     }
 

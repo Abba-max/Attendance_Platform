@@ -5,6 +5,10 @@ import group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService
 import group3.en.stuattendance.Attendancemanager.Service.AttendanceService;
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Service.SessionService;
+import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
+import group3.en.stuattendance.Usermanager.Model.User;
+import group3.en.stuattendance.Usermanager.Repository.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +23,8 @@ public class AttendanceExportServiceImpl implements AttendanceExportService {
 
     private final AttendanceService attendanceService;
     private final SessionService sessionService;
+    private final AttendanceRecordRepository attendanceRecordRepository;
+    private final UserRepository userRepository;
 
     @Override
     public Map<String, Object> getSessionExportData(Integer sessionId) {
@@ -71,6 +77,37 @@ public class AttendanceExportServiceImpl implements AttendanceExportService {
                .append(s.get("status")).append(",")
                .append(s.get("timestamp")).append(",")
                .append(s.get("validatedByTeacher")).append("\n");
+        }
+        
+        return csv.toString();
+    }
+
+    @Override
+    public String generateStudentCsv(Integer userId) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found"));
+
+        List<group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord> records = attendanceRecordRepository.findByUserUserId(userId);
+        
+        StringBuilder csv = new StringBuilder();
+        csv.append("Student Name:,").append(student.getFirstName()).append(" ").append(student.getLastName()).append("\n");
+        csv.append("Matricule:,").append(student.getMatricule() != null ? student.getMatricule() : "N/A").append("\n\n");
+        
+        csv.append("Date,Course,Teacher,Status,Hours Attended\n");
+        
+        // Sort by date descending
+        records.sort((a, b) -> b.getSession().getDate().compareTo(a.getSession().getDate()));
+        
+        for (var record : records) {
+            var session = record.getSession();
+            var courseName = session.getCourse() != null ? session.getCourse().getCourseName() : "N/A";
+            var teacherName = session.getTeacher() != null ? session.getTeacher().getFirstName() + " " + session.getTeacher().getLastName() : "N/A";
+            
+            csv.append(session.getDate()).append(",")
+               .append(courseName.replace(",", " ")).append(",")
+               .append(teacherName).append(",")
+               .append(record.getStatus() != null ? record.getStatus().name() : "N/A").append(",")
+               .append(record.getHoursAttended() != null ? record.getHoursAttended() : 0).append("\n");
         }
         
         return csv.toString();

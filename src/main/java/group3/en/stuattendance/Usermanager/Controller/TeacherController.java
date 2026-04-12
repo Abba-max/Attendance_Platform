@@ -2,15 +2,22 @@ package group3.en.stuattendance.Usermanager.Controller;
 
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Service.SessionService;
+import group3.en.stuattendance.Timetablemanager.Service.PdfExportService;
+import group3.en.stuattendance.Attendancemanager.Service.AttendanceService;
+import group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto;
 import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
 import group3.en.stuattendance.Usermanager.Service.UserService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.core.io.InputStreamResource;
 
+import java.io.ByteArrayInputStream;
 import java.util.List;
 
 @RestController
@@ -22,16 +29,22 @@ public class TeacherController {
     private final UserService userService;
     private final UserMapper userMapper;
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
+    private final PdfExportService pdfExportService;
+    private final AttendanceService attendanceService;
 
     public TeacherController(
             SessionService sessionService,
             UserService userService,
             UserMapper userMapper,
-            group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService) {
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService,
+            PdfExportService pdfExportService,
+            AttendanceService attendanceService) {
         this.sessionService = sessionService;
         this.userService = userService;
         this.userMapper = userMapper;
         this.attendanceExportService = attendanceExportService;
+        this.pdfExportService = pdfExportService;
+        this.attendanceService = attendanceService;
     }
 
     /**
@@ -74,6 +87,14 @@ public class TeacherController {
     }
 
     /**
+     * Confirm attendance and mark session as completed/validated.
+     */
+    @PostMapping("/sessions/{id}/confirm-attendance")
+    public ResponseEntity<SessionDto> confirmAttendance(@PathVariable Integer id) {
+        return ResponseEntity.ok(sessionService.confirmAttendance(id));
+    }
+
+    /**
      * Cancel a session.
      */
     @PostMapping("/sessions/{id}/cancel")
@@ -82,13 +103,32 @@ public class TeacherController {
     }
 
     /**
-     * Export attendance sheet for the teacher.
+     * Export attendance sheet for the teacher (CSV).
      */
     @GetMapping("/sessions/{id}/export")
     public ResponseEntity<String> exportAttendance(@PathVariable Integer id) {
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=\"attendance_session_" + id + ".csv\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"attendance_session_" + id + ".csv\"")
                 .body(attendanceExportService.generateSessionCsv(id));
+    }
+
+    /**
+     * Export attendance sheet for the teacher (PDF).
+     */
+    @GetMapping("/sessions/{id}/export/pdf")
+    public ResponseEntity<InputStreamResource> exportAttendancePdf(@PathVariable Integer id) {
+        SessionDto session = sessionService.getSessionById(id);
+        List<AttendanceRecordDto> records = attendanceService.getAttendanceBySession(id);
+        ByteArrayInputStream bis = pdfExportService.exportAttendanceToPdf(session, records);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=attendance_session_" + id + ".pdf");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(new InputStreamResource(bis));
     }
 
     /**

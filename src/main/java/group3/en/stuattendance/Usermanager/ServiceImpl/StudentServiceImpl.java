@@ -5,8 +5,8 @@ import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
 import group3.en.stuattendance.Justificationmanager.Enum.JustificationStatus;
 import group3.en.stuattendance.Justificationmanager.Repository.JustificationRepository;
-import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
+import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
 import group3.en.stuattendance.Usermanager.DTO.*;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
@@ -30,6 +30,7 @@ public class StudentServiceImpl implements StudentService {
     private final SessionRepository sessionRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final JustificationRepository justificationRepository;
+    private final CourseRepository courseRepository;
 
     @Override
     public List<StudentScheduleDto> getTodaySchedule(Integer userId) {
@@ -43,9 +44,44 @@ public class StudentServiceImpl implements StudentService {
         return sessionRepository.findByClassroomClassIdAndDate(student.getClassroom().getClassId(), LocalDate.now())
                 .stream()
                 .map(session -> {
-                    String attStatus = attendanceRecordRepository.findByUserAndSession(student, session)
-                            .map(r -> r.getStatus().name())
-                            .orElse("NOT_MARKED");
+                    List<AttendanceRecord> records = attendanceRecordRepository.findByUserAndSession(student, session);
+                    String attStatus = records.isEmpty() ? "NOT_MARKED" : records.get(0).getStatus().name();
+                    
+                    return StudentScheduleDto.builder()
+                        .sessionId(session.getSessionId())
+                        .courseName(session.getCourse() != null ? session.getCourse().getCourseName() : "N/A")
+                        .teacherName(session.getTeacher() != null ? session.getTeacher().getFirstName() + " " + session.getTeacher().getLastName() : "N/A")
+                        .date(session.getDate())
+                        .startTime(session.getStartTime())
+                        .endTime(session.getEndTime())
+                        .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : "N/A")
+                        .status(session.getStatus().name())
+                        .attendanceStatus(attStatus)
+                        .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StudentScheduleDto> getSessionsForGrid(Integer userId) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + userId));
+
+        if (student.getClassroom() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        // Fetch all sessions and sort from newest to oldest
+        return sessionRepository.findByClassroomClassId(student.getClassroom().getClassId())
+                .stream()
+                .sorted((s1, s2) -> {
+                    int dateCompare = s2.getDate().compareTo(s1.getDate());
+                    if (dateCompare != 0) return dateCompare;
+                    return s2.getStartTime().compareTo(s1.getStartTime());
+                })
+                .map(session -> {
+                    List<AttendanceRecord> records = attendanceRecordRepository.findByUserAndSession(student, session);
+                    String attStatus = records.isEmpty() ? "NOT_MARKED" : records.get(0).getStatus().name();
                     
                     return StudentScheduleDto.builder()
                         .sessionId(session.getSessionId())
@@ -85,23 +121,55 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public List<StudentAttendanceStatsDto> getCourseAttendanceStats(Integer userId) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found"));
+
+        if (student.getClassroom() == null || student.getClassroom().getSpeciality() == null) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<group3.en.stuattendance.Timetablemanager.Model.Course> enrolledCourses = courseRepository.findBySpecialitySpecialityIdAndLevel(
+                student.getClassroom().getSpeciality().getSpecialityId(), 
+                student.getClassroom().getLevel());
+
         List<AttendanceRecord> allRecords = attendanceRecordRepository.findByUserUserId(userId);
         
-        Map<Integer, List<AttendanceRecord>> byCourse = allRecords.stream()
+        Map<Integer, List<AttendanceRecord>> recordsByCourse = allRecords.stream()
                 .filter(r -> r.getSession() != null && r.getSession().getCourse() != null)
                 .collect(Collectors.groupingBy(r -> r.getSession().getCourse().getCourseId()));
 
-        return byCourse.entrySet().stream().map(entry -> {
-            List<AttendanceRecord> courseRecords = entry.getValue();
-            long total = courseRecords.size();
-            long present = courseRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
+        return enrolledCourses.stream().map(course -> {
+            List<AttendanceRecord> courseRecords = recordsByCourse.getOrDefault(course.getCourseId(), java.util.Collections.emptyList());
             
+            long totalSessions = courseRecords.size();
+            long presentCount = courseRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
+            
+            Integer courseTotalHours = course.getTotalHours() != null ? course.getTotalHours() : 0;
+            
+            int studentAttendedHours = courseRecords.stream()
+                    .mapToInt(r -> r.getHoursAttended() != null ? r.getHoursAttended() : 0)
+                    .sum();
+            
+            double attendanceRate = courseTotalHours > 0 ? ((double) studentAttendedHours / courseTotalHours) * 100 : 0;
+            
+            String teacherName = "TBD";
+            String teacherEmail = "N/A";
+            if (course.getTeachers() != null && !course.getTeachers().isEmpty()) {
+                User teacher = course.getTeachers().iterator().next();
+                teacherName = teacher.getFirstName() + " " + teacher.getLastName();
+                teacherEmail = teacher.getEmail();
+            }
+
             return StudentAttendanceStatsDto.builder()
-                    .courseId(entry.getKey())
-                    .courseName(courseRecords.get(0).getSession().getCourse().getCourseName())
-                    .totalSessions(total)
-                    .presentCount(present)
-                    .attendanceRate(total > 0 ? (double) present / total * 100 : 0)
+                    .courseId(course.getCourseId())
+                    .courseName(course.getCourseName())
+                    .totalSessions(totalSessions)
+                    .presentCount(presentCount)
+                    .attendanceRate(attendanceRate)
+                    .courseTotalHours(courseTotalHours)
+                    .studentAttendedHours(studentAttendedHours)
+                    .teacherName(teacherName)
+                    .teacherEmail(teacherEmail)
                     .build();
         }).collect(Collectors.toList());
     }

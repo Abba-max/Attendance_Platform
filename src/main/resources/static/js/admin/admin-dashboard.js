@@ -491,7 +491,13 @@ async function handleOverridePermission(userId, permissionId, action) {
  * Handle Clear Overrides
  */
 async function handleClearOverrides(userId) {
-    if (!confirm('Are you sure you want to clear all permission overrides for this user?')) return;
+    const confirmed = await ModernConfirm({
+        title: "Clear all overrides?",
+        message: "Are you sure you want to clear all manual permission overrides for this user?",
+        confirmText: "Clear Overrides",
+        type: "warning"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/admin/users/${userId}/permissions/clear`, {
@@ -515,7 +521,13 @@ async function handleClearOverrides(userId) {
  */
 async function handleToggleStatus(userId, currentIsActive) {
     const action = currentIsActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+    const confirmed = await ModernConfirm({
+        title: `${action.charAt(0).toUpperCase() + action.slice(1)} User?`,
+        message: `Are you sure you want to ${action} this user?`,
+        confirmText: `${action.charAt(0).toUpperCase() + action.slice(1)}`,
+        type: currentIsActive ? "danger" : "info"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/users/${userId}/${action}`, {
@@ -562,7 +574,13 @@ async function handleResetPassword(userId) {
  * Handle Delete User
  */
 async function handleDeleteUser(userId) {
-    if (!confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) return;
+    const confirmed = await ModernConfirm({
+        title: "Permanently Delete User?",
+        message: "Are you sure you want to permanently delete this user? This action cannot be undone.",
+        confirmText: "Delete Permanently",
+        type: "danger"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/admin/users/${userId}`, {
@@ -1360,7 +1378,13 @@ async function handleCreateRole(e) {
  * Handle Delete Role
  */
 async function handleDeleteRole(roleId) {
-    if (!confirm('Are you sure you want to delete this role? Users assigned to this role may lose access.')) return;
+    const confirmed = await ModernConfirm({
+        title: "Delete Role?",
+        message: "Are you sure you want to delete this role? Users assigned to this role may lose access.",
+        confirmText: "Delete Role",
+        type: "danger"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/admin/roles/${roleId}`, {
@@ -1487,7 +1511,13 @@ async function handleCreatePermission(e) {
  * Handle Delete Permission
  */
 async function handleDeletePermission(id) {
-    if (!confirm('Are you sure? This will remove this permission from all roles.')) return;
+    const confirmed = await ModernConfirm({
+        title: "Delete Permission?",
+        message: "Are you sure? This will remove this permission from all roles. This action is irreversible.",
+        confirmText: "Yes, Delete",
+        type: "danger"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`/api/admin/permissions/${id}`, {
@@ -1653,7 +1683,13 @@ async function handleCreateAcademicYear(e) {
  * Handle Activate Academic Year
  */
 async function handleActivateAcademicYear(id) {
-    if (!confirm('Activating this year will deactivate the current one. Continue?')) return;
+    const confirmed = await ModernConfirm({
+        title: "Activate Academic Year?",
+        message: "Activating this year will deactivate the current one. Continue?",
+        confirmText: "Activate Year",
+        type: "info"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/activate`, {
@@ -1676,7 +1712,13 @@ async function handleActivateAcademicYear(id) {
  * Handle Suspend Academic Year
  */
 async function handleSuspendAcademicYear(id) {
-    if (!confirm('Suspend this academic year temporarily?')) return;
+    const confirmed = await ModernConfirm({
+        title: "Suspend Academic Year?",
+        message: "Are you sure you want to suspend this academic year temporarily?",
+        confirmText: "Suspend Year",
+        type: "warning"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/suspend`, {
@@ -1699,7 +1741,13 @@ async function handleSuspendAcademicYear(id) {
  * Handle Close Academic Year
  */
 async function handleCloseAcademicYear(id) {
-    if (!confirm('Are you sure you want to CLOSE this academic year? This should be done at the end of the session.')) return;
+    const confirmed = await ModernConfirm({
+        title: "Close Academic Year?",
+        message: "Are you sure you want to CLOSE this academic year? This should be done at the end of the session.",
+        confirmText: "Close Year",
+        type: "danger"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}/close`, {
@@ -1722,7 +1770,13 @@ async function handleCloseAcademicYear(id) {
  * Handle Delete Academic Year
  */
 async function handleDeleteAcademicYear(id) {
-    if (!confirm('Are you sure you want to delete this archived year?')) return;
+    const confirmed = await ModernConfirm({
+        title: "Delete Archived Year?",
+        message: "Are you sure you want to delete this archived year? This action cannot be undone.",
+        confirmText: "Delete Permanently",
+        type: "danger"
+    });
+    if (!confirmed) return;
 
     try {
         const response = await fetch(`${ACADEMIC_YEARS_API_URL}/${id}`, {
@@ -2029,8 +2083,14 @@ window.closeEditSpecialityModal = function () {
     }
 };
 
-window.handleDeleteSpeciality = function (id) {
-    if (confirm('Are you sure you want to delete this speciality? This action cannot be undone.')) {
+window.handleDeleteSpeciality = async function (id) {
+    const confirmed = await ModernConfirm({
+        title: "Delete Speciality?",
+        message: "Are you sure you want to delete this speciality? This action cannot be undone.",
+        confirmText: "Yes, Delete",
+        type: "danger"
+    });
+    if (confirmed) {
         fetch(`/admin/specialities/delete/${id}`, {
             method: 'POST',
             headers: {
@@ -2168,8 +2228,14 @@ document.addEventListener('click', function (e) {
 /**
  * Handles deletion of a cycle with confirmation.
  */
-window.handleDeleteCycle = function (id) {
-    if (confirm('Are you sure you want to delete this cycle? This action cannot be undone.')) {
+window.handleDeleteCycle = async function (id) {
+    const confirmed = await ModernConfirm({
+        title: "Delete Cycle?",
+        message: "Are you sure you want to delete this cycle? This action cannot be undone.",
+        confirmText: "Yes, Delete",
+        type: "danger"
+    });
+    if (confirmed) {
         fetch(`/admin/cycles/delete/${id}`, {
             method: 'POST',
             headers: {
@@ -2188,8 +2254,14 @@ window.handleDeleteCycle = function (id) {
 /**
  * Handles deletion of a department with confirmation.
  */
-window.handleDeleteDepartment = function (id) {
-    if (confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
+window.handleDeleteDepartment = async function (id) {
+    const confirmed = await ModernConfirm({
+        title: "Delete Department?",
+        message: "Are you sure you want to delete this department? This action cannot be undone.",
+        confirmText: "Yes, Delete",
+        type: "danger"
+    });
+    if (confirmed) {
         fetch(`/admin/departments/delete/${id}`, {
             method: 'POST',
             headers: {
@@ -2208,8 +2280,14 @@ window.handleDeleteDepartment = function (id) {
 /**
  * Handles deletion of a classroom with confirmation.
  */
-window.handleDeleteClassroom = function (id) {
-    if (confirm('Are you sure you want to delete this classroom? This action cannot be undone.')) {
+window.handleDeleteClassroom = async function (id) {
+    const confirmed = await ModernConfirm({
+        title: "Delete Classroom?",
+        message: "Are you sure you want to delete this classroom? This action cannot be undone.",
+        confirmText: "Yes, Delete",
+        type: "danger"
+    });
+    if (confirmed) {
         fetch(`/admin/classrooms/delete/${id}`, {
             method: 'POST',
             headers: {
@@ -2996,7 +3074,15 @@ function buildScheduleActions(s) {
  * Execute a lifecycle action or delete on a schedule.
  */
 async function scheduleAction(id, action) {
-    if (action === 'delete' && !confirm('Delete this schedule? This cannot be undone.')) return;
+    if (action === 'delete') {
+        const confirmed = await ModernConfirm({
+            title: "Delete Schedule?",
+            message: "Are you sure you want to delete this schedule? This cannot be undone.",
+            confirmText: "Yes, Delete",
+            type: "danger"
+        });
+        if (!confirmed) return;
+    }
 
     try {
         let url, method;

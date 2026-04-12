@@ -17,7 +17,9 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "attendance_records", indexes = {
+@Table(name = "attendance_records", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_user_session", columnNames = {"user_id", "session_id"})
+}, indexes = {
         @Index(name = "idx_user_session", columnList = "user_id, session_id")
 })
 @Data

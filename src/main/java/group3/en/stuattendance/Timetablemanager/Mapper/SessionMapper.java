@@ -36,7 +36,20 @@ public class SessionMapper {
                 .isActive(session.isActive())
                 .totalHours(session.getStartTime() != null && session.getEndTime() != null ? 
                     (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 0)
+                .attendanceRate(calculateAttendanceRate(session))
                 .build();
+    }
+
+    private Double calculateAttendanceRate(Session session) {
+        if (session.getAttendanceRecords() == null || session.getAttendanceRecords().isEmpty()) {
+            return 0.0;
+        }
+        long total = session.getAttendanceRecords().size();
+        long present = session.getAttendanceRecords().stream()
+                .filter(r -> r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT || 
+                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
+                .count();
+        return (double) present / total * 100.0;
     }
 
     public Session toEntity(SessionDto dto) {

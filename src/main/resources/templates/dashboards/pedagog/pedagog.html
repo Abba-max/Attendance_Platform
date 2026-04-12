@@ -1777,7 +1777,11 @@
             username: /*[[${username}]]*/ 'Admin'
         };
     </script>
-    <script th:src="@{/js/pedagog/pedagog-dashboard.js}"></script>
+    <script src="/js/pedagog/pedagog-dashboard.js"></script>
+
+    <!-- Shared UI Components -->
+    <div th:replace="~{fragments/ui :: modernConfirm}"></div>
+</body>
     <!-- Generic Detail View Modal -->
     <div id="detailViewModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-95 opacity-0 duration-300"

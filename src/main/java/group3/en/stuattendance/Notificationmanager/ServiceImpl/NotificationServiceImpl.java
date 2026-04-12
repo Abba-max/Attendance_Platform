@@ -70,6 +70,20 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    public void notifyRoleBySpeciality(String role, Integer specialityId, String type, String message) {
+        List<User> users = userRepository.findByRolesName(role);
+        for (User user : users) {
+            // A user matches if they handle at least one classroom in the session's speciality
+            boolean handlesSpeciality = user.getStaffClassrooms().stream()
+                    .anyMatch(c -> c.getSpeciality() != null && c.getSpeciality().getSpecialityId().equals(specialityId));
+
+            if (handlesSpeciality) {
+                sendNotification(user.getUserId(), type, message);
+            }
+        }
+    }
+
+    @Override
     public List<NotificationDto> getUserNotifications(Integer userId) {
         // Assuming the repository gets updated to include user-specific finders
         return notificationRepository.findAll().stream()

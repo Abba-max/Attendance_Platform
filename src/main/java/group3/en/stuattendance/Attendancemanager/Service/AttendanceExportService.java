@@ -15,4 +15,9 @@ public interface AttendanceExportService {
      * Generate CSV content for a session (as a simple placeholder for Excel/PDF).
      */
     String generateSessionCsv(Integer sessionId);
+
+    /**
+     * Generate CSV content for a specific student's attendance sheet.
+     */
+    String generateStudentCsv(Integer userId);
 }
