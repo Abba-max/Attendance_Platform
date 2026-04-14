@@ -18,10 +18,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.time.LocalDate;
+import java.time.temporal.WeekFields;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Controller
 @RequestMapping("/pedagog")
@@ -36,6 +37,7 @@ public class PedagogViewController {
     private final AcademicYearRepository academicYearRepository;
 
     @GetMapping("/dashboard")
+    @Transactional(readOnly = true)
     public String dashboard(Model model, Principal principal) {
         if (principal == null) return "redirect:/login";
 
@@ -68,12 +70,26 @@ public class PedagogViewController {
             }
         }
 
-        List<User> departmentStudents = new ArrayList<>();
-        for (Classroom classroom : departmentClassrooms) {
-            departmentStudents.addAll(classroom.getStudents());
-        }
+        List<User> departmentStudents = departmentClassrooms.stream()
+                .flatMap(c -> c.getStudents() != null ? c.getStudents().stream() : java.util.stream.Stream.empty())
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
 
-        model.addAttribute("pedagogName", currentUser.getFirstName() + " " + currentUser.getLastName());
+        departmentStudents.sort((u1, u2) -> {
+            if (u1.getCreatedAt() == null && u2.getCreatedAt() == null) return 0;
+            if (u1.getCreatedAt() == null) return 1;
+            if (u2.getCreatedAt() == null) return -1;
+            return u2.getCreatedAt().compareTo(u1.getCreatedAt());
+        });
+        
+        departmentCourses.sort((c1, c2) -> {
+            if (c1.getCreatedAt() == null && c2.getCreatedAt() == null) return 0;
+            if (c1.getCreatedAt() == null) return 1;
+            if (c2.getCreatedAt() == null) return -1;
+            return c2.getCreatedAt().compareTo(c1.getCreatedAt());
+        });
+
         model.addAttribute("username", currentUser.getUsername());
         model.addAttribute("departmentName", departments.isEmpty() ? "Academic Services" : departments.get(0).getName());
         model.addAttribute("totalStudents", (long) departmentStudents.size());
@@ -86,6 +102,28 @@ public class PedagogViewController {
         model.addAttribute("students", departmentStudents);
         model.addAttribute("courses", departmentCourses);
         model.addAttribute("academicYears", academicYearRepository.findAll());
+        model.addAttribute("activeAcademicYearId", academicYearRepository.findActiveAcademicYear()
+                                                        .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
+                                                        .orElse(null));
+
+        // Pre-compute classroom count per speciality to avoid lazy-load in template
+        Map<Integer, Long> classroomCountBySpec = departmentClassrooms.stream()
+                .filter(c -> c.getSpeciality() != null)
+                .collect(Collectors.groupingBy(
+                        c -> c.getSpeciality().getSpecialityId(),
+                        Collectors.counting()));
+        model.addAttribute("classroomCountBySpec", classroomCountBySpec);
+
+        // Safe pedagog name
+        String pedagogFirst = currentUser.getFirstName() != null ? currentUser.getFirstName() : "";
+        String pedagogLast  = currentUser.getLastName()  != null ? currentUser.getLastName()  : "";
+        model.addAttribute("pedagogName", (pedagogFirst + " " + pedagogLast).trim());
+        model.addAttribute("userId", currentUser.getUserId());
+        
+        // Add current week (1-52)
+        int currentWeek = LocalDate.now().get(WeekFields.of(Locale.getDefault()).weekOfWeekBasedYear());
+        model.addAttribute("currentWeek", currentWeek);
+        model.addAttribute("weekDays", List.of("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"));
 
         return "dashboards/pedagog/pedagog";
     }

@@ -14,4 +14,6 @@ public interface TimetablecontentService {
     List<TimetablecontentDto> getTimetableHistory(Integer classroomId, Long academicYearId, Integer week, Integer semester);
 
     List<TimetablecontentDto> getAllTimetablecontents();
+
+    List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> getAllSessionsForMonitor();
 }

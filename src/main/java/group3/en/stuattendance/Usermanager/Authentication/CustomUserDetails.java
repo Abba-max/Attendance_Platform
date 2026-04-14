@@ -10,15 +10,27 @@ public class CustomUserDetails extends User {
     private final String firstName;
     private final String lastName;
     private final boolean passwordChanged;
+    private final java.util.List<Integer> courseIds;
+    private final java.util.List<Integer> staffClassroomIds;
 
     public CustomUserDetails(Integer userId, String firstName, String lastName, String username, String password, boolean enabled, boolean accountNonExpired,
                              boolean credentialsNonExpired, boolean accountNonLocked,
-                             Collection<? extends GrantedAuthority> authorities, boolean passwordChanged) {
+                             java.util.Collection<? extends GrantedAuthority> authorities, boolean passwordChanged, java.util.List<Integer> courseIds, java.util.List<Integer> staffClassroomIds) {
         super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
         this.userId = userId;
         this.firstName = firstName;
         this.lastName = lastName;
         this.passwordChanged = passwordChanged;
+        this.courseIds = courseIds;
+        this.staffClassroomIds = staffClassroomIds;
+    }
+
+    public java.util.List<Integer> getCourseIds() {
+        return courseIds;
+    }
+
+    public java.util.List<Integer> getStaffClassroomIds() {
+        return staffClassroomIds;
     }
 
     public Integer getUserId() {

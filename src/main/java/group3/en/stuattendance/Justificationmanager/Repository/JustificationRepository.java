@@ -21,4 +21,6 @@ public interface JustificationRepository extends JpaRepository<Justification, In
     long countByStatus(JustificationStatus status);
 
     long countByUserUserId(Integer userId);
+
+    boolean existsByAttendanceRecordAttendanceId(Integer attendanceId);
 }

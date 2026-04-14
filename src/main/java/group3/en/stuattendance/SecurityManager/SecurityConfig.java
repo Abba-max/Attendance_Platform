@@ -36,6 +36,9 @@ public class SecurityConfig {
     @Autowired
     private CustomUserDetailsService customUserDetailsService;
 
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository academicYearRepository;
+
     @Value("${jwt.cookie-name}")
     private String cookieName;
     // ─────────────────────────────────────────────────────────
@@ -65,6 +68,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/pedagog/**", "/api/pedagog/**").hasRole("PEDAGOG")
+                        .requestMatchers("/teacher/**", "/api/teacher/**").hasRole("TEACHER")
+                        .requestMatchers("/api/attendance/**").hasAnyRole("TEACHER", "PEDAGOG")
                         .anyRequest().authenticated()  // ← doit toujours être en dernier
                 )
 
@@ -73,11 +78,17 @@ public class SecurityConfig {
                         .loginProcessingUrl("/login")
                         .successHandler((request, response, authentication) -> {
                             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+                            Long activeYearId = academicYearRepository.findActiveAcademicYear()
+                                    .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
+                                    .orElse(null);
+
                             String token = jwtUtil.generateToken(
                                     userDetails.getUsername(),
                                     userDetails.getUserId(),
                                     userDetails.getFirstName(),
-                                    userDetails.getLastName()
+                                    userDetails.getLastName(),
+                                    activeYearId,
+                                    userDetails.getCourseIds()
                             );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
@@ -102,6 +113,10 @@ public class SecurityConfig {
                                 response.sendRedirect("/admin/dashboard");
                             } else if (isPedagog) {
                                 response.sendRedirect("/pedagog/dashboard");
+                            } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"))) {
+                                response.sendRedirect("/teacher/dashboard");
+                            } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
+                                response.sendRedirect("/student/dashboard");
                             } else {
                                 response.sendRedirect("/"); // Or some default page
                             }

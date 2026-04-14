@@ -203,9 +203,45 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto getUserById(Integer userId) {
+    public Optional<User> getUserById(Integer userId) {
+        return userRepository.findById(userId);
+    }
+
+    @Override
+    public UserDto getUserDtoById(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        // Force initialization of lazy associations for students/staff/teachers
+        if (user.getClassroom() != null) {
+            user.getClassroom().getName();
+            if (user.getClassroom().getSpeciality() != null) {
+                user.getClassroom().getSpeciality().getName();
+            }
+        }
+        
+        // Initialize roles and their permissions for effective permissions calculation
+        user.getRoles().forEach(role -> {
+            role.getPermissions().size();
+        });
+        
+        // Initialize associations for Pedagogic Assistants / Supervisors
+        user.getStaffClassrooms().forEach(classroom -> {
+            classroom.getName();
+            if (classroom.getSpeciality() != null) {
+                classroom.getSpeciality().getName();
+                if (classroom.getSpeciality().getDepartment() != null) {
+                    classroom.getSpeciality().getDepartment().getName();
+                }
+            }
+        });
+        
+        // Initialize associations for Teachers
+        user.getCourses().forEach(course -> {
+            course.getCourseName();
+        });
+        
+        // Mapping inside @Transactional method ensures lazy collections are loaded
         return userMapper.toDto(user);
     }
 
@@ -286,9 +322,9 @@ public class UserServiceImpl implements UserService {
         userRepository.findById(userId).ifPresent(user -> {
             // Check if permission is in role scope
             boolean inScope = user.getRoles().stream()
-                    .anyMatch(role -> role.getPermissions().stream()
-                            .anyMatch(p -> p.getPermissionId().equals(permissionId)));
-
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
             if (!inScope) {
                 throw new RuntimeException("Permission is outside of user's role scope");
             }
@@ -306,9 +342,9 @@ public class UserServiceImpl implements UserService {
         userRepository.findById(userId).ifPresent(user -> {
             // Check if permission is in role scope
             boolean inScope = user.getRoles().stream()
-                    .anyMatch(role -> role.getPermissions().stream()
-                            .anyMatch(p -> p.getPermissionId().equals(permissionId)));
-
+                .anyMatch(role -> role.getPermissions().stream()
+                    .anyMatch(p -> p.getPermissionId().equals(permissionId)));
+            
             if (!inScope) {
                 throw new RuntimeException("Permission is outside of user's role scope");
             }
@@ -491,18 +527,25 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "STAFF_BULK_IMPORT", category = "USER_MANAGEMENT", severity = "INFO")
-    public BulkImportResultDto bulkImportStaff(MultipartFile file) {
+    public BulkImportResultDto bulkImportStaff(MultipartFile file, boolean dryRun) {
         BulkImportResultDto result = new BulkImportResultDto();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
              com.opencsv.CSVReader csvReader = new com.opencsv.CSVReader(reader)) {
 
             List<String[]> rows = csvReader.readAll();
-            result.setTotalRows(rows.size());
+            if (rows.isEmpty()) return result;
 
+            int startRow = 0;
+            // Check for header row: firstName, lastName, email, role
+            if (rows.get(0).length >= 4 && (rows.get(0)[0].equalsIgnoreCase("firstName") || rows.get(0)[2].equalsIgnoreCase("email"))) {
+                startRow = 1;
+            }
+
+            result.setTotalRows(rows.size() - startRow);
             Institution institution = institutionRepository.findById(1).orElse(null);
 
-            for (int i = 0; i < rows.size(); i++) {
+            for (int i = startRow; i < rows.size(); i++) {
                 String[] row = rows.get(i);
                 int rowNum = i + 1;
 
@@ -518,28 +561,39 @@ public class UserServiceImpl implements UserService {
                 String roleName = row[3].trim().toUpperCase();
 
                 try {
-                    if (userRepository.findByEmail(email).isPresent()) {
+                    boolean alreadyExists = userRepository.findByEmail(email).isPresent();
+                    if (alreadyExists) {
                         result.getErrors().add(new BulkImportResultDto.RowError(rowNum, email, "User with this email already exists"));
                         result.setFailureCount(result.getFailureCount() + 1);
                         continue;
                     }
 
-                    if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR")) {
-                        result.getErrors().add(new BulkImportResultDto.RowError(rowNum, email, "Invalid role: " + roleName + ". Must be PEDAGOG or SUPERVISOR"));
+                    if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR") && !roleName.equals("ADMIN")) {
+                        result.getErrors().add(new BulkImportResultDto.RowError(rowNum, email, "Invalid role: " + roleName + ". Must be PEDAGOG, SUPERVISOR or ADMIN"));
                         result.setFailureCount(result.getFailureCount() + 1);
                         continue;
                     }
 
-                    StaffCreateDto dto = StaffCreateDto.builder()
-                            .firstName(firstName)
-                            .lastName(lastName)
-                            .email(email)
-                            .roleNames(Collections.singleton(roleName))
-                            .institutionId(institution != null ? institution.getInstitutionId() : null)
-                            .isActive(true)
-                            .build();
+                    // Add to preview data
+                    java.util.Map<String, String> previewRow = new java.util.HashMap<>();
+                    previewRow.put("firstName", firstName);
+                    previewRow.put("lastName", lastName);
+                    previewRow.put("email", email);
+                    previewRow.put("role", roleName);
+                    result.getPreviewData().add(previewRow);
 
-                    registerStaff(dto);
+                    if (!dryRun) {
+                        StaffCreateDto dto = StaffCreateDto.builder()
+                                .firstName(firstName)
+                                .lastName(lastName)
+                                .email(email)
+                                .roleNames(Collections.singleton(roleName))
+                                .institutionId(institution != null ? institution.getInstitutionId() : null)
+                                .isActive(true)
+                                .build();
+
+                        registerStaff(dto);
+                    }
                     result.setSuccessCount(result.getSuccessCount() + 1);
 
                 } catch (Exception e) {
@@ -556,21 +610,29 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "STUDENT_BULK_IMPORT", category = "USER_MANAGEMENT", severity = "INFO")
-    public BulkImportResultDto bulkImportStudents(MultipartFile file, Integer classroomId) {
+    public BulkImportResultDto bulkImportStudents(MultipartFile file, Integer classroomId, boolean dryRun) {
         BulkImportResultDto result = new BulkImportResultDto();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()));
              com.opencsv.CSVReader csvReader = new com.opencsv.CSVReader(reader)) {
 
             List<String[]> rows = csvReader.readAll();
-            result.setTotalRows(rows.size());
+            if (rows.isEmpty()) return result;
+
+            int startRow = 0;
+            // Check for header row: firstName, lastName, email, matricule
+            if (rows.get(0).length >= 4 && (rows.get(0)[0].equalsIgnoreCase("firstName") || rows.get(0)[3].equalsIgnoreCase("matricule"))) {
+                startRow = 1;
+            }
+
+            result.setTotalRows(rows.size() - startRow);
 
             Classroom classroom = classroomRepository.findById(classroomId).orElse(null);
             Institution institution = (classroom != null && classroom.getSpeciality() != null && classroom.getSpeciality().getDepartment() != null)
                     ? classroom.getSpeciality().getDepartment().getInstitution()
                     : institutionRepository.findById(1).orElse(null);
 
-            for (int i = 0; i < rows.size(); i++) {
+            for (int i = startRow; i < rows.size(); i++) {
                 String[] row = rows.get(i);
                 int rowNum = i + 1;
 
@@ -592,18 +654,28 @@ public class UserServiceImpl implements UserService {
                         continue;
                     }
 
-                    StudentCreateDto dto = StudentCreateDto.builder()
-                            .firstName(firstName)
-                            .lastName(lastName)
-                            .email(email)
-                            .username(email)
-                            .matricule(matricule)
-                            .classroomId(classroomId)
-                            .institutionId(institution != null ? institution.getInstitutionId() : null)
-                            .isActive(true)
-                            .build();
+                    // Add to preview data
+                    java.util.Map<String, String> previewRow = new java.util.HashMap<>();
+                    previewRow.put("firstName", firstName);
+                    previewRow.put("lastName", lastName);
+                    previewRow.put("email", email);
+                    previewRow.put("matricule", matricule);
+                    result.getPreviewData().add(previewRow);
 
-                    registerStudent(dto);
+                    if (!dryRun) {
+                        StudentCreateDto dto = StudentCreateDto.builder()
+                                .firstName(firstName)
+                                .lastName(lastName)
+                                .email(email)
+                                .username(email)
+                                .matricule(matricule)
+                                .classroomId(classroomId)
+                                .institutionId(institution != null ? institution.getInstitutionId() : null)
+                                .isActive(true)
+                                .build();
+
+                        registerStudent(dto);
+                    }
                     result.setSuccessCount(result.getSuccessCount() + 1);
 
                 } catch (Exception e) {

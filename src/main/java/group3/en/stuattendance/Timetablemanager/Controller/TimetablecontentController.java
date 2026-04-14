@@ -165,6 +165,18 @@ public class TimetablecontentController {
     }
 
     /**
+     * Resolve classroom from speciality and level.
+     */
+    @GetMapping("/resolve-classroom")
+    public ResponseEntity<java.util.Map<String, Integer>> resolveClassroom(
+            @RequestParam Integer specialityId,
+            @RequestParam Integer level) {
+        return classroomRepository.findFirstBySpeciality_SpecialityIdAndLevel(specialityId, level)
+                .map(c -> ResponseEntity.ok(java.util.Map.of("classroomId", c.getClassId())))
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * Send timetable PDF to all students in a classroom via Email.
      */
     @PostMapping("/email")
@@ -222,5 +234,18 @@ public class TimetablecontentController {
         emailService.sendTimetableEmail(fromEmail, bccList, subject, message != null ? message : "", pdfBytes, filename, senderName);
 
         return ResponseEntity.ok(java.util.Map.of("message", "Email distribution started for " + bccList.size() + " students."));
+    }
+
+    /**
+     * Get all sessions for the Pedagogic Assistant sessions monitor.
+     * Accessible by PEDAGOG and ADMIN roles.
+     * GET /api/timetablecontent/sessions/all
+     */
+    @GetMapping("/sessions/all")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PEDAGOG','ADMIN')")
+    public ResponseEntity<List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto>> getAllSessions() {
+        List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> sessions =
+            timetablecontentService.getAllSessionsForMonitor();
+        return ResponseEntity.ok(sessions);
     }
 }

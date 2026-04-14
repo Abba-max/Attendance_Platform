@@ -17,6 +17,7 @@ public class CourseMapper {
                 .credits(course.getCredits())
                 .totalHours(course.getTotalHours())
                 .level(course.getLevel())
+                .semester(course.getSemester())
                 .specialityId(course.getSpeciality() != null ? course.getSpeciality().getSpecialityId() : null)
                 .specialityName(course.getSpeciality() != null ? course.getSpeciality().getName() : null)
                 .teacherIds(course.getTeachers() != null ? 
@@ -36,6 +37,7 @@ public class CourseMapper {
                 .credits(dto.getCredits())
                 .totalHours(dto.getTotalHours())
                 .level(dto.getLevel())
+                .semester(dto.getSemester())
                 .build();
     }
 }

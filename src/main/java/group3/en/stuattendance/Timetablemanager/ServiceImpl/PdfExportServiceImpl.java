@@ -39,15 +39,33 @@ public class PdfExportServiceImpl implements PdfExportService {
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             
-            String dateRange = (timetableDto.getStartDate() != null && timetableDto.getEndDate() != null) 
-                    ? " from " + timetableDto.getStartDate() + " to " + timetableDto.getEndDate() 
+            // ── Derive and format dates ──────────────────────────────────────────
+            java.time.LocalDate startDate = timetableDto.getStartDate();
+            java.time.LocalDate endDate   = timetableDto.getEndDate();
+
+            // When not explicitly stored, compute Monday-Saturday from the ISO week
+            if ((startDate == null || endDate == null) && timetableDto.getWeek() != null) {
+                int isoWeek = timetableDto.getWeek();
+                int year    = java.time.LocalDate.now().getYear();
+                java.time.LocalDate weekStart = java.time.LocalDate.ofYearDay(year, 1)
+                        .with(java.time.temporal.WeekFields.ISO.weekOfYear(), isoWeek)
+                        .with(java.time.DayOfWeek.MONDAY);
+                if (startDate == null) startDate = weekStart;
+                if (endDate   == null) endDate   = weekStart.plusDays(5);
+            }
+
+            java.time.format.DateTimeFormatter dateFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String dateRange = (startDate != null && endDate != null)
+                    ? "From " + startDate.format(dateFmt) + " to " + endDate.format(dateFmt)
                     : "";
-                    
+
             String versionText = timetableDto.getVersion() != null ? " (v" + timetableDto.getVersion() + ")" : "";
-            
-            Paragraph subInfo = new Paragraph("Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") + 
+
+            Paragraph subInfo = new Paragraph(
+                    "Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") +
                     " | Semester: " + (timetableDto.getSemester() != null ? timetableDto.getSemester() : "N/A") +
-                    " | Week: " + timetableDto.getWeek() + versionText + dateRange);
+                    " | Week: " + timetableDto.getWeek() + versionText +
+                    (dateRange.isEmpty() ? "" : "   |   " + dateRange));
             subInfo.setAlignment(Element.ALIGN_CENTER);
             document.add(subInfo);
             document.add(Chunk.NEWLINE);
@@ -180,5 +198,78 @@ public class PdfExportServiceImpl implements PdfExportService {
             cell.setBackgroundColor(bgColor);
         }
         table.addCell(cell);
+    }
+
+    @Override
+    public ByteArrayInputStream exportAttendanceToPdf(group3.en.stuattendance.Timetablemanager.DTO.SessionDto session, 
+                                                     java.util.List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto> records) {
+        Document document = new Document(PageSize.A4);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Font settings
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Font tableHeadFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+
+            // Title
+            Paragraph title = new Paragraph("Session Attendance Sheet", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(Chunk.NEWLINE);
+
+            // Session Details
+            document.add(new Paragraph("Course: " + session.getCourseName(), bodyFont));
+            document.add(new Paragraph("Date: " + session.getDate() + " (" + session.getStartTime() + " - " + session.getEndTime() + ")", bodyFont));
+            document.add(new Paragraph("Classroom: " + session.getClassroomName(), bodyFont));
+            document.add(new Paragraph("Teacher: " + session.getTeacherName(), bodyFont));
+            document.add(Chunk.NEWLINE);
+
+            // Attendance Table
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1.5f, 3f, 1.5f, 3f});
+
+            // Headers
+            String[] headers = {"Matricule", "Student Name", "Status", "Comments"};
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.WHITE)));
+                cell.setBackgroundColor(java.awt.Color.decode("#00B0FF"));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // Data Rows
+            for (group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto r : records) {
+                table.addCell(new Phrase(r.getStudentMatricule() != null ? r.getStudentMatricule() : "N/A", bodyFont));
+                table.addCell(new Phrase(r.getStudentFirstName() + " " + r.getStudentLastName(), bodyFont));
+                
+                String statusStr = r.getStatus() != null ? r.getStatus().name() : "NOT_MARKED";
+                PdfPCell statusCell = new PdfPCell(new Phrase(statusStr, bodyFont));
+                
+                if ("ABSENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 226, 226));
+                } else if ("LATE".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 243, 199));
+                } else if ("PRESENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(209, 250, 229));
+                }
+                table.addCell(statusCell);
+                
+                table.addCell(new Phrase(r.getComments() != null ? r.getComments() : "", bodyFont));
+            }
+
+            document.add(table);
+            document.close();
+
+        } catch (DocumentException ex) {
+            throw new RuntimeException("Error during Attendance PDF generation", ex);
+        }
+
+        return new ByteArrayInputStream(out.toByteArray());
     }
 }

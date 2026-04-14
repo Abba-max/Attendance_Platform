@@ -1,26 +1,20 @@
 package group3.en.stuattendance.Usermanager.Service;
 
-import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
-import group3.en.stuattendance.Usermanager.DTO.StaffCreateDto;
-import group3.en.stuattendance.Usermanager.DTO.StudentCreateDto;
-import group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.Model.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface UserService {
-
     // Basic User Management
-    UserDto registerUser(UserDto dto);
-    UserDto registerStaff(StaffCreateDto dto);
-    UserDto registerTeacher(TeacherCreateDto dto);
-    UserDto registerStudent(StudentCreateDto dto);
-    UserDto getUserById(Integer userId);
+    UserDto registerUser(group3.en.stuattendance.Usermanager.DTO.UserDto dto);
+    UserDto registerStaff(group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto);
+    UserDto registerTeacher(group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto dto);
+    UserDto registerStudent(group3.en.stuattendance.Usermanager.DTO.StudentCreateDto dto);
+    Optional<User> getUserById(Integer userId);
+    UserDto getUserDtoById(Integer userId);
     List<User> getAllStaff();
     List<UserDto> getAllStaffDtos();
     Optional<User> getUserByUsername(String username);
@@ -51,15 +45,17 @@ public interface UserService {
     // Teacher Specific
     Optional<User> getUserByJoinCode(String joinCode);
     void assignStaffToClassroom(Integer userId, Integer classroomId);
+ 
     List<UserDto> getTeachersByClassroom(Integer classroomId);
+ 
     List<UserDto> getTeachersBySpeciality(Integer specialityId);
-
+    
     // Auth related
-    void changePassword(String currentPassword, String newPassword);
     void requestPasswordReset(String email);
+    void changePassword(String currentPassword, String newPassword);
     void resetPassword(Integer userId, String newPassword);
 
     // Bulk Operations
-    BulkImportResultDto bulkImportStaff(MultipartFile file);
-    BulkImportResultDto bulkImportStudents(MultipartFile file, Integer classroomId);
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file, boolean dryRun);
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStudents(org.springframework.web.multipart.MultipartFile file, Integer classroomId, boolean dryRun);
 }

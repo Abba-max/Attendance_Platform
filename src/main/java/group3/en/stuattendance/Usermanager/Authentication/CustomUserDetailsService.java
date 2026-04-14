@@ -54,7 +54,16 @@ public class CustomUserDetailsService implements UserDetailsService {
             authorities.remove(new SimpleGrantedAuthority(perm.getName()));
         });
 
-        // 3. Retourner un CustomUserDetails
+        // 3. Collect Course IDs and Staff Classroom IDs
+        List<Integer> courseIds = user.getCourses().stream()
+                .map(group3.en.stuattendance.Timetablemanager.Model.Course::getCourseId)
+                .collect(Collectors.toList());
+
+        List<Integer> staffClassroomIds = user.getStaffClassrooms().stream()
+                .map(group3.en.stuattendance.Institutionmanager.Model.Classroom::getClassId)
+                .collect(Collectors.toList());
+
+        // 4. Retourner un CustomUserDetails
         return new CustomUserDetails(
                 user.getUserId(),
                 user.getFirstName(),
@@ -66,7 +75,9 @@ public class CustomUserDetailsService implements UserDetailsService {
                 true,               // credentialsNonExpired
                 true,               // accountNonLocked
                 authorities,
-                Boolean.TRUE.equals(user.getPasswordChanged())
+                Boolean.TRUE.equals(user.getPasswordChanged()),
+                courseIds,
+                staffClassroomIds
         );
     }
 }

@@ -37,6 +37,8 @@ public class AuditlogDto {
                 .target(auditlog.getTarget())
                 .category(auditlog.getCategory())
                 .ipAddress(auditlog.getIpAddress())
+                .severity(auditlog.getSeverity())
+                .userRole(auditlog.getUserRole())
                 .timestamp(auditlog.getTimestamp() != null
                         ? auditlog.getTimestamp().format(FORMATTER)
                         : "")
