@@ -11,6 +11,7 @@ let nextSessionContext = null; // Stores the next session for quick-start
 let stompClient = null;
 let qrTimer = 30;
 let qrInterval = null;
+let selectedMobileDay = 'MONDAY'; // For mobile day switcher
 
 function initDashboard() {
     if (window.dashboardInitialized) return;
@@ -63,22 +64,20 @@ window.navigateTo = function(section) {
 
 // ── Schedule Core ────────────────────────────────────────────────────────
 async function loadSessions() {
-    const grid = document.getElementById('sessions-grid');
-    if (!grid) return;
-    
-    if (!allSessions.length) {
-        grid.innerHTML = `<div class="col-span-full py-10 text-center"><p class="text-sm text-slate-500">Loading schedule...</p></div>`;
-    }
+    // Show a loading indicator in whichever container is visible
+    const matrix = document.getElementById('timetable-matrix');
+    const mobileList = document.getElementById('mobile-sessions-list');
 
     try {
         const res = await fetch('/api/teacher/sessions/my-schedule');
-        if (!res.ok) throw new Error();
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         allSessions = await res.json();
-        
+
         populateFilters();
         applyFilters();
     } catch (e) {
-        grid.innerHTML = `<div class="col-span-full py-10 text-center"><p class="text-sm text-red-600">Failed to sync schedule.</p></div>`;
+        console.error('Failed to load sessions:', e);
+        if (mobileList) mobileList.innerHTML = `<div class="py-8 text-center text-red-500 text-xs font-bold">Failed to load schedule. Please refresh.</div>`;
     }
 }
 
@@ -94,133 +93,275 @@ function populateFilters() {
     const classSel = document.getElementById('filter-classroom');
     if (!weekSel || !classSel) return;
 
-    const savedWeek = weekSel.value;
-    const savedClass = classSel.value;
+    // Auto-select: prefer current week from Thymeleaf context, fallback to max week
+    const currentWeek = window.user?.currentWeek;
+    let defaultWeek = weekSel.value; // keep user-selected if refreshing
+    if (!defaultWeek) {
+        if (currentWeek && weekSet.has(currentWeek)) {
+            defaultWeek = String(currentWeek);
+        } else if (weekSet.size > 0) {
+            // fallback: pick the closest week to today
+            defaultWeek = String([...weekSet].sort((a,b) => Math.abs(a - (currentWeek||a)) - Math.abs(b - (currentWeek||b)))[0]);
+        }
+    }
 
     weekSel.innerHTML = '<option value="">All Weeks</option>';
     [...weekSet].sort((a, b) => a - b).forEach(w => {
         const val = String(w);
-        weekSel.add(new Option(`Week ${w}`, val, false, val === savedWeek));
+        weekSel.add(new Option(`Week ${w}`, val, false, val === defaultWeek));
     });
 
+    const savedClass = classSel.value;
     classSel.innerHTML = '<option value="">All Rooms</option>';
     classSet.forEach((name, id) => {
         classSel.add(new Option(name, String(id), false, String(id) === savedClass));
     });
 }
 
+window.setMobileDay = function(day) {
+    selectedMobileDay = day;
+    document.querySelectorAll('.day-tab').forEach(btn => {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        btn.classList.toggle('active', onclickAttr.includes(`'${day}'`));
+    });
+    renderGrid();
+};
+
+// Auto-init mobile day to today's day and highlight the correct tab
+(function initTodayMobileDay() {
+    const days = ['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'];
+    const todayDay = days[new Date().getDay()];
+    selectedMobileDay = (todayDay === 'SUNDAY') ? 'MONDAY' : todayDay;
+
+    // Activate the right tab once DOM is ready
+    const activateTab = () => {
+        document.querySelectorAll('.day-tab').forEach(btn => {
+            const attr = btn.getAttribute('onclick') || '';
+            btn.classList.toggle('active', attr.includes(`'${selectedMobileDay}'`));
+        });
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', activateTab);
+    } else {
+        activateTab();
+    }
+})();
+
 window.applyFilters = function() {
     const w = document.getElementById('filter-week')?.value;
+    const d = document.getElementById('filter-day')?.value;
     const c = document.getElementById('filter-classroom')?.value;
-    const s = document.getElementById('filter-status')?.value;
 
     filteredSessions = allSessions.filter(st => {
         const mw = !w || String(st.week) === w;
         const mc = !c || String(st.classroomId) === c;
-        const ms = !s || String(st.status) === s;
-        return mw && mc && ms;
+        // Day filter only applies on mobile, or we can use it to sync
+        return mw && mc;
     });
 
     renderGrid();
 };
 
-function renderGrid() {
-    const grid = document.getElementById('sessions-grid');
-    if (!grid) return;
-
-    if (!filteredSessions.length) {
-        grid.innerHTML = `<div class="col-span-full py-10 text-center border border-dashed border-slate-200 rounded-xl"><p class="text-sm text-slate-500">No sessions match current filters.</p></div>`;
-        updateOverview(null, 0);
-        return;
-    }
-
-    const sorted = [...filteredSessions].sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.startTime||'').localeCompare(b.startTime||''));
+function calculateGridPosition(startTime, endTime) {
+    if (!startTime || !endTime) return null;
+    const [startH, startM] = startTime.split(':').map(Number);
+    const [endH, endM] = endTime.split(':').map(Number);
     
-    const next = sorted.find(s => s.status === 'IN_PROGRESS' || s.status === 'SCHEDULED') || sorted[0];
-    const pending = sorted.filter(s => s.status === 'SCHEDULED').length;
-    updateOverview(next, pending);
-
-    grid.innerHTML = sorted.map(renderSessionCard).join('');
+    // 8am to 5pm (17:00)
+    // Row 2 is 8:00
+    // Each row is 30 mins
+    const startRow = ((startH - 8) * 2) + (startM >= 30 ? 1 : 0) + 2;
+    const endRow = ((endH - 8) * 2) + (endM >= 30 ? 1 : 0) + 2;
+    
+    return { start: startRow, end: endRow };
 }
 
-function updateOverview(next, pendingCount) {
-    const titleEl = document.getElementById('next-class-name');
-    const timeEl = document.getElementById('next-class-time');
-    const roomEl = document.getElementById('next-class-room');
-    const btnTake = document.getElementById('btn-take-attendance-overview');
+function renderGrid() {
+    const matrix = document.getElementById('timetable-matrix');
+    const mobileList = document.getElementById('mobile-sessions-list');
+    if (!matrix || !mobileList) return;
 
-    if (!next) {
-        titleEl.textContent = 'None Scheduled';
-        timeEl.textContent = '--:--';
-        roomEl.textContent = 'No Room';
-        btnTake?.classList.add('hidden');
-        nextSessionContext = null;
+    // 1. Calculate Stats for Overview
+    const totalClasses = allSessions.length;
+    const doneClasses = allSessions.filter(s => s.status === 'COMPLETED').length;
+    updateOverview(totalClasses, doneClasses);
+
+    // 2. Render Desktop Matrix
+    // Save and restore the 7 static header elements
+    const headerEls = Array.from(matrix.children).slice(0, 7).map(el => el.cloneNode(true));
+    matrix.innerHTML = '';
+    headerEls.forEach(h => matrix.appendChild(h));
+
+    // Generate background grid: one entry per 30-min slot per day
+    // Rows: 1=header, rows 2..19 = 30min slots from 08:00 to 17:00 (9 hours × 2 = 18 slots)
+    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    for (let slot = 0; slot < 18; slot++) {
+        const rowIndex = slot + 2; // CSS grid row (1-based, row 1 = header)
+        const hour = 8 + Math.floor(slot / 2);
+        const mins = slot % 2 === 0 ? '00' : '30';
+
+        // Time label only on :00 slots, spanning 2 rows
+        if (slot % 2 === 0) {
+            const label = document.createElement('div');
+            label.className = 'time-label';
+            label.style.gridRow = `${rowIndex} / span 2`;
+            label.style.gridColumn = '1';
+            label.textContent = `${String(hour).padStart(2,'0')}:00`;
+            matrix.appendChild(label);
+        }
+
+        // One background slot per column per 30-min row
+        for (let d = 0; d < 6; d++) {
+            const cell = document.createElement('div');
+            // Full hour = solid soft border, Half hour = dashed very soft border
+            // Removed alternating backgrounds so the grid is purely white with soft lines
+            cell.className = `timetable-slot ${slot % 2 === 0 ? 'border-b border-slate-100' : 'border-b border-dashed border-slate-100/50'}`;
+            cell.style.gridRow = String(rowIndex);
+            cell.style.gridColumn = String(d + 2);
+            matrix.appendChild(cell);
+        }
+    }
+
+    // Place Session Cards in Matrix
+    filteredSessions.forEach(s => {
+        const pos = calculateGridPosition(s.startTime, s.endTime);
+        const dayIdx = days.indexOf(s.day?.toUpperCase());
+        if (pos && dayIdx !== -1 && pos.start < pos.end) {
+            const card = document.createElement('div');
+            card.className = 'session-card-grid';
+            card.style.gridRow = `${pos.start} / ${pos.end}`;
+            card.style.gridColumn = String(dayIdx + 2);
+            card.innerHTML = renderSessionCard(s, true);
+            matrix.appendChild(card);
+        }
+    });
+
+    // 3. Render Mobile List
+    const mobileDay = selectedMobileDay || 'MONDAY';
+    const mobileSessions = filteredSessions
+        .filter(s => s.day?.toUpperCase() === mobileDay)
+        .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
+
+    if (mobileSessions.length === 0) {
+        mobileList.innerHTML = `<div class="py-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No sessions for ${mobileDay.charAt(0) + mobileDay.slice(1).toLowerCase()}</div>`;
     } else {
-        titleEl.textContent = next.courseName || 'Unknown Course';
-        timeEl.textContent = next.startTime?.substring(0,5) || '--:--';
-        roomEl.textContent = next.classroomName || 'No Room';
-        
-        // Show button if session is live or scheduled
-        btnTake?.classList.remove('hidden');
-        nextSessionContext = next;
+        mobileList.innerHTML = mobileSessions.map(s => renderSessionCard(s, false)).join('');
+    }
+}
+
+function updateOverview(totalToday, doneToday) {
+    const totalEl = document.getElementById('stat-sessions-total');
+    const doneEl = document.getElementById('stat-sessions-done');
+    const pctEl = document.getElementById('stat-sessions-pct');
+
+    if (totalEl) totalEl.textContent = String(totalToday);
+    if (doneEl) doneEl.textContent = String(doneToday);
+    if (pctEl) {
+        const pct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
+        pctEl.textContent = `${pct}%`;
     }
     
-    const countEl = document.getElementById('pending-attendance-count');
-    if (countEl) countEl.textContent = String(pendingCount);
+    // Sync Pending count (unfinalized sessions across all time)
+    const pendingCount = allSessions.filter(s => s.status === 'IN_PROGRESS' || (s.status === 'COMPLETED' && !s.isValidated)).length;
+    const pendingEl = document.getElementById('pending-attendance-count');
+    if (pendingEl) pendingEl.textContent = String(pendingCount);
+
+    // Calculate Next Session
+    const nextSessionEl = document.getElementById('overview-upcoming-session');
+    if (nextSessionEl) {
+        const now = new Date();
+        const upcoming = allSessions.filter(s => {
+            if (s.status === 'COMPLETED') return false;
+            if (!s.date || !s.startTime) return false;
+            const sDate = new Date(s.date + 'T' + s.startTime);
+            return sDate >= now || s.status === 'IN_PROGRESS';
+        }).sort((a, b) => new Date(a.date + 'T' + a.startTime) - new Date(b.date + 'T' + b.startTime));
+
+        if (upcoming.length > 0) {
+            const next = upcoming[0];
+            nextSessionContext = next; // Store for global access
+            const timeStr = next.startTime ? next.startTime.substring(0, 5) : '--:--';
+            
+            // Re-use session card render logic or custom template
+            const isActive = next.status === 'IN_PROGRESS';
+            nextSessionEl.innerHTML = `
+                <div onclick="handleSessionAction(${next.sessionId})" class="cursor-pointer group active:scale-[0.98] transition-all">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors truncate">${next.courseName || 'Course'}</h3>
+                            <p class="text-[11px] font-bold text-slate-500 mt-1">${next.classroomName || 'Room'} • <span class="${isActive ? 'text-blue-600' : 'text-emerald-600'}">${timeStr}</span></p>
+                        </div>
+                        ${isActive ? '<span class="px-2 py-1 bg-red-100 text-red-600 text-[9px] font-black uppercase tracking-widest rounded flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>LIVE</span>' : ''}
+                    </div>
+                </div>
+            `;
+        } else {
+            nextSessionContext = null;
+            nextSessionEl.innerHTML = `<p class="text-xs font-bold text-slate-400">No upcoming classes scheduled.</p>`;
+        }
+    }
 }
 
 window.takeAttendanceFromOverview = function() {
-    if (!nextSessionContext) return;
-    window.handleSessionAction(nextSessionContext.sessionId);
+    if (nextSessionContext) handleSessionAction(nextSessionContext.sessionId);
 };
 
-function renderSessionCard(s) {
+function renderSessionCard(s, isGrid = false) {
     const isActive = s.status === 'IN_PROGRESS';
     const isDone = s.status === 'COMPLETED';
     const isValid = s.isValidated === true;
     
-    let statusLabel = s.status || 'SCHEDULED';
     let statusClasses = 'bg-slate-100 text-slate-500 border border-slate-200';
-    
-    if (isActive) {
-        statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
-        statusLabel = 'LIVE NOW';
-    } else if (isDone) {
-        statusClasses = isValid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-400 border border-slate-200';
-        statusLabel = isValid ? 'VALIDATED' : 'CLOSED';
+    if (isActive) statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
+    else if (isDone) statusClasses = isValid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white';
+
+    const clickAction = isDone ? `viewAttendancePdf(${s.sessionId})` : `handleSessionAction(${s.sessionId})`;
+
+    if (isGrid) {
+        let cardBg = 'border-indigo-300 bg-indigo-50/80 hover:bg-indigo-100/80';
+        let textCourse = 'text-indigo-950';
+        let textTime = 'text-indigo-600';
+        let textRoom = 'text-indigo-500';
+
+        if (isActive) {
+            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400';
+            textCourse = 'text-white';
+            textTime = 'text-blue-50';
+            textRoom = 'text-blue-100';
+        } else if (isDone) {
+            cardBg = 'border-emerald-600 bg-emerald-500 hover:bg-emerald-400';
+            textCourse = 'text-white';
+            textTime = 'text-emerald-50';
+            textRoom = 'text-emerald-100';
+        }
+
+        return `
+            <div onclick="${clickAction}" class="h-full w-full p-2 rounded-xl border-l-4 ${cardBg} cursor-pointer transition-all flex flex-col justify-start gap-1 overflow-hidden relative">
+                ${isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
+                <p class="text-[10px] font-black ${textCourse} truncate leading-tight w-[85%]">${s.courseName || 'Course'}</p>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[9px] font-bold ${textTime}">${(s.startTime||'--:--').substring(0,5)}–${(s.endTime||'--:--').substring(0,5)}</span>
+                    <span class="text-[9px] font-medium ${textRoom} truncate">${s.classroomName || ''}</span>
+                </div>
+            </div>`;
     }
 
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short'}) : 'TBD';
 
     return `
-        <div class="bg-white p-6 rounded-2xl border-2 ${isActive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-100 hover:border-[#00B0FF]/30'} transition-all flex flex-col group relative overflow-hidden">
-            ${isActive ? '<div class="absolute top-0 right-0 w-16 h-16 bg-[#00B0FF]/5 rounded-bl-full"></div>' : ''}
-            <div class="flex items-center justify-between mb-4">
-                <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusClasses}">${statusLabel}</span>
-                <span class="text-xs font-bold text-slate-400 font-mono">${s.startTime?.substring(0,5) || '--:--'}</span>
-            </div>
-            
-            <h4 class="text-base font-black text-[#00B0FF] mb-1 truncate drop-shadow-sm">${s.courseName || 'Course'}</h4>
-            <p class="text-xs font-bold text-slate-500 tracking-tight flex items-center gap-1">
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path></svg>
-                ${s.classroomName || 'Room'} • ${dateStr}
-            </p>
-            
-            <div class="mt-6 pt-5 border-t border-slate-50 mt-auto">
-            ${!isDone ? `
-                <button onclick="handleSessionAction(${s.sessionId})" class="w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:-translate-y-0.5 shadow-sm ${isActive ? 'bg-[#00B0FF] text-white hover:bg-blue-600 shadow-blue-500/20' : 'bg-white border-2 border-[#00B0FF] text-[#00B0FF] hover:bg-blue-50'}">
-                    ${isActive ? 'Manage Session' : 'Start Session'}
-                </button>
-            ` : (isValid ? `
-                <div class="flex gap-2">
-                    <button onclick="viewAttendancePdf(${s.sessionId})" class="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[#00B0FF] border border-slate-200 rounded-xl text-xs font-black transition-all">PDF</button>
-                    <button onclick="downloadAttendanceCsv(${s.sessionId})" class="flex-1 py-2.5 bg-slate-50 hover:bg-slate-100 text-[#00B0FF] border border-slate-200 rounded-xl text-xs font-black transition-all">CSV</button>
+        <div onclick="${clickAction}" class="bg-white p-4 rounded-2xl border-2 ${isActive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-100'} flex items-center justify-between group active:scale-[0.98] transition-all">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl ${isActive ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'} flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-            ` : `
-                <button onclick="handleSessionAction(${s.sessionId})" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/10 rounded-xl text-xs font-black uppercase tracking-widest transition-all">
-                    Finalize Roll Call
-                </button>
-            `)}
+                <div>
+                    <h4 class="text-sm font-black text-slate-900 mb-0.5">${s.courseName || 'Course'}</h4>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${s.startTime?.substring(0,5)} • ${s.classroomName || 'Room'}</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${statusClasses}">${isDone ? (isValid ? 'DONE' : 'CLOSED') : (isActive ? 'LIVE' : 'WAIT')}</span>
+                <span class="text-[9px] font-bold text-slate-300">${dateStr}</span>
             </div>
         </div>`;
 }
@@ -273,6 +414,7 @@ function openRollCall(sessionId) {
     document.getElementById('hubWorkspace').classList.remove('hidden');
 
     loadRollCall(sessionId);
+    connectWebSocket(sessionId);
 }
 
 window.closeAttendance = function() {
@@ -297,6 +439,51 @@ async function loadRollCall(sessionId) {
     }
 }
 
+// ── Real-time Socket Engine ─────────────────────────────────────────────
+function connectWebSocket(sessionId) {
+    disconnectWebSocket(); // clear any previous connection
+    
+    const socket = new SockJS('/ws'); 
+    stompClient = Stomp.over(socket);
+    stompClient.debug = null; // disable noisy console logs
+    
+    stompClient.connect({}, function (frame) {
+        stompClient.subscribe('/topic/session/' + sessionId, function (message) {
+            const dto = JSON.parse(message.body);
+            updateRollCallRealTime(dto);
+        });
+    });
+}
+
+function disconnectWebSocket() {
+    if (stompClient !== null) {
+        stompClient.disconnect();
+    }
+}
+
+function updateRollCallRealTime(dto) {
+    // Check if the student row exists in the grid
+    const row = document.querySelector(`.student-row[data-student-id="${dto.userId}"]`);
+    if (!row) return;
+
+    // Visual effect: highlight row quickly
+    row.classList.add('bg-blue-100/50', 'transition-colors', 'duration-300');
+    setTimeout(() => row.classList.remove('bg-blue-100/50'), 600);
+
+    // Update checkboxes depending on the hours attended returned
+    if (dto.hoursAttended && dto.hoursAttended > 0) {
+        document.querySelectorAll(`.slot-checkbox[data-user-id="${dto.userId}"]`).forEach(cb => {
+            cb.checked = true;
+        });
+    }
+
+    // Add "Scanned" badge if not present by extracting the text container
+    const nameContainer = row.querySelector('.flex.items-center.gap-2');
+    if (nameContainer && !nameContainer.innerHTML.includes('Scanned')) {
+        nameContainer.insertAdjacentHTML('beforeend', '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md">Scanned</span>');
+    }
+}
+
 function resolveHours(s) { 
     if (s.totalHours > 0) return s.totalHours;
     if (s.startTime && s.endTime) {
@@ -312,41 +499,70 @@ function renderAttendanceGrid(records) {
     const thead = document.getElementById('att-table-head');
     const totalHours = resolveHours(activeSession);
 
-    let headHtml = `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-1/3">Student Name</th>`;
+    // Build header
+    let headHtml = `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-1/3">Student</th>`;
     for (let i = 0; i < totalHours; i++) {
-        headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">Hour ${i+1}</th>`;
+        headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">H${i+1}</th>`;
     }
+    headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">Actions</th>`;
     thead.innerHTML = headHtml;
 
     tbody.innerHTML = records.map(r => {
+        const isLive = r.isLive;
         let hoursHtml = '';
         for (let i = 0; i < totalHours; i++) {
             const slot = r.hourSlots?.find(h => h.hourIndex === i);
             const isPresent = slot?.status === 'PRESENT' || slot?.status === 'LATE';
             hoursHtml += `
             <td class="px-4 py-3 text-center align-middle">
-                <input type="checkbox" ${isPresent ? 'checked' : ''} onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
+                <input type="checkbox" ${isPresent ? 'checked' : ''}
+                       onchange="markHourStatus(${r.userId}, ${i}, this.checked)"
                        class="w-5 h-5 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer accent-emerald-500 slot-checkbox"
-                       data-user-id="${r.userId}">
+                       data-user-id="${r.userId}" data-hour="${i}">
             </td>`;
         }
 
         return `
-            <tr class="student-row hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0" data-student-id="${r.userId}">
+            <tr class="student-row hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0 ${isLive ? 'bg-blue-50/40' : ''}" data-student-id="${r.userId}">
                 <td class="px-5 py-4">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-black text-slate-900">${r.firstName} ${r.lastName}</span>
+                    <div class="flex flex-col gap-0.5">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-black text-slate-900">${r.firstName} ${r.lastName}</span>
+                            ${isLive ? '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md">Scanned</span>' : ''}
+                        </div>
                         <span class="text-[10px] font-bold text-slate-400 font-mono tracking-tight">${r.matricule || 'NO-MATRIC'}</span>
                     </div>
                 </td>
                 ${hoursHtml}
+                <td class="px-4 py-3 text-center align-middle">
+                    <button onclick="teacherMarkAllPresent(${r.userId})"
+                            title="Mark all hours present"
+                            class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 shadow-sm shadow-emerald-500/20">
+                        ✓ All
+                    </button>
+                </td>
             </tr>`;
     }).join('');
 }
 
-window.markHourStatus = async (sid, hi, isP) => {
+window.markHourStatus = async (userId, hourIndex, isPresent) => {
     try {
-        await fetch(`/api/attendance/session/${activeSessionId}/student/${sid}/hour/${hi}?status=${isP ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
+        await fetch(`/api/attendance/session/${activeSessionId}/student/${userId}/hour/${hourIndex}?status=${isPresent ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
+    } catch {
+        showNotification('Update failed', 'error');
+    }
+};
+
+window.teacherMarkAllPresent = async (userId) => {
+    try {
+        await fetch('/api/attendance/teacher/verify-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: activeSessionId, userId })
+        });
+        // Immediately update all checkboxes for this student in the UI
+        document.querySelectorAll(`.slot-checkbox[data-user-id="${userId}"]`).forEach(cb => cb.checked = true);
+        showNotification('Marked all present.', 'success');
     } catch {
         showNotification('Update failed', 'error');
     }
@@ -360,20 +576,37 @@ window.markAllSessionStatus = async (s) => {
 };
 
 window.submitRollCall = async () => {
+    const btn = document.getElementById('btn-submit-rollcall');
+    if (btn) { btn.disabled = true; btn.textContent = 'Finalizing...'; }
+
     try {
         const res = await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
-        if (!res.ok) throw new Error();
         
+        if (!res.ok) {
+            // Surface the real error from the server
+            let errMsg = 'Failed to finalize session.';
+            try {
+                const errBody = await res.json();
+                errMsg = errBody.message || errBody.error || errMsg;
+            } catch (_) {}
+            showNotification(errMsg, 'error');
+            if (btn) { btn.disabled = false; btn.textContent = 'Finalize Session'; }
+            return;
+        }
+
         const updated = await res.json();
         const idx = allSessions.findIndex(s => s.sessionId === activeSessionId);
         if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
         activeSession = allSessions[idx];
 
-        // Trigger modal instead of inline button switch
+        disconnectWebSocket(); // Stop real-time updates once finalized
         document.getElementById('finalize-modal').classList.remove('hidden');
-        
         loadRollCall(activeSessionId);
-    } catch { showNotification('Failed to finalize', 'error'); }
+    } catch (err) {
+        console.error('Finalize error:', err);
+        showNotification('Network error. Please try again.', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = 'Finalize Session'; }
+    }
 };
 
 window.closeFinalizeModal = function() {
@@ -509,18 +742,53 @@ window.toggleQrView = () => {
     const ov = document.getElementById('qr-overlay');
     if (ov.classList.contains('hidden')) {
         ov.classList.remove('hidden');
+        ov.classList.add('flex');
         generateQr();
         connectWebSocket();
+        startQrTimer();
     } else {
         ov.classList.add('hidden');
+        ov.classList.remove('flex');
         disconnectWebSocket();
+        stopQrTimer();
     }
 };
+
+function startQrTimer() {
+    stopQrTimer();
+    qrTimer = 30;
+    updateQrUI();
+    
+    qrInterval = setInterval(() => {
+        qrTimer--;
+        if (qrTimer <= 0) {
+            generateQr();
+        } else {
+            updateQrUI();
+        }
+    }, 1000);
+}
+
+function stopQrTimer() {
+    if (qrInterval) clearInterval(qrInterval);
+    qrInterval = null;
+}
+
+function updateQrUI() {
+    const timerText = document.getElementById('qr-timer-text');
+    const bar = document.getElementById('qr-progress-bar');
+    if (timerText) timerText.textContent = `Refreshes in ${qrTimer}s`;
+    if (bar) bar.style.width = `${(qrTimer / 30) * 100}%`;
+}
 
 async function generateQr() {
     try {
         const res = await fetch('/api/attendance/session-token', { method: 'POST', body: JSON.stringify({sessionId:activeSessionId, type:'QR'}), headers:{'Content-Type':'application/json'} });
         const data = await res.json();
+        
+        qrTimer = 30;
+        updateQrUI();
+
         if (typeof window.QRCode !== 'undefined') {
             const cv = document.createElement('canvas');
             cv.className = 'w-full h-full rounded-xl';

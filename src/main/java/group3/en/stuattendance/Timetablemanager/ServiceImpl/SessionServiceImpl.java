@@ -60,8 +60,13 @@ public class SessionServiceImpl implements SessionService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
 
+        // Idempotency: if already COMPLETED or VALIDATED, return as-is — don't crash
+        if (session.getStatus() == SessionStatus.COMPLETED || session.getIsValidated() != null && session.getIsValidated()) {
+            return sessionMapper.toDto(session);
+        }
+
         if (session.getStatus() != SessionStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Session must be IN_PROGRESS to end. Current status: " + session.getStatus());
+            throw new IllegalStateException("Session must be IN_PROGRESS to finalize. Current status: " + session.getStatus());
         }
 
         session.setStatus(SessionStatus.COMPLETED);

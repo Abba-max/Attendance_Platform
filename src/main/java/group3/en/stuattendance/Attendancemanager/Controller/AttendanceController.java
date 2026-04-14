@@ -30,16 +30,34 @@ public class AttendanceController {
      */
     @PostMapping("/student/check-in")
     @PreAuthorize("hasRole('STUDENT')")
-    public org.springframework.http.ResponseEntity<AttendanceRecordDto> studentCheckIn(
+    public org.springframework.http.ResponseEntity<?> studentCheckIn(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody Map<String, Object> payload) {
         Integer sessionId = (Integer) payload.get("sessionId");
-        Integer userId = userDetails.getUserId(); // Securely pull ID from token
-        String qrCode = (String) payload.get("qrCode");
-        String pin = (String) payload.get("pin");
+        Integer userId = userDetails.getUserId(); // Securely pulled from JWT token
+
+        // Accept both 'qrData' (new frontend) and 'qrCode' (legacy) field names
+        String qrCode = payload.get("qrData") != null
+                ? (String) payload.get("qrData")
+                : (String) payload.get("qrCode");
+
+        // Accept both 'pinCode' (new frontend) and 'pin' (legacy) field names
+        String pin = payload.get("pinCode") != null
+                ? (String) payload.get("pinCode")
+                : (String) payload.get("pin");
+
         String location = (String) payload.get("location");
-        
-        return org.springframework.http.ResponseEntity.ok(attendanceService.studentCheckIn(sessionId, userId, qrCode, pin, location));
+
+        try {
+            return org.springframework.http.ResponseEntity.ok(
+                    attendanceService.studentCheckIn(sessionId, userId, qrCode, pin, location));
+        } catch (IllegalArgumentException e) {
+            return org.springframework.http.ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return org.springframework.http.ResponseEntity.status(409)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     /**

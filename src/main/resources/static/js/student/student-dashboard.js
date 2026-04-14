@@ -4,6 +4,7 @@
 
 let allGridSessions = [];
 let html5QrScanner = null;
+let selectedMobileDay = 'MONDAY';
 let currentCheckinContext = {
     sessionId: null,
     qrCode: null,
@@ -157,86 +158,181 @@ async function loadGridSessions() {
         const response = await fetch('/api/student/sessions/grid');
         allGridSessions = await response.json();
         
-        filterGrid('ALL'); // Initial render
-        
         // Update Home Check-in Widget if there's a LIVE session
         const active = allGridSessions.find(s => s.status === 'IN_PROGRESS');
         if (active) {
             enableCheckinWidget(active);
         }
 
+        // Add 'day' parameter manually because Student DTO only sends 'date'
+        const dayNames = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+        allGridSessions.forEach(s => {
+            if (s.date) {
+                const d = new Date(s.date);
+                s.day = dayNames[d.getDay()];
+            }
+        });
+
+        renderGrid();
     } catch (err) {
         stack.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Sync Error: ${err.message}</p>`;
     }
 }
 
-function filterGrid(status) {
-    // UI Update for Filter Bar
-    ['ALL', 'IN_PROGRESS', 'SCHEDULED', 'COMPLETED'].forEach(f => {
-        const el = document.getElementById('filter-' + f);
-        if (f === status) {
-            el.classList.add('bg-[#00B0FF]', 'text-white', 'shadow-md', 'shadow-blue-500/10');
-            el.classList.remove('text-[#00B0FF]', 'bg-white', 'hover:bg-white', 'hover:text-slate-900');
-        } else {
-            el.classList.remove('bg-[#00B0FF]', 'text-white', 'shadow-md', 'shadow-blue-500/10');
-            el.classList.add('text-[#00B0FF]', 'hover:bg-white', 'hover:text-slate-900');
+window.setMobileDay = function(day) {
+    selectedMobileDay = day;
+    document.querySelectorAll('.day-tab').forEach(btn => {
+        const onclickAttr = btn.getAttribute('onclick') || '';
+        btn.classList.toggle('active', onclickAttr.includes(`'${day}'`));
+    });
+    renderGrid();
+};
+
+function calculateGridPosition(startStr, endStr) {
+    if (!startStr || !endStr) return null;
+    const sTime = startStr.split(':');
+    const eTime = endStr.split(':');
+    if (sTime.length < 2 || eTime.length < 2) return null;
+
+    const sHour = parseInt(sTime[0], 10), sMin = parseInt(sTime[1], 10);
+    const eHour = parseInt(eTime[0], 10), eMin = parseInt(eTime[1], 10);
+
+    const sMinutesSince8 = (sHour - 8) * 60 + sMin;
+    const eMinutesSince8 = (eHour - 8) * 60 + eMin;
+
+    if (sMinutesSince8 < 0 || eMinutesSince8 <= sMinutesSince8) return null;
+
+    const startRow = Math.floor(sMinutesSince8 / 30) + 2; 
+    const endRow = Math.ceil(eMinutesSince8 / 30) + 2;
+    
+    return { start: startRow, end: endRow };
+}
+
+function renderGrid() {
+    const matrix = document.getElementById('timetable-matrix');
+    const mobileList = document.getElementById('student-schedule-stack');
+    if (!matrix || !mobileList) return;
+
+    // 1. Render Desktop Matrix
+    const headerEls = Array.from(matrix.children).slice(0, 7).map(el => el.cloneNode(true));
+    matrix.innerHTML = '';
+    headerEls.forEach(h => matrix.appendChild(h));
+
+    for (let slot = 0; slot < 18; slot++) {
+        const rowIndex = slot + 2; 
+        const hour = 8 + Math.floor(slot / 2);
+
+        if (slot % 2 === 0) {
+            const label = document.createElement('div');
+            label.className = 'time-label';
+            label.style.gridRow = `${rowIndex} / span 2`;
+            label.style.gridColumn = '1';
+            label.textContent = `${String(hour).padStart(2,'0')}:00`;
+            matrix.appendChild(label);
+        }
+
+        for (let d = 0; d < 6; d++) {
+            const cell = document.createElement('div');
+            cell.className = `timetable-slot ${slot % 2 === 0 ? 'border-b border-slate-100' : 'border-b border-dashed border-slate-100/50'}`;
+            cell.style.gridRow = String(rowIndex);
+            cell.style.gridColumn = String(d + 2);
+            matrix.appendChild(cell);
+        }
+    }
+
+    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+    allGridSessions.forEach(s => {
+        const pos = calculateGridPosition(s.startTime, s.endTime);
+        const dayIdx = days.indexOf(s.day?.toUpperCase());
+        if (pos && dayIdx !== -1 && pos.start < pos.end) {
+            const card = document.createElement('div');
+            card.className = 'session-card-grid';
+            card.style.gridRow = `${pos.start} / ${pos.end}`;
+            card.style.gridColumn = String(dayIdx + 2);
+            card.innerHTML = renderSessionCard(s, true);
+            matrix.appendChild(card);
         }
     });
 
-    // Render Data with Priority Sorting
-    const stack = document.getElementById('student-schedule-stack');
-    let filtered = status === 'ALL' ? allGridSessions : allGridSessions.filter(s => s.status === status);
-    
-    // Status Priority: IN_PROGRESS (1) > SCHEDULED (2) > COMPLETED (3)
-    const priority = { 'IN_PROGRESS': 1, 'SCHEDULED': 2, 'COMPLETED': 3 };
-    filtered.sort((a, b) => {
-        const pA = priority[a.status] || 99;
-        const pB = priority[b.status] || 99;
-        if (pA !== pB) return pA - pB;
-        // Secondary sort by date/time
-        return (a.date || '').localeCompare(b.date || '') || (a.startTime || '').localeCompare(b.startTime || '');
-    });
+    // 2. Render Mobile List
+    const mobileDay = selectedMobileDay || 'MONDAY';
+    const mobileSessions = allGridSessions
+        .filter(s => s.day?.toUpperCase() === mobileDay)
+        .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 
-    if (filtered.length === 0) {
-        stack.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm col-span-full">No sessions found for this filter.</div>`;
-        return;
+    if (mobileSessions.length === 0) {
+        mobileList.innerHTML = `<div class="py-8 text-center text-slate-400 text-[10px] font-bold uppercase tracking-widest">No sessions for ${mobileDay.charAt(0) + mobileDay.slice(1).toLowerCase()}</div>`;
+    } else {
+        mobileList.innerHTML = mobileSessions.map(s => renderSessionCard(s, false)).join('');
     }
-
-    stack.innerHTML = filtered.map(s => renderSessionCard(s)).join('');
 }
 
-function renderSessionCard(s) {
+function handleSessionClick(sessionId, status) {
+    if (status === 'IN_PROGRESS') {
+        openScanner(sessionId);
+    } else if (status === 'SCHEDULED') {
+        alert("The course has not been initiated by the instructor yet. Please wait.");
+    } else if (status === 'COMPLETED') {
+        const s = allGridSessions.find(x => x.sessionId === sessionId);
+        const st = s?.attendanceStatus || 'ABSENT';
+        alert(`Session complete! Your attendance status is: ${st}`);
+    }
+}
+
+function renderSessionCard(s, isGrid = false) {
     const isLive = s.status === 'IN_PROGRESS';
+    const isDone = s.status === 'COMPLETED';
     const isAttended = s.attendanceStatus === 'PRESENT' || s.attendanceStatus === 'LATE';
     
-    return `
-        <div class="bg-white p-6 rounded-3xl border-2 ${isLive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-50 hover:border-[#00B0FF]/30'} transition-all flex flex-col justify-between group relative overflow-hidden">
-            ${isLive ? '<div class="absolute top-0 right-0 w-16 h-16 bg-[#00B0FF]/5 rounded-bl-full"></div>' : ''}
-            <div class="flex items-start justify-between mb-4">
-                <span class="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${isLive ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20' : (s.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-50 text-slate-400 border border-slate-200')}">
-                    ${isLive ? 'Live' : s.status}
-                </span>
-                ${isAttended ? '<div class="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 shadow-sm"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
-            </div>
-            
-            <div class="mb-6">
-                <h4 class="text-base font-black text-[#00B0FF] leading-tight mb-3 drop-shadow-sm">${s.courseName}</h4>
-                <div class="space-y-1.5">
-                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg> ${s.date} • ${s.startTime.substring(0,5)}</p>
-                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> ${s.teacherName}</p>
-                    <p class="text-xs font-bold text-slate-500 flex items-center gap-2"><svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg> ${s.classroomName || 'Room TBD'}</p>
-                </div>
-            </div>
+    // Grid mode
+    if (isGrid) {
+        let cardBg = 'border-indigo-300 bg-indigo-50/80 hover:bg-indigo-100/80';
+        let textCourse = 'text-indigo-950';
+        let textTime = 'text-indigo-600';
+        let textRoom = 'text-indigo-500';
 
-            ${isLive && !isAttended ? `
-                <button onclick="openScanner(${s.sessionId})" class="w-full py-3 bg-[#00B0FF] shadow-lg shadow-blue-500/20 hover:bg-blue-600 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all hover:-translate-y-0.5 active:scale-95">
-                    Check In Now
-                </button>
-            ` : `
-                <div class="w-full py-3 bg-slate-50 text-slate-400 text-center font-black text-[10px] uppercase tracking-widest rounded-xl border-2 border-slate-100 flex items-center justify-center gap-2">
-                    ${isAttended ? '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> Attendance Logged' : 'Registration Closed'}
+        if (isLive) {
+            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400';
+            textCourse = 'text-white';
+            textTime = 'text-blue-50';
+            textRoom = 'text-blue-100';
+        } else if (isDone) {
+            cardBg = 'border-emerald-600 bg-emerald-500 hover:bg-emerald-400';
+            textCourse = 'text-white';
+            textTime = 'text-emerald-50';
+            textRoom = 'text-emerald-100';
+        }
+
+        // Onlick triggers handleSessionClick
+        const clickAction = `handleSessionClick(${s.sessionId}, '${s.status}')`;
+
+        return `
+            <div onclick="${clickAction}" class="h-full w-full p-2 rounded-xl border-l-4 ${cardBg} cursor-pointer transition-all flex flex-col justify-start gap-1 overflow-hidden relative">
+                ${isAttended && isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
+                <p class="text-[10px] font-black ${textCourse} truncate leading-tight w-[85%]">${s.courseName || 'Course'}</p>
+                <div class="flex flex-col gap-0.5">
+                    <span class="text-[9px] font-bold ${textTime}">${(s.startTime||'--:--').substring(0,5)}–${(s.endTime||'--:--').substring(0,5)}</span>
+                    <span class="text-[9px] font-medium ${textRoom} truncate">${s.classroomName || ''}</span>
                 </div>
-            `}
+            </div>`;
+    }
+    
+    // Mobile layout
+    return `
+        <div onclick="handleSessionClick(${s.sessionId}, '${s.status}')" class="bg-white p-5 rounded-2xl border-2 ${isLive ? 'border-[#00B0FF] shadow-lg shadow-blue-500/10' : 'border-slate-100'} hover:border-[#00B0FF]/30 cursor-pointer transition-all flex items-center justify-between group">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-xl ${isLive ? 'bg-blue-50 text-blue-600' : (isDone ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400')} flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-black text-slate-900 mb-0.5 line-clamp-1">${s.courseName}</h4>
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${(s.startTime||'--:--').substring(0,5)} • ${s.teacherName}</p>
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${isLive ? 'bg-blue-600 text-white' : (isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500')}">${isLive ? 'LIVE' : s.status}</span>
+                ${isAttended && isDone ? '<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>' : ''}
+            </div>
         </div>
     `;
 }
@@ -339,60 +435,70 @@ function searchCourses() {
  */
 function openScanner(sessionId) {
     currentCheckinContext.sessionId = sessionId;
+    currentCheckinContext.qrCode = null;
+    currentCheckinContext.pin = null;
     
     // Reset Modal State
     document.getElementById('scanner-overlay').classList.remove('hidden');
-    document.getElementById('step-qr').classList.remove('hidden');
-    document.getElementById('step-pin').classList.add('hidden');
     document.getElementById('pin-input').value = '';
-
-    // Geolocation pre-fetch (for when implemented)
-    // if (navigator.geolocation) {
-    //     navigator.geolocation.getCurrentPosition(p => {
-    //         currentCheckinContext.lat = p.coords.latitude;
-    //         currentCheckinContext.lng = p.coords.longitude;
-    //     });
-    // }
     
-    html5QrScanner = new Html5Qrcode("qr-reader");
-    html5QrScanner.start(
-        { facingMode: "environment" }, 
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        onScanSuccess
-    ).catch(err => {
-        alert("Camera permission required or device unsupported. Fallback PIN mode.");
-        // If camera fails, fallback directly to PIN mode
-        html5QrScanner = null;
-        transitionToPinEntry(); 
-    });
+    const btn = document.getElementById('btn-validate');
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = 'Validate Presence';
+        btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
+    }
+
+    try {
+        html5QrScanner = new Html5Qrcode("qr-reader");
+        html5QrScanner.start(
+            { facingMode: "environment" }, 
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            onScanSuccess
+        ).catch(err => {
+            console.warn("Camera fallback or unsupported.", err);
+            html5QrScanner = null;
+        });
+    } catch (err) {
+        console.warn("Failed to init scanner", err);
+    }
 }
 
 function onScanSuccess(decodedText) {
     if (navigator.vibrate) navigator.vibrate(200);
     currentCheckinContext.qrCode = decodedText;
-    
+
     if (html5QrScanner) {
-        html5QrScanner.stop().catch(()=>{});
+        html5QrScanner.stop().catch(() => {});
         html5QrScanner = null;
     }
-    
-    // Sequence to PIN entry
-    transitionToPinEntry();
-}
 
-function transitionToPinEntry() {
-    document.getElementById('step-qr').classList.add('hidden');
-    document.getElementById('step-pin').classList.remove('hidden');
-    document.getElementById('pin-input').focus();
+    const btn = document.getElementById('btn-validate');
+    if (btn) {
+        btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> QR Scanned. Now enter PIN...';
+        btn.classList.replace('bg-[#00B0FF]', 'bg-emerald-500');
+    }
 }
 
 async function submitFinalCheckin() {
-    const pin = document.getElementById('pin-input').value;
-    if (!pin || pin.length < 4) {
-        alert("Please enter the 4-digit PIN.");
+    const pin = document.getElementById('pin-input').value.trim();
+
+    // Enforce Logical AND — BOTH are required
+    if (!currentCheckinContext.qrCode) {
+        alert('Please scan the instructor\'s QR code first.');
         return;
     }
-    currentCheckinContext.pin = pin;
+    if (!pin || pin.length < 4) {
+        alert('Please enter the 4-digit PIN provided by the instructor.');
+        return;
+    }
+    
+    if (pin && pin.length === 4) {
+        currentCheckinContext.pin = pin;
+    }
+
+    const btn = document.getElementById('btn-validate');
+    if (btn) { btn.disabled = true; btn.textContent = 'Verifying...'; }
 
     try {
         const response = await fetch('/api/student/attendance/check-in', {
@@ -400,27 +506,47 @@ async function submitFinalCheckin() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sessionId: currentCheckinContext.sessionId,
-                qrData: currentCheckinContext.qrCode, // Can be null if camera failed
-                pinCode: currentCheckinContext.pin,
-                latitude: currentCheckinContext.lat,
-                longitude: currentCheckinContext.lng
+                qrData:   currentCheckinContext.qrCode,
+                pinCode:  currentCheckinContext.pin
             })
         });
 
         const data = await response.json();
         if (response.ok) {
-            alert("Perfect! Check-in successful.");
             closeScanner();
-            loadGridSessions(); // Refresh grid
-            loadDashboardStats(); // Refresh ring
-            loadCourseStats(); // Refresh hours
+            showCheckinSuccess();
+            loadGridSessions();
+            loadDashboardStats();
+            loadCourseStats();
         } else {
-            alert(data.error || "Token/PIN validation failed. Try again.");
-             document.getElementById('pin-input').value = '';
+            alert(data.error || 'Invalid QR code or PIN. Please try again.');
+            document.getElementById('pin-input').value = '';
+            
+            // Re-render button state if failure
+            if (btn) { 
+                btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]'); 
+                btn.disabled = false; 
+                btn.textContent = 'Validate Presence'; 
+            }
+            // Reset QR so they can scan again if they want
+            currentCheckinContext.qrCode = null;
+            if (html5QrScanner && html5QrScanner.getState() !== 2) { // not scanning
+               // they may need to reopen or type pin.
+            }
         }
     } catch (err) {
-        alert("Network error. Please try again.");
+        alert('Network error. Please try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
     }
+}
+
+function showCheckinSuccess() {
+    // Brief success toast
+    const toast = document.createElement('div');
+    toast.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[300] px-6 py-3 bg-emerald-500 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-500/30 flex items-center gap-2 animate-bounce';
+    toast.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> Attendance recorded!';
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 function closeScanner() {

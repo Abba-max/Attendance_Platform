@@ -199,49 +199,47 @@ public class AttendanceServiceImpl implements AttendanceService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
 
-        AttendanceRecord record = resolveAttendanceRecord(student, session);
-
-        // 1. Validation logic
-        boolean isValid = false;
-        
-        // QR check (Accept current OR previous for grace period)
-        if (qrCode != null && (qrCode.equals(session.getQrCode()) || qrCode.equals(session.getPreviousQrCode()))) {
-            record.setQrValidated(true);
-            isValid = true;
-        } else if (pin != null && pin.equals(session.getTempPin())) {
-            record.setPinValidated(true);
-            isValid = true;
+        if (!"IN_PROGRESS".equals(session.getStatus())) {
+            throw new IllegalStateException("Session is not currently in progress.");
         }
 
-        if (location != null && !location.isEmpty()) {
+        AttendanceRecord record = resolveAttendanceRecord(student, session);
+
+        // ── Validation: BOTH QR code AND PIN are required ──
+        boolean qrValid = qrCode != null && !qrCode.isBlank()
+                && (qrCode.equals(session.getQrCode()) || qrCode.equals(session.getPreviousQrCode()));
+        boolean pinValid = pin != null && !pin.isBlank() && pin.equals(session.getTempPin());
+
+        if (!qrValid || !pinValid) {
+            throw new IllegalArgumentException("Both a valid QR code AND PIN are required to perform a check-in.");
+        }
+
+        if (qrValid) record.setQrValidated(true);
+        if (pinValid) record.setPinValidated(true);
+        record.setTimestamp(LocalDateTime.now());
+
+        // Optional geo enrichment — does NOT affect validity
+        if (location != null && !location.isBlank()) {
             record.setGeoValidated(true);
             record.setLocationAtCheckin(location);
         }
 
-        record.setTimestamp(LocalDateTime.now());
-        
-        if (isValid) {
-            // Mark the CURRENT hour as PRESENT
-            int currentHour = 0;
-            if (session.getStartTime() != null) {
-                currentHour = (int) ChronoUnit.HOURS.between(session.getStartTime().minusMinutes(15), java.time.LocalTime.now());
-            }
-            
-            int totalHours = 1;
-            if (session.getStartTime() != null && session.getEndTime() != null) {
-                totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
-            }
-            
-            if (currentHour < 0) currentHour = 0;
-            if (currentHour >= totalHours) currentHour = totalHours - 1;
-            
-            updateHourSlot(record, currentHour, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, false);
+        // ── Mark ALL hour slots PRESENT ──
+        int totalHours = 1;
+        if (session.getStartTime() != null && session.getEndTime() != null) {
+            totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+        }
+        if (totalHours < 1) totalHours = 1;
+
+        for (int i = 0; i < totalHours; i++) {
+            updateHourSlot(record, i, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, false);
         }
 
         updateRecordStatus(record);
-        
+
         AttendanceRecord saved = attendanceRecordRepository.save(record);
         AttendanceRecordDto responseDto = attendanceRecordMapper.toDto(saved);
+        // ── Real-time push to teacher's roll call ──
         messagingTemplate.convertAndSend("/topic/session/" + sessionId, responseDto);
         return responseDto;
     }
@@ -290,17 +288,15 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .hourIndex(hourIndex)
                             .status(status)
                             .verifiedByTeacher(verified)
-                            .timestamp(verified ? LocalDateTime.now() : null)
+                            .timestamp(LocalDateTime.now())
                             .build();
                     record.getHourSlots().add(newHour);
                     return newHour;
                 });
-        
-        if (hour.getStatus() != status) {
-            hour.setStatus(status);
-            hour.setVerifiedByTeacher(verified);
-            hour.setTimestamp(LocalDateTime.now());
-        }
+        // Always update — ensures re-check-in works correctly
+        hour.setStatus(status);
+        hour.setVerifiedByTeacher(verified);
+        hour.setTimestamp(LocalDateTime.now());
     }
 
     @Override
@@ -334,23 +330,22 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     private void updateRecordStatus(AttendanceRecord record) {
-        boolean factorsMet = Boolean.TRUE.equals(record.getVerifiedByTeacher()) || 
-                ((Boolean.TRUE.equals(record.getQrValidated()) || Boolean.TRUE.equals(record.getPinValidated()))
-                && Boolean.TRUE.equals(record.getGeoValidated()));
-        
-        // Count attended hours safely
         if (record.getHourSlots() == null) record.setHourSlots(new java.util.ArrayList<>());
+
         long attendedCount = record.getHourSlots().stream()
                 .filter(h -> h != null && h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT)
                 .count();
         record.setHoursAttended((int) attendedCount);
 
-        if (factorsMet || attendedCount > 0) {
+        // PRESENT if: teacher manually verified, OR student completed QR+PIN dual-factor, OR any hour attended
+        boolean isPresent = Boolean.TRUE.equals(record.getVerifiedByTeacher())
+                || (Boolean.TRUE.equals(record.getQrValidated()) && Boolean.TRUE.equals(record.getPinValidated()))
+                || attendedCount > 0;
+
+        if (isPresent) {
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
-        } else {
-            if (record.getStatus() == null) {
-                record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
-            }
+        } else if (record.getStatus() == null) {
+            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
         }
     }
 
