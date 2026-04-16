@@ -32,6 +32,8 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     private final ClassroomRepository classroomRepository;
     private final AcademicYearRepository academicYearRepository;
     private final UserRepository userRepository;
+    private final group3.en.stuattendance.Timetablemanager.Repository.SessionRepository sessionRepository;
+    private final group3.en.stuattendance.Timetablemanager.Mapper.SessionMapper sessionMapper;
     private final TimetablecontentMapper timetablecontentMapper;
 
     @Override
@@ -39,7 +41,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         Classroom classroom = classroomRepository.findById(dto.getClassroomId())
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + dto.getClassroomId()));
 
-        AcademicYear academicYear;
+        AcademicYear academicYear = null;
         if (dto.getAcademicYearId() == null) {
             academicYear = academicYearRepository.findActiveAcademicYear().orElse(null);
         } else {
@@ -47,33 +49,45 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                     .orElseThrow(() -> new EntityNotFoundException("Academic Year not found with id: " + dto.getAcademicYearId()));
         }
 
-        // Check if a timetable already exists for this classroom, academic year, week, and semester
-        Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(dto.getClassroomId(), academicYear.getId(), dto.getWeek(), dto.getSemester())
-                .orElse(new Timetablecontent());
+        Long filterYearId = (academicYear != null) ? academicYear.getId() : null;
 
+        // 1. Cleanup existing SCHEDULED sessions for this week to prevent duplicates on update
+        sessionRepository.deleteByClassroomClassIdAndWeekAndStatus(
+                dto.getClassroomId(), dto.getWeek(), group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED);
+
+        // Check if a timetable already exists for this classroom, academic year, week, and semester
+        Timetablecontent existingTimetable = timetablecontentRepository
+                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(dto.getClassroomId(), filterYearId, dto.getWeek(), dto.getSemester())
+                .orElse(null);
+
+        Integer newVersion = 1;
+        if (existingTimetable != null) {
+            // Archive the existing one instead of modifying it
+            existingTimetable.setIsActive(false);
+            timetablecontentRepository.save(existingTimetable);
+            newVersion = (existingTimetable.getVersion() != null ? existingTimetable.getVersion() : 0) + 1;
+        }
+
+        // Create a completely new instance for the updated timetable
+        Timetablecontent timetablecontent = new Timetablecontent();
         timetablecontent.setClassroom(classroom);
         timetablecontent.setAcademicYear(academicYear);
         timetablecontent.setWeek(dto.getWeek());
         timetablecontent.setSemester(dto.getSemester());
         timetablecontent.setStartDate(dto.getStartDate());
         timetablecontent.setEndDate(dto.getEndDate());
-
-        // Clear existing entries and map new ones
-        if (timetablecontent.getEntries() == null) {
-            timetablecontent.setEntries(new java.util.ArrayList<>());
-        } else {
-            timetablecontent.getEntries().clear();
-        }
+        timetablecontent.setVersion(newVersion);
+        timetablecontent.setIsActive(true);
+        timetablecontent.setEntries(new java.util.ArrayList<>());
 
         if (dto.getEntries() != null) {
             for (var entryDto : dto.getEntries()) {
                 java.time.LocalTime start = entryDto.getStartTime();
                 java.time.LocalTime end = entryDto.getEndTime();
 
-                // Validation: 8 AM - 5 PM window
-                if (start.isBefore(java.time.LocalTime.of(8, 0)) || end.isAfter(java.time.LocalTime.of(17, 0))) {
-                    throw new IllegalArgumentException("Time slot " + start + "-" + end + " is outside the allowed window (8 AM - 5 PM)");
+                // Validation: 8 AM - 6 PM window
+                if (start.isBefore(java.time.LocalTime.of(8, 0)) || end.isAfter(java.time.LocalTime.of(18, 0))) {
+                    throw new IllegalArgumentException("Time slot " + start + "-" + end + " is outside the allowed window (8 AM - 6 PM)");
                 }
 
                 if (!start.isBefore(end)) {
@@ -87,21 +101,40 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
                 }
 
                 TimetableEntry entry = new TimetableEntry();
-                entry.setDay(entryDto.getDay());
+
+                // Resolve the day name
+                String dayName = entryDto.getDay();
+                if ((dayName == null || dayName.isBlank()) && entryDto.getDayOfWeek() != null) {
+                    dayName = group3.en.stuattendance.Timetablemanager.Mapper.TimetablecontentMapper.dayIndexToName(entryDto.getDayOfWeek());
+                }
+                entry.setDay(dayName != null ? dayName.toUpperCase() : "MONDAY");
+                entry.setDayOfWeek(entryDto.getDayOfWeek());
                 entry.setStartTime(start);
                 entry.setEndTime(end);
+                entry.setColor(entryDto.getColor());
                 entry.setTimetablecontent(timetablecontent);
 
-                Course course = courseRepository.findById(entryDto.getCourseId())
-                        .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + entryDto.getCourseId()));
-                entry.setCourse(course);
-
-                if (entryDto.getTeacherId() != null) {
-                    User teacher = userRepository.findById(entryDto.getTeacherId())
-                            .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + entryDto.getTeacherId()));
-                    entry.setTeacher(teacher);
+                // Handle Custom Events vs Standard Courses
+                if (Boolean.TRUE.equals(entryDto.getIsEvent()) && entryDto.getEventName() != null && !entryDto.getEventName().trim().isEmpty()) {
+                    entry.setIsEvent(true);
+                    entry.setEventName(entryDto.getEventName().trim());
                 } else {
-                    entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null)); // Fallback to course default (first) teacher
+                    entry.setIsEvent(false);
+                    if (entryDto.getCourseId() == null) {
+                        throw new IllegalArgumentException("Standard entries must be tied to a Course. Missing course_id.");
+                    }
+                    Course course = courseRepository.findById(entryDto.getCourseId())
+                            .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + entryDto.getCourseId()));
+                    entry.setCourse(course);
+
+                    if (entryDto.getTeacherId() != null) {
+                        User teacher = userRepository.findById(entryDto.getTeacherId())
+                                .orElseThrow(() -> new EntityNotFoundException("Teacher not found with id: " + entryDto.getTeacherId()));
+                        entry.setTeacher(teacher);
+                    } else {
+                        entry.setTeacher(course.getTeachers().stream().findFirst().orElse(null));
+                    }
+                    
                 }
                 
                 timetablecontent.getEntries().add(entry);
@@ -109,20 +142,67 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         }
 
         Timetablecontent saved = timetablecontentRepository.save(timetablecontent);
+        
+        if (saved.getStartDate() != null) {
+            for (TimetableEntry savedEntry : saved.getEntries()) {
+                if (!Boolean.TRUE.equals(savedEntry.getIsEvent()) && savedEntry.getDayOfWeek() != null && savedEntry.getCourse() != null) {
+                    group3.en.stuattendance.Timetablemanager.Model.Session session = 
+                        group3.en.stuattendance.Timetablemanager.Model.Session.builder()
+                            .date(saved.getStartDate().plusDays(savedEntry.getDayOfWeek()))
+                            .startTime(savedEntry.getStartTime())
+                            .endTime(savedEntry.getEndTime())
+                            .week(saved.getWeek())
+                            .day(savedEntry.getDay())
+                            .course(savedEntry.getCourse())
+                            .teacher(savedEntry.getTeacher())
+                            .classroom(classroom)
+                            .timetableEntry(savedEntry)
+                            .status(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
+                            .build();
+                    sessionRepository.save(session);
+                }
+            }
+        }
+        
         return timetablecontentMapper.toDto(saved);
     }
 
     @Override
     public TimetablecontentDto getWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
+        Long yearId = academicYearId;
+        if (yearId == null) {
+            yearId = academicYearRepository.findActiveAcademicYear()
+                     .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
+                     .orElse(null);
+        }
+        
+        final Long finalYearId = yearId;
         Timetablecontent timetablecontent = timetablecontentRepository
-                .findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester)
-                .orElseThrow(() -> new EntityNotFoundException("Timetable not found for classroom " + classroomId + ", year " + academicYearId + ", week " + week + " and semester " + semester));
+                .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, finalYearId, week, semester)
+                .orElseThrow(() -> new EntityNotFoundException("Active Timetable not found for classroom " + classroomId + ", year " + finalYearId + ", week " + week + " and semester " + semester));
         return timetablecontentMapper.toDto(timetablecontent);
     }
 
     @Override
+    public List<TimetablecontentDto> getTimetableHistory(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
+        Long yearId = academicYearId;
+        if (yearId == null) {
+            yearId = academicYearRepository.findActiveAcademicYear()
+                     .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId)
+                     .orElse(null);
+        }
+        
+        final Long finalYearId = yearId;
+        return timetablecontentRepository
+                .findAllByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterOrderByVersionDesc(classroomId, finalYearId, week, semester)
+                .stream()
+                .map(timetablecontentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
-        timetablecontentRepository.findByClassroomClassIdAndAcademicYearIdAndWeekAndSemester(classroomId, academicYearId, week, semester)
+        timetablecontentRepository.findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, academicYearId, week, semester)
                 .ifPresent(timetablecontentRepository::delete);
     }
 
@@ -130,6 +210,14 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     public List<TimetablecontentDto> getAllTimetablecontents() {
         return timetablecontentRepository.findAll().stream()
                 .map(timetablecontentMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<group3.en.stuattendance.Timetablemanager.DTO.SessionDto> getAllSessionsForMonitor() {
+        return sessionRepository.findAll().stream()
+                .map(sessionMapper::toDto)
                 .collect(Collectors.toList());
     }
 }

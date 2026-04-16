@@ -34,7 +34,34 @@
 | `/api/admin/academic-years/{id}/suspend` | `PUT` | Suspend the active session |
 | `/api/admin/academic-years/{id}/close` | `PUT` | Gracefully close the session |
 
+## 5. Teacher Session Management (`/api/teacher`)
+| Endpoint | Method | Description | Payload Example |
+| :--- | :--- | :--- | :--- |
+| `/api/teacher/sessions/my-schedule` | `GET` | Get personal weekly schedule | N/A |
+| `/api/teacher/sessions/{id}/start` | `POST` | Start a scheduled session | N/A |
+| `/api/teacher/sessions/{id}/end` | `POST` | End session (triggers auto-absence) | N/A |
+| `/api/teacher/sessions/{id}/cancel` | `POST` | Cancel a scheduled class | N/A |
+| `/api/teacher/sessions/{id}/export` | `GET` | Download attendance sheet (CSV) | N/A |
+
+## 6. Student Attendance & Check-in (`/api/attendance`)
+| Endpoint | Method | Description | Payload Example |
+| :--- | :--- | :--- | :--- |
+| `/api/attendance/student/check-in` | `POST` | Multi-factor check-in | `{ "sessionId": 1, "userId": 5, "qrCode": "QR_...", "location": "lat,long" }` |
+| `/api/attendance/session/{id}/enrollment` | `GET` | Real-time roll-call status | N/A |
+| `/api/attendance/session-token` | `POST` | Generate PIN or QR for session | `{ "sessionId": 1, "type": "PIN" }` |
+
+## 7. Pedagogic Oversight & Monitoring (`/api/pedagog`)
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/api/pedagog/sessions/live` | `GET` | Real-time monitoring of active sessions |
+| `/api/pedagog/sessions/{id}/monitoring` | `GET` | Detailed roll-call status for a session |
+| `/api/pedagog/sessions/{id}/cancel` | `POST` | Emergency cancellation of a class |
+| `/api/pedagog/sessions/{id}/export` | `GET` | Archive attendance sheet (CSV) |
+
+> [!NOTE]
+> **Timetable Synchronization**: Saving a weekly timetable (`POST /api/timetablecontent`) automatically generates `SCHEDULED` sessions for that week. Updating a timetable replaces any existing `SCHEDULED` sessions for that period.
+
 ## Security & Authentication
-- **Mechanism**: JWT via HttpOnly Cookies.
+- **Mechanism**: JWT via Authorization header (Bearer token).
 - **Login**: `POST /login` with `username` and `password`.
-- **Authorization**: Roles are prefixed with `ROLE_` internally for Spring Security RBAC.
+- **Authorization**: Role-based access control (RBAC). Roles: `ADMIN`, `TEACHER`, `STUDENT`, `PEDAGOG`.

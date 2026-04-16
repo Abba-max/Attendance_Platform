@@ -15,8 +15,12 @@ public interface CourseService {
 
     List<CourseDto> getAllCourses();
 
+    List<CourseDto> getCoursesBySpeciality(Integer specialityId);
+ 
     List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester);
-
+ 
+    List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level);
+ 
     CourseDto assignCourseToSpeciality(Integer courseId, Integer specialityId);
 
     CourseDto assignTeacherToCourse(Integer courseId, Integer teacherId);
@@ -27,5 +31,5 @@ public interface CourseService {
 
     List<CourseDto> getCoursesByTeacher(Integer teacherId);
 
-    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file);
+    group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file, boolean dryRun, Integer specialityId, Integer level);
 }

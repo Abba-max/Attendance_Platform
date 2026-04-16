@@ -16,6 +16,13 @@ public class CourseController {
 
     private final CourseService courseService;
 
+    @GetMapping("/speciality/{specialityId}/semester/{semester}")
+    public ResponseEntity<List<CourseDto>> getCoursesBySpecialityAndSemester(
+            @PathVariable Integer specialityId,
+            @PathVariable Integer semester) {
+        return ResponseEntity.ok(courseService.getCoursesBySpecialityAndSemester(specialityId, semester));
+    }
+
     @PostMapping
     public ResponseEntity<CourseDto> createCourse(@RequestBody CourseDto courseDto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(courseService.createCourse(courseDto));
@@ -42,11 +49,10 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
-    @GetMapping("/speciality/{specialityId}/semester/{semester}")
-    public ResponseEntity<List<CourseDto>> getCoursesBySpecialityAndSemester(
-            @PathVariable Integer specialityId,
-            @PathVariable Integer semester) {
-        return ResponseEntity.ok(courseService.getCoursesBySpecialityAndSemester(specialityId, semester));
+    @GetMapping("/speciality/{specialityId}")
+    public ResponseEntity<List<CourseDto>> getCoursesBySpeciality(
+            @PathVariable Integer specialityId) {
+        return ResponseEntity.ok(courseService.getCoursesBySpeciality(specialityId));
     }
 
     @PutMapping("/{courseId}/speciality/{specialityId}")

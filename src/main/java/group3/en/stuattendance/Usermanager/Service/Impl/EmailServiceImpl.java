@@ -11,6 +11,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
@@ -34,7 +35,7 @@ public class EmailServiceImpl implements EmailService {
     private String baseUrl;
 
     @Override
-    @Async
+    @Async("taskExecutor")
     public void sendAccountCredentialsEmail(String to, String username, String password) {
         log.info("Sending account credentials email to: {}", to);
         
@@ -87,6 +88,84 @@ public class EmailServiceImpl implements EmailService {
            
         } catch (Exception e) {
             log.error("Unexpected error while sending email to: {}", to, e);
+        }
+    }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendTimetableEmail(String assistantEmail, java.util.List<String> bccRecipients, String subject, String messageText, byte[] pdfAttachment, String attachmentFilename, String senderName) {
+        log.info("Sending timetable email from {} to {} recipients via BCC", assistantEmail != null ? assistantEmail : fromEmail, bccRecipients.size());
+        
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            Context context = new Context();
+            context.setVariable("messageText", messageText);
+            context.setVariable("baseUrl", baseUrl);
+
+            String html = templateEngine.process("mail/timetable-distribution", context);
+
+            helper.setSubject(subject);
+            helper.setBcc(bccRecipients.toArray(new String[0]));
+            helper.setText(messageText, html);
+            
+            if (assistantEmail != null && !assistantEmail.isEmpty()) {
+                helper.setFrom(senderName + " <" + assistantEmail + ">");
+                helper.setReplyTo(assistantEmail);
+            } else {
+                helper.setFrom("Attendance System <" + fromEmail + ">");
+            }
+
+            // Add PDF attachment
+            helper.addAttachment(attachmentFilename, new org.springframework.core.io.ByteArrayResource(pdfAttachment));
+            
+            // Add Logo as inline resource
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
+
+            mailSender.send(message);
+            log.info("Timetable email sent successfully to BCC recipients");
+            
+        } catch (MessagingException e) {
+            log.error("Failed to send timetable email", e);
+        } catch (Exception e) {
+            log.error("Unexpected error while sending timetable email", e);
+        }
+    }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendPasswordResetNotification(String to, String newPassword, String adminEmail, String adminName) {
+        log.info("Sending password reset notification from admin {} to user {}", adminEmail, to);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            Context context = new Context();
+            context.setVariable("newPassword", newPassword);
+            context.setVariable("adminName", adminName);
+            context.setVariable("loginUrl", baseUrl + "/login");
+
+            String html = templateEngine.process("mail/password-reset-notification", context);
+            String text = String.format(
+                "Hello,\n\nYour password has been reset by %s.\n\n" +
+                "New Temporary Password: %s\n\n" +
+                "Please login and change your password immediately.\n\n" +
+                "Login here: %s\n\n" +
+                "Regards,\n%s", adminName, newPassword, baseUrl + "/login", adminName);
+
+            helper.setTo(to);
+            helper.setSubject("Attendee - Your Password Has Been Reset");
+            helper.setText(text, html);
+            helper.setFrom(adminName + " <" + adminEmail + ">");
+            helper.setReplyTo(adminEmail);
+
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
+
+            mailSender.send(message);
+            log.info("Password reset notification sent successfully to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send password reset notification to {}", to, e);
         }
     }
 }

@@ -21,7 +21,7 @@ public class PdfExportServiceImpl implements PdfExportService {
 
     @Override
     public ByteArrayInputStream exportTimetableToPdf(TimetablecontentDto timetableDto) {
-        Document document = new Document(PageSize.A4);
+        Document document = new Document(PageSize.A4.rotate());
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {
@@ -39,56 +39,146 @@ public class PdfExportServiceImpl implements PdfExportService {
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
             
-            String dateRange = (timetableDto.getStartDate() != null && timetableDto.getEndDate() != null) 
-                    ? " from " + timetableDto.getStartDate() + " to " + timetableDto.getEndDate() 
+            // ── Derive and format dates ──────────────────────────────────────────
+            java.time.LocalDate startDate = timetableDto.getStartDate();
+            java.time.LocalDate endDate   = timetableDto.getEndDate();
+
+            // When not explicitly stored, compute Monday-Saturday from the ISO week
+            if ((startDate == null || endDate == null) && timetableDto.getWeek() != null) {
+                int isoWeek = timetableDto.getWeek();
+                int year    = java.time.LocalDate.now().getYear();
+                java.time.LocalDate weekStart = java.time.LocalDate.ofYearDay(year, 1)
+                        .with(java.time.temporal.WeekFields.ISO.weekOfYear(), isoWeek)
+                        .with(java.time.DayOfWeek.MONDAY);
+                if (startDate == null) startDate = weekStart;
+                if (endDate   == null) endDate   = weekStart.plusDays(5);
+            }
+
+            java.time.format.DateTimeFormatter dateFmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String dateRange = (startDate != null && endDate != null)
+                    ? "From " + startDate.format(dateFmt) + " to " + endDate.format(dateFmt)
                     : "";
-            Paragraph subInfo = new Paragraph("Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") + 
-                    " | Week: " + timetableDto.getWeek() + dateRange);
+
+            String versionText = timetableDto.getVersion() != null ? " (v" + timetableDto.getVersion() + ")" : "";
+
+            Paragraph subInfo = new Paragraph(
+                    "Academic Year: " + (timetableDto.getAcademicYearName() != null ? timetableDto.getAcademicYearName() : "N/A") +
+                    " | Semester: " + (timetableDto.getSemester() != null ? timetableDto.getSemester() : "N/A") +
+                    " | Week: " + timetableDto.getWeek() + versionText +
+                    (dateRange.isEmpty() ? "" : "   |   " + dateRange));
             subInfo.setAlignment(Element.ALIGN_CENTER);
             document.add(subInfo);
             document.add(Chunk.NEWLINE);
 
             List<TimetableEntryDto> allEntries = timetableDto.getEntries();
-            String[] daysOrdered = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"};
-
             if (allEntries == null || allEntries.isEmpty()) {
                 Paragraph emptyMsg = new Paragraph("No schedule entries found for this week.", bodyFont);
                 emptyMsg.setAlignment(Element.ALIGN_CENTER);
                 document.add(emptyMsg);
             } else {
-                Map<String, List<TimetableEntryDto>> entriesByDay = allEntries.stream()
-                        .collect(Collectors.groupingBy(e -> e.getDay().toUpperCase()));
+                PdfPTable table = new PdfPTable(7);
+                table.setWidthPercentage(100);
+                table.setWidths(new float[]{1.5f, 2f, 2f, 2f, 2f, 2f, 2f});
 
-                for (String day : daysOrdered) {
-                    List<TimetableEntryDto> dayEntries = entriesByDay.get(day);
-                    if (dayEntries != null && !dayEntries.isEmpty()) {
-                        // Day Header
-                        Paragraph dayPara = new Paragraph(day, dayHeaderFont);
-                        dayPara.setSpacingBefore(10f);
-                        dayPara.setSpacingAfter(5f);
-                        document.add(dayPara);
+                // Add Header Row
+                String[] headers = {"Time", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
+                for (String h : headers) {
+                    PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.WHITE)));
+                    cell.setPadding(5);
+                    cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    cell.setBackgroundColor(java.awt.Color.decode("#00B0FF")); // Logo Blue
+                    cell.setBorderWidth(1.1f);
+                    cell.setBorderColor(java.awt.Color.decode("#0081C6")); // Darker Logo Blue
+                    table.addCell(cell);
+                }
 
-                        // Table for the day's entries
-                        PdfPTable table = new PdfPTable(3);
-                        table.setWidthPercentage(100);
-                        table.setWidths(new float[]{2f, 4f, 4f});
+                int[] skipCells = new int[6]; // Tracker for multi-hour blocks
+                for (int hour = 8; hour <= 16; hour++) {
+                    // Add Time Column Cell
+                    PdfPCell timeCell = new PdfPCell(new Phrase(String.format("%02d:00-%02d:00", hour, hour + 1), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.DARK_GRAY)));
+                    timeCell.setPadding(5);
+                    timeCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                    timeCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                    timeCell.setBackgroundColor(java.awt.Color.decode("#F8FAFC"));
+                    timeCell.setBorderWidth(1.5f);
+                    timeCell.setBorderColor(java.awt.Color.decode("#E2E8F0"));
+                    table.addCell(timeCell);
 
-                        // Table Header
-                        addTableCell(table, "Time Slot", tableHeadFont, java.awt.Color.LIGHT_GRAY);
-                        addTableCell(table, "Course", tableHeadFont, java.awt.Color.LIGHT_GRAY);
-                        addTableCell(table, "Teacher", tableHeadFont, java.awt.Color.LIGHT_GRAY);
-
-                        // Sort entries by start time
-                        dayEntries.sort(Comparator.comparing(TimetableEntryDto::getStartTime));
-
-                        for (TimetableEntryDto entry : dayEntries) {
-                            addTableCell(table, entry.getStartTime() + " - " + entry.getEndTime(), bodyFont, null);
-                            addTableCell(table, entry.getCourseName(), bodyFont, null);
-                            addTableCell(table, entry.getTeacherName() != null ? entry.getTeacherName() : "N/A", bodyFont, null);
+                    for (int dayIndex = 0; dayIndex <= 5; dayIndex++) {
+                        if (skipCells[dayIndex] > 0) {
+                            skipCells[dayIndex]--;
+                            continue;
                         }
-                        document.add(table);
+
+                        final int currentHour = hour;
+                        final int currentDay = dayIndex;
+                        
+                        TimetableEntryDto entry = allEntries.stream()
+                            .filter(e -> {
+                                int dIdx = -1;
+                                if (e.getDayOfWeek() != null) {
+                                    dIdx = e.getDayOfWeek();
+                                } else if (e.getDay() != null) {
+                                    switch (e.getDay().toUpperCase()) {
+                                        case "MONDAY": dIdx = 0; break;
+                                        case "TUESDAY": dIdx = 1; break;
+                                        case "WEDNESDAY": dIdx = 2; break;
+                                        case "THURSDAY": dIdx = 3; break;
+                                        case "FRIDAY": dIdx = 4; break;
+                                        case "SATURDAY": dIdx = 5; break;
+                                    }
+                                }
+                                return dIdx == currentDay && e.getStartTime() != null && e.getStartTime().getHour() == currentHour;
+                            })
+                            .findFirst()
+                            .orElse(null);
+
+                        if (entry != null) {
+                            int duration = entry.getEndTime().getHour() - entry.getStartTime().getHour();
+                            if (duration < 1) duration = 1;
+                            
+                            skipCells[dayIndex] = duration - 1;
+                            
+                            String text;
+                            if (Boolean.TRUE.equals(entry.getIsEvent())) {
+                                text = entry.getEventName() != null ? entry.getEventName() : "Custom Event";
+                            } else {
+                                text = entry.getCourseName() + "\n\n" + (entry.getTeacherName() != null ? entry.getTeacherName() : "");
+                            }
+                            
+                            java.awt.Color bgColor = java.awt.Color.decode("#E0F2FE"); // Light Blue fallback
+                            java.awt.Color textColor = java.awt.Color.BLACK;
+                            
+                            if (entry.getColor() != null && entry.getColor().startsWith("#")) {
+                                try {
+                                    bgColor = java.awt.Color.decode(entry.getColor());
+                                    // Make text white for colored blocks
+                                    textColor = java.awt.Color.WHITE;
+                                } catch (Exception ignored) {}
+                            }
+
+                            PdfPCell cell = new PdfPCell(new Phrase(text, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, textColor)));
+                            cell.setRowspan(duration);
+                            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+                            cell.setPadding(5);
+                            cell.setBackgroundColor(bgColor);
+                            
+                            // For visual pop, we give it a thicker border
+                            cell.setBorderWidth(2.0f);
+                            cell.setBorderColor(java.awt.Color.decode("#0284C7"));
+                            
+                            table.addCell(cell);
+                        } else {
+                            // Empty Drop Zone Cell
+                            PdfPCell emptyCell = new PdfPCell(new Phrase(""));
+                            emptyCell.setBorderWidth(1.0f);
+                            emptyCell.setBorderColor(java.awt.Color.decode("#E2E8F0"));
+                            table.addCell(emptyCell);
+                        }
                     }
                 }
+                document.add(table);
             }
 
             document.close();
@@ -108,5 +198,78 @@ public class PdfExportServiceImpl implements PdfExportService {
             cell.setBackgroundColor(bgColor);
         }
         table.addCell(cell);
+    }
+
+    @Override
+    public ByteArrayInputStream exportAttendanceToPdf(group3.en.stuattendance.Timetablemanager.DTO.SessionDto session, 
+                                                     java.util.List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto> records) {
+        Document document = new Document(PageSize.A4);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        try {
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Font settings
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Font tableHeadFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+
+            // Title
+            Paragraph title = new Paragraph("Session Attendance Sheet", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(Chunk.NEWLINE);
+
+            // Session Details
+            document.add(new Paragraph("Course: " + session.getCourseName(), bodyFont));
+            document.add(new Paragraph("Date: " + session.getDate() + " (" + session.getStartTime() + " - " + session.getEndTime() + ")", bodyFont));
+            document.add(new Paragraph("Classroom: " + session.getClassroomName(), bodyFont));
+            document.add(new Paragraph("Teacher: " + session.getTeacherName(), bodyFont));
+            document.add(Chunk.NEWLINE);
+
+            // Attendance Table
+            PdfPTable table = new PdfPTable(4);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{1.5f, 3f, 1.5f, 3f});
+
+            // Headers
+            String[] headers = {"Matricule", "Student Name", "Status", "Comments"};
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11, java.awt.Color.WHITE)));
+                cell.setBackgroundColor(java.awt.Color.decode("#00B0FF"));
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setPadding(5);
+                table.addCell(cell);
+            }
+
+            // Data Rows
+            for (group3.en.stuattendance.Attendancemanager.DTO.AttendanceRecordDto r : records) {
+                table.addCell(new Phrase(r.getStudentMatricule() != null ? r.getStudentMatricule() : "N/A", bodyFont));
+                table.addCell(new Phrase(r.getStudentFirstName() + " " + r.getStudentLastName(), bodyFont));
+                
+                String statusStr = r.getStatus() != null ? r.getStatus().name() : "NOT_MARKED";
+                PdfPCell statusCell = new PdfPCell(new Phrase(statusStr, bodyFont));
+                
+                if ("ABSENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 226, 226));
+                } else if ("LATE".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(254, 243, 199));
+                } else if ("PRESENT".equals(statusStr)) {
+                    statusCell.setBackgroundColor(new java.awt.Color(209, 250, 229));
+                }
+                table.addCell(statusCell);
+                
+                table.addCell(new Phrase(r.getComments() != null ? r.getComments() : "", bodyFont));
+            }
+
+            document.add(table);
+            document.close();
+
+        } catch (DocumentException ex) {
+            throw new RuntimeException("Error during Attendance PDF generation", ex);
+        }
+
+        return new ByteArrayInputStream(out.toByteArray());
     }
 }

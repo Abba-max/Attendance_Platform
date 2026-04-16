@@ -16,9 +16,9 @@ public class CourseDto {
     private String code;
     private String description;
     private Integer credits;
-    private Integer hoursPerWeek;
-    private Integer semester;
+    private Integer totalHours;
     private Integer level;
+    private Integer semester;
     private Integer specialityId;
     private String specialityName;
     private java.util.List<Integer> teacherIds;

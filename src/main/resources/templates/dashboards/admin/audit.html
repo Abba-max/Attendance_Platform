@@ -487,6 +487,18 @@
                                     placeholder="Search logs by user, action, or target..."
                                     class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent">
                             </div>
+                            <div class="relative min-w-[160px]">
+                                <select id="auditSeverityFilter" 
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 appearance-none bg-white font-medium text-gray-700 cursor-pointer">
+                                    <option value="">All Severities</option>
+                                    <option value="INFO">Info</option>
+                                    <option value="WARNING">Warning</option>
+                                    <option value="ERROR">Error</option>
+                                </select>
+                                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </div>
+                            </div>
                             <button
                                 class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2">
                                 <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor"
@@ -534,7 +546,7 @@
                                             IP Address</th>
                                     </tr>
                                 </thead>
-                                <tbody id="auditLogsTable" class="divide-y divide-gray-200">
+                                <tbody id="auditLogsTableBody" class="divide-y divide-gray-200">
                                     <!-- Dynamic content injected by audit.js -->
                                 </tbody>
                             </table>
@@ -543,18 +555,18 @@
                         <!-- Pagination -->
                         <div class="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
                             <div class="text-sm text-gray-600">
-                                Showing <span id="entriesStart">0</span> to <span id="entriesEnd">0</span> of <span
-                                    id="totalEntries">0</span> entries
+                                Showing <span id="auditEntriesStart">0</span> to <span id="auditEntriesEnd">0</span> of <span
+                                    id="auditTotalEntries">0</span> entries
                             </div>
                             <div class="flex gap-2">
-                                <button id="prevBtn"
+                                <button id="auditPrevBtn"
                                     class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                     Previous
                                 </button>
-                                <div id="pageNumbers" class="flex gap-2">
+                                <div id="auditPageNumbers" class="flex gap-2">
                                     <!-- Page numbers injected by audit.js -->
                                 </div>
-                                <button id="nextBtn"
+                                <button id="auditNextBtn"
                                     class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                     Next
                                 </button>

@@ -17,24 +17,22 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestBody UserDto dto) {
+    public ResponseEntity<UserDto> registerUser(@RequestBody UserDto dto) {
         return ResponseEntity.ok(userService.registerUser(dto));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Integer id) {
-        return userService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<UserDto> getUserById(@PathVariable Integer id) {
+        return ResponseEntity.ok(userService.getUserDtoById(id));
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUserDtos());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
+    public ResponseEntity<UserDto> updateUser(@PathVariable Integer id, @RequestBody UserDto dto) {
         return ResponseEntity.ok(userService.updateUser(id, dto));
     }
 

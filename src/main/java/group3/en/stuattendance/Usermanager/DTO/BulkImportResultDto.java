@@ -17,6 +17,7 @@ public class BulkImportResultDto {
     private int successCount;
     private int failureCount;
     private List<RowError> errors = new ArrayList<>();
+    private List<java.util.Map<String, String>> previewData = new java.util.ArrayList<>();
 
     @Data
     @AllArgsConstructor

@@ -39,14 +39,14 @@ public class Course {
     @Column(nullable = false)
     private Integer credits;
 
-    @Column(name = "hours_per_week", nullable = false)
-    private Integer hoursPerWeek;
-
-    @Column(nullable = false)
-    private Integer semester;
+    @Column(name = "total_hours", nullable = false)
+    private Integer totalHours;
 
     @Column(nullable = false)
     private Integer level;
+
+    @Column(nullable = false)
+    private Integer semester;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "speciality_id", nullable = false)

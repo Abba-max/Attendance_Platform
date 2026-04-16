@@ -4,6 +4,8 @@ import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import org.springframework.stereotype.Component;
 
+import java.time.temporal.ChronoUnit;
+
 @Component
 public class SessionMapper {
 
@@ -24,8 +26,30 @@ public class SessionMapper {
                 .teacherName(session.getTeacher() != null ? session.getTeacher().getUsername() : null)
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
                 .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : null)
+                .status(session.getStatus() != null ? session.getStatus().name() : null)
+                .level(session.getClassroom() != null ? session.getClassroom().getLevel() : null)
+                .specialityName(session.getClassroom() != null && session.getClassroom().getSpeciality() != null ? session.getClassroom().getSpeciality().getName() : null)
+                .actualStartTime(session.getActualStartTime())
+                .actualEndTime(session.getActualEndTime())
+                .tempPin(session.getTempPin())
+                .isValidated(session.getIsValidated())
                 .isActive(session.isActive())
+                .totalHours(session.getStartTime() != null && session.getEndTime() != null ? 
+                    (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 0)
+                .attendanceRate(calculateAttendanceRate(session))
                 .build();
+    }
+
+    private Double calculateAttendanceRate(Session session) {
+        if (session.getAttendanceRecords() == null || session.getAttendanceRecords().isEmpty()) {
+            return 0.0;
+        }
+        long total = session.getAttendanceRecords().size();
+        long present = session.getAttendanceRecords().stream()
+                .filter(r -> r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT || 
+                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
+                .count();
+        return (double) present / total * 100.0;
     }
 
     public Session toEntity(SessionDto dto) {
@@ -39,6 +63,11 @@ public class SessionMapper {
                 .week(dto.getWeek())
                 .locationGeographicalCoordinates(dto.getLocationGeographicalCoordinates())
                 .qrCode(dto.getQrCode())
+                .tempPin(dto.getTempPin())
+                .isValidated(dto.getIsValidated() != null ? dto.getIsValidated() : false)
+                .status(dto.getStatus() != null ? group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.valueOf(dto.getStatus()) : group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED)
+                .actualStartTime(dto.getActualStartTime())
+                .actualEndTime(dto.getActualEndTime())
                 .build();
     }
 }

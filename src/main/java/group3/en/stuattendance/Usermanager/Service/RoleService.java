@@ -1,16 +1,24 @@
 package group3.en.stuattendance.Usermanager.Service;
 
 import group3.en.stuattendance.Usermanager.DTO.RoleDto;
-import group3.en.stuattendance.Usermanager.Model.Role;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 
 public interface RoleService {
-    List<Role> getAllRoles();
-    Optional<Role> getRoleById(Integer roleId);
-    Optional<Role> getRoleByName(String name);
-    Role createRole(RoleDto dto);
-    Role updateRole(Integer id, RoleDto dto);
+
+    List<RoleDto> getAllRoles();
+
+    RoleDto getRoleById(Integer roleId);
+
+    RoleDto getRoleByName(String name);
+
+    RoleDto createRole(RoleDto dto);
+
+    RoleDto updateRole(Integer id, RoleDto dto);
+
     void deleteRole(Integer id);
-    void syncRolePermissions(String roleName, java.util.Set<String> permissionNames);
+
+    void syncRolePermissions(String roleName, Set<String> permissionNames);
+
+    RoleDto getRoleWithPermissions(Integer roleId);
 }

@@ -15,9 +15,9 @@ public class CourseMapper {
                 .code(course.getCode())
                 .description(course.getDescription())
                 .credits(course.getCredits())
-                .hoursPerWeek(course.getHoursPerWeek())
-                .semester(course.getSemester())
+                .totalHours(course.getTotalHours())
                 .level(course.getLevel())
+                .semester(course.getSemester())
                 .specialityId(course.getSpeciality() != null ? course.getSpeciality().getSpecialityId() : null)
                 .specialityName(course.getSpeciality() != null ? course.getSpeciality().getName() : null)
                 .teacherIds(course.getTeachers() != null ? 
@@ -35,9 +35,9 @@ public class CourseMapper {
                 .code(dto.getCode())
                 .description(dto.getDescription())
                 .credits(dto.getCredits())
-                .hoursPerWeek(dto.getHoursPerWeek())
-                .semester(dto.getSemester())
+                .totalHours(dto.getTotalHours())
                 .level(dto.getLevel())
+                .semester(dto.getSemester())
                 .build();
     }
 }

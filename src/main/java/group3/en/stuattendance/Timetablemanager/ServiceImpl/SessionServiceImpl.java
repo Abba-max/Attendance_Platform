@@ -7,6 +7,10 @@ import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
 import group3.en.stuattendance.Timetablemanager.Service.SessionService;
 import group3.en.stuattendance.Timetablemanager.Model.Course;
 import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
+import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
+import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
+import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
+import group3.en.stuattendance.Timetablemanager.Enum.SessionStatus;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
@@ -14,8 +18,10 @@ import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +33,140 @@ public class SessionServiceImpl implements SessionService {
     private final CourseRepository courseRepository;
     private final UserRepository userRepository;
     private final ClassroomRepository classroomRepository;
+    private final AttendanceRecordRepository attendanceRecordRepository;
+    private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
     private final SessionMapper sessionMapper;
+
+    @Override
+    @Transactional
+    public SessionDto startSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        if (session.getStatus() != SessionStatus.SCHEDULED) {
+            throw new IllegalStateException("Session must be in SCHEDULED status to start. Current status: " + session.getStatus());
+        }
+
+        session.setStatus(SessionStatus.IN_PROGRESS);
+        session.setActualStartTime(LocalDateTime.now());
+        
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto endSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        // Idempotency: if already COMPLETED or VALIDATED, return as-is — don't crash
+        if (session.getStatus() == SessionStatus.COMPLETED || session.getIsValidated() != null && session.getIsValidated()) {
+            return sessionMapper.toDto(session);
+        }
+
+        if (session.getStatus() != SessionStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Session must be IN_PROGRESS to finalize. Current status: " + session.getStatus());
+        }
+
+        session.setStatus(SessionStatus.COMPLETED);
+        session.setActualEndTime(LocalDateTime.now());
+
+        // Auto-Absence Logic: Mark students who didn't show up
+        if (session.getClassroom() != null) {
+            List<User> classroomStudents = userRepository.findByClassroomClassIdAndRolesName(
+                    session.getClassroom().getClassId(), "STUDENT");
+
+            for (User student : classroomStudents) {
+                if (!attendanceRecordRepository.existsByUserAndSession(student, session)) {
+                    AttendanceRecord autoAbsent = AttendanceRecord.builder()
+                            .user(student)
+                            .session(session)
+                            .status(AttendanceStatus.ABSENT)
+                            .comments("Auto-marked ABSENT upon session closure")
+                            .timestamp(LocalDateTime.now())
+                            .verifiedByTeacher(false)
+                            .qrValidated(false)
+                            .geoValidated(false)
+                            .pinValidated(false)
+                            .build();
+                    attendanceRecordRepository.save(autoAbsent);
+                    
+                    // Notify student of absence
+                    try {
+                        String courseName = "this course";
+                        if (session.getCourse() != null && session.getCourse().getCourseName() != null) {
+                            courseName = session.getCourse().getCourseName();
+                        }
+                        
+                        notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT", 
+                                "You were marked ABSENT for " + courseName + " on " + session.getDate());
+                    } catch (Exception e) {
+                        // Senior Dev: Non-critical notification failure should not rollback the critical session end transaction
+                        System.err.println("Failed to send absence notification to user " + student.getUserId() + ": " + e.getMessage());
+                    }
+                }
+            }
+        }
+
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto confirmAttendance(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        // If it's still in progress, end it first
+        if (session.getStatus() == SessionStatus.IN_PROGRESS) {
+            // We call endSession within the same transactional context
+            this.endSession(sessionId);
+            // Refresh to get updated status and timestamps
+            session = sessionRepository.findById(sessionId).get();
+        } else if (session.getStatus() == SessionStatus.SCHEDULED) {
+            throw new IllegalStateException("Cannot confirm attendance for a SCHEDULED session. Start it first.");
+        }
+
+        session.setIsValidated(true);
+        Session saved = sessionRepository.save(session);
+        
+        // Notify Pedagogic Assistants of that specialty
+        if (saved.getCourse() != null && saved.getCourse().getSpeciality() != null) {
+            String courseName = saved.getCourse().getCourseName();
+            String teacherName = saved.getTeacher() != null ? saved.getTeacher().getFirstName() + " " + saved.getTeacher().getLastName() : "A teacher";
+            notificationService.notifyRoleBySpeciality("PEDAGOG", 
+                saved.getCourse().getSpeciality().getSpecialityId(),
+                "ATTENDANCE_SUBMITTED",
+                teacherName + " has finalized the attendance for " + courseName + ".");
+        }
+
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    @Transactional
+    public SessionDto cancelSession(Integer sessionId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
+
+        session.setStatus(SessionStatus.CANCELLED);
+        
+        Session saved = sessionRepository.save(session);
+        return sessionMapper.toDto(saved);
+    }
+
+    @Override
+    public List<SessionDto> getLiveSessionsByClassrooms(java.util.List<Integer> classroomIds) {
+        if (classroomIds == null || classroomIds.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return sessionRepository.findByClassroomClassIdInAndStatus(classroomIds, SessionStatus.IN_PROGRESS)
+                .stream()
+                .map(sessionMapper::toDto)
+                .collect(Collectors.toList());
+    }
 
     @Override
     public SessionDto createSession(SessionDto sessionDto) {
@@ -164,6 +303,15 @@ public class SessionServiceImpl implements SessionService {
     @Override
     public List<SessionDto> getSessionsByTeacherAndDate(Integer teacherId, LocalDate date) {
         return sessionRepository.findByTeacherUserIdAndDate(teacherId, date)
+                .stream()
+                .map(sessionMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SessionDto> getSessionsByTeacherSorted(Integer teacherId) {
+        return sessionRepository.findByTeacherUserIdOrderByDateAscStartTimeAsc(teacherId)
                 .stream()
                 .map(sessionMapper::toDto)
                 .collect(Collectors.toList());

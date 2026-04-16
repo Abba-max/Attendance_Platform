@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 @RequiredArgsConstructor
 public class SpecialityServiceImpl implements SpecialityService {
 
@@ -23,7 +24,6 @@ public class SpecialityServiceImpl implements SpecialityService {
     private final SpecialityMapper specialityMapper;
 
     @Override
-    @Transactional
     public SpecialityDto createSpeciality(SpecialityDto specialityDto) {
         Department department = departmentRepository.findById(specialityDto.getDepartmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found"));
@@ -33,7 +33,6 @@ public class SpecialityServiceImpl implements SpecialityService {
     }
 
     @Override
-    @Transactional
     public SpecialityDto updateSpeciality(Integer id, SpecialityDto specialityDto) {
         Speciality speciality = specialityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Speciality not found"));
@@ -52,6 +51,11 @@ public class SpecialityServiceImpl implements SpecialityService {
     public SpecialityDto getSpecialityById(Integer id) {
         Speciality speciality = specialityRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Speciality not found"));
+        
+        // Initialize lazy properties
+        if (speciality.getDepartment() != null) speciality.getDepartment().getName();
+        if (speciality.getClassrooms() != null) speciality.getClassrooms().size();
+        
         return specialityMapper.toDto(speciality);
     }
 

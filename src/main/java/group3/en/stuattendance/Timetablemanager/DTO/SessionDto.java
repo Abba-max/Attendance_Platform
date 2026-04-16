@@ -28,5 +28,14 @@ public class SessionDto {
     private String teacherName;
     private Integer classroomId;
     private String classroomName;
+    private String status;
+    private Integer level;
+    private String specialityName;
+    private java.time.LocalDateTime actualStartTime;
+    private java.time.LocalDateTime actualEndTime;
+    private String tempPin;
+    private Boolean isValidated;
     private Boolean isActive;
+    private Integer totalHours;
+    private Double attendanceRate;
 }

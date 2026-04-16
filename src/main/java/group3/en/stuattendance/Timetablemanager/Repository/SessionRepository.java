@@ -12,6 +12,8 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
 
     List<Session> findByCourseCourseId(Integer courseId);
 
+    List<Session> findByStatus(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
     List<Session> findByTeacherUserId(Integer teacherId);
 
     List<Session> findByClassroomClassId(Integer classroomId);
@@ -22,5 +24,15 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
 
     List<Session> findByCourseCourseIdAndWeek(Integer courseId, Integer week);
 
-    List<Session> findByTeacherUserIdAndDate(Integer teacherId, LocalDate date);
+    List<Session> findByTeacherUserIdAndDate(Integer teacherId, java.time.LocalDate date);
+
+    List<Session> findByClassroomClassIdAndDate(Integer classroomId, java.time.LocalDate date);
+
+    List<Session> findByDateAndStartTime(java.time.LocalDate date, java.time.LocalTime startTime);
+
+    List<Session> findByTeacherUserIdOrderByDateAscStartTimeAsc(Integer teacherId);
+
+    List<Session> findByClassroomClassIdInAndStatus(java.util.Collection<Integer> classroomIds, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
+    void deleteByClassroomClassIdAndWeekAndStatus(Integer classroomId, Integer week, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
 }

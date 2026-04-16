@@ -50,4 +50,19 @@ public class ClassroomServiceImpl implements ClassroomService {
     public void deleteById(Integer id) {
         classroomRepository.deleteById(id);
     }
+
+    @Override
+    public ClassroomDto getClassroomDtoById(Integer id) {
+        Classroom classroom = findById(id);
+        // Initialize lazy properties for mapping
+        if (classroom.getSpeciality() != null) {
+            classroom.getSpeciality().getName();
+            if (classroom.getSpeciality().getDepartment() != null) {
+                classroom.getSpeciality().getDepartment().getName();
+            }
+        }
+        if (classroom.getStudents() != null) classroom.getStudents().size();
+        
+        return classroomMapper.toDto(classroom);
+    }
 }

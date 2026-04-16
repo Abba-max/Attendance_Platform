@@ -50,6 +50,14 @@ public class Timetablecontent {
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    private Integer version = 1;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
+
     @OneToMany(mappedBy = "timetablecontent", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<TimetableEntry> entries = new ArrayList<>();

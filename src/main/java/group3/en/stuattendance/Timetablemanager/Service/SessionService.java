@@ -1,7 +1,6 @@
 package group3.en.stuattendance.Timetablemanager.Service;
 
 import group3.en.stuattendance.Timetablemanager.DTO.SessionDto;
-
 import java.time.LocalDate;
 import java.util.List;
 
@@ -30,4 +29,16 @@ public interface SessionService {
     List<SessionDto> getSessionsByCourseAndWeek(Integer courseId, Integer week);
 
     List<SessionDto> getSessionsByTeacherAndDate(Integer teacherId, LocalDate date);
+
+    List<SessionDto> getSessionsByTeacherSorted(Integer teacherId);
+
+    SessionDto startSession(Integer sessionId);
+
+    SessionDto endSession(Integer sessionId);
+
+    SessionDto cancelSession(Integer sessionId);
+
+    List<SessionDto> getLiveSessionsByClassrooms(java.util.List<Integer> classroomIds);
+
+    SessionDto confirmAttendance(Integer sessionId);
 }
