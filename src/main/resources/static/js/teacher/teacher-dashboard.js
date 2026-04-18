@@ -443,15 +443,24 @@ async function loadRollCall(sessionId) {
 function connectWebSocket(sessionId) {
     disconnectWebSocket(); // clear any previous connection
     
-    const socket = new SockJS('/ws'); 
-    stompClient = Stomp.over(socket);
+    // Accept optional override or use activeSessionId
+    const sid = sessionId || activeSessionId;
+    if (!sid) return;
+    
+    if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
+    
+    const socket = new window.SockJS('/ws');
+    stompClient = window.Stomp.over(socket);
     stompClient.debug = null; // disable noisy console logs
     
     stompClient.connect({}, function (frame) {
-        stompClient.subscribe('/topic/session/' + sessionId, function (message) {
+        // Real-time attendance updates from student check-ins
+        stompClient.subscribe('/topic/session/' + sid, function (message) {
             const dto = JSON.parse(message.body);
             updateRollCallRealTime(dto);
         });
+        // QR refresh notifications
+        stompClient.subscribe('/topic/session/' + sid + '/qr', generateQr);
     });
 }
 
@@ -462,26 +471,38 @@ function disconnectWebSocket() {
 }
 
 function updateRollCallRealTime(dto) {
-    // Check if the student row exists in the grid
-    const row = document.querySelector(`.student-row[data-student-id="${dto.userId}"]`);
-    if (!row) return;
+    // dto is an AttendanceRecordDto from the backend
+    // Fields: userId, hoursAttended, status, qrValidated, pinValidated
+    const studentId = dto.userId;
+    if (!studentId) return;
 
-    // Visual effect: highlight row quickly
-    row.classList.add('bg-blue-100/50', 'transition-colors', 'duration-300');
-    setTimeout(() => row.classList.remove('bg-blue-100/50'), 600);
-
-    // Update checkboxes depending on the hours attended returned
-    if (dto.hoursAttended && dto.hoursAttended > 0) {
-        document.querySelectorAll(`.slot-checkbox[data-user-id="${dto.userId}"]`).forEach(cb => {
-            cb.checked = true;
-        });
+    const row = document.querySelector(`.student-row[data-student-id="${studentId}"]`);
+    if (!row) {
+        // Student not in current view — do a full reload to pick them up
+        loadRollCall(activeSessionId);
+        return;
     }
 
-    // Add "Scanned" badge if not present by extracting the text container
+    // Visual highlight
+    row.classList.add('bg-emerald-50', 'transition-colors', 'duration-500');
+    setTimeout(() => row.classList.remove('bg-emerald-50'), 1200);
+
+    // Mark ALL checkboxes for this student as checked (they scanned in)
+    const checkboxes = document.querySelectorAll(`.slot-checkbox[data-user-id="${studentId}"]`);
+    checkboxes.forEach(cb => { cb.checked = true; });
+
+    // Add or update "Scanned" badge
     const nameContainer = row.querySelector('.flex.items-center.gap-2');
-    if (nameContainer && !nameContainer.innerHTML.includes('Scanned')) {
-        nameContainer.insertAdjacentHTML('beforeend', '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md">Scanned</span>');
+    if (nameContainer && !nameContainer.querySelector('.scanned-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'scanned-badge px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest rounded-md';
+        badge.textContent = 'Scanned';
+        nameContainer.appendChild(badge);
     }
+
+    // Show a toast notification
+    const studentName = row.querySelector('span.text-sm')?.textContent?.trim() || 'A student';
+    showNotification(`${studentName} just checked in!`, 'success');
 }
 
 function resolveHours(s) { 
@@ -547,24 +568,38 @@ function renderAttendanceGrid(records) {
 
 window.markHourStatus = async (userId, hourIndex, isPresent) => {
     try {
-        await fetch(`/api/attendance/session/${activeSessionId}/student/${userId}/hour/${hourIndex}?status=${isPresent ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
+        const res = await fetch(`/api/attendance/session/${activeSessionId}/student/${userId}/hour/${hourIndex}?status=${isPresent ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
+        if (!res.ok) {
+            let errMsg = `Server error ${res.status}`;
+            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(_) {}
+            showNotification(errMsg, 'error');
+            // Revert the checkbox to its previous state
+            const cb = document.querySelector(`.slot-checkbox[data-user-id="${userId}"][data-hour="${hourIndex}"]`);
+            if (cb) cb.checked = !isPresent;
+        }
     } catch {
-        showNotification('Update failed', 'error');
+        showNotification('Network error: could not update attendance.', 'error');
     }
 };
 
 window.teacherMarkAllPresent = async (userId) => {
     try {
-        await fetch('/api/attendance/teacher/verify-all', {
+        const res = await fetch('/api/attendance/teacher/verify-all', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId: activeSessionId, userId })
         });
+        if (!res.ok) {
+            let errMsg = `Server error ${res.status}`;
+            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(_) {}
+            showNotification(errMsg, 'error');
+            return;
+        }
         // Immediately update all checkboxes for this student in the UI
         document.querySelectorAll(`.slot-checkbox[data-user-id="${userId}"]`).forEach(cb => cb.checked = true);
         showNotification('Marked all present.', 'success');
     } catch {
-        showNotification('Update failed', 'error');
+        showNotification('Network error: could not mark attendance.', 'error');
     }
 };
 
@@ -706,7 +741,7 @@ function showNotification(msg, type='info') {
     toast.id = 'tt-toast';
     
     // Color logic
-    const bgColor = type === 'error' ? 'bg-rose-600 shadow-rose-500/30' : 'bg-[#00B0FF] shadow-blue-500/20';
+    const bgColor = type === 'error' ? 'bg-rose-600 shadow-rose-500/30' : type === 'success' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-[#00B0FF] shadow-blue-500/20';
     
     toast.className = `fixed top-4 right-4 z-[300] ${bgColor} text-white px-5 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all transform translate-y-2 opacity-0 flex items-center gap-3 active:scale-95 cursor-pointer shadow-xl`;
     
@@ -799,12 +834,4 @@ async function generateQr() {
     } catch {}
 }
 
-function connectWebSocket() {
-    if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
-    const socket = new window.SockJS('/ws'); stompClient = window.Stomp.over(socket); stompClient.debug = null;
-    stompClient.connect({}, () => {
-        stompClient.subscribe(`/topic/session/${activeSessionId}/qr`, generateQr);
-        stompClient.subscribe(`/topic/session/${activeSessionId}`, () => loadRollCall(activeSessionId));
-    });
-}
 function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }

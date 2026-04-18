@@ -63,6 +63,7 @@ public class AttendanceRecord {
 
     @OneToMany(mappedBy = "attendanceRecord", cascade = CascadeType.ALL)
     @JsonIgnore
+    @Builder.Default
     private Set<Justification> justifications = new HashSet<>();
 
     @Column(length = 500)

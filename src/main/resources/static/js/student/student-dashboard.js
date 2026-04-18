@@ -449,19 +449,65 @@ function openScanner(sessionId) {
         btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
     }
 
-    try {
-        html5QrScanner = new Html5Qrcode("qr-reader");
-        html5QrScanner.start(
-            { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess
-        ).catch(err => {
-            console.warn("Camera fallback or unsupported.", err);
-            html5QrScanner = null;
+    startQrCamera();
+}
+
+function startQrCamera() {
+    const readerEl = document.getElementById('qr-reader');
+    if (!readerEl) return;
+
+    // Show requesting camera indicator
+    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-4">
+        <svg class="w-8 h-8 text-slate-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <p class="text-xs text-slate-400 font-bold">Requesting camera...</p>
+    </div>`;
+
+    // Request camera permission explicitly first (required on iOS/Android)
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(stream => {
+            // Stop the probe stream immediately; Html5Qrcode manages its own
+            stream.getTracks().forEach(t => t.stop());
+
+            // Now initialize the scanner
+            readerEl.innerHTML = '';
+            try {
+                html5QrScanner = new Html5Qrcode('qr-reader');
+                html5QrScanner.start(
+                    { facingMode: 'environment' },
+                    { fps: 10, qrbox: { width: 200, height: 200 } },
+                    onScanSuccess
+                ).catch(err => {
+                    console.warn('Scanner start failed:', err);
+                    showCameraError(readerEl);
+                });
+            } catch (err) {
+                console.warn('Html5Qrcode init failed:', err);
+                showCameraError(readerEl);
+            }
+        })
+        .catch(err => {
+            console.warn('Camera permission denied or unavailable:', err);
+            showCameraPermissionDenied(readerEl);
         });
-    } catch (err) {
-        console.warn("Failed to init scanner", err);
-    }
+}
+
+function showCameraError(readerEl) {
+    html5QrScanner = null;
+    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-3">
+        <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-xs text-rose-500 font-bold text-center">Camera failed to start</p>
+        <button onclick="startQrCamera()" class="mt-1 px-3 py-1 bg-[#00B0FF] text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Retry</button>
+    </div>`;
+}
+
+function showCameraPermissionDenied(readerEl) {
+    html5QrScanner = null;
+    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-1 p-3">
+        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <p class="text-[10px] text-amber-600 font-black text-center uppercase tracking-wide">Camera Access Denied</p>
+        <p class="text-[9px] text-slate-400 text-center">Allow camera in your browser settings,<br>then tap Retry.</p>
+        <button onclick="startQrCamera()" class="mt-1 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Retry</button>
+    </div>`;
 }
 
 function onScanSuccess(decodedText) {
