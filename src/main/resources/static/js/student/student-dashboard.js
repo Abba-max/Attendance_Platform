@@ -456,39 +456,57 @@ function startQrCamera() {
     const readerEl = document.getElementById('qr-reader');
     if (!readerEl) return;
 
-    // Show requesting camera indicator
+    // Stop any previous scanner instance
+    if (html5QrScanner) {
+        html5QrScanner.stop().catch(() => {});
+        html5QrScanner = null;
+    }
+
+    // Check if camera APIs are available at all
+    // On HTTP (non-localhost), mobile browsers block camera APIs
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-3">
+            <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            <p class="text-[10px] text-rose-600 font-black text-center uppercase tracking-wide">Camera unavailable</p>
+            <p class="text-[9px] text-slate-400 text-center">Camera requires a secure (HTTPS) connection.<br>Enter the PIN manually if you have it.</p>
+        </div>`;
+        return;
+    }
+
+    // Show a loading indicator while requesting camera
     readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-4">
-        <svg class="w-8 h-8 text-slate-300 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-        <p class="text-xs text-slate-400 font-bold">Requesting camera...</p>
+        <svg class="w-8 h-8 text-[#00B0FF] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <p class="text-xs text-slate-400 font-bold">Allow camera access...</p>
     </div>`;
 
-    // Request camera permission explicitly first (required on iOS/Android)
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(stream => {
-            // Stop the probe stream immediately; Html5Qrcode manages its own
-            stream.getTracks().forEach(t => t.stop());
-
-            // Now initialize the scanner
-            readerEl.innerHTML = '';
-            try {
-                html5QrScanner = new Html5Qrcode('qr-reader');
-                html5QrScanner.start(
-                    { facingMode: 'environment' },
-                    { fps: 10, qrbox: { width: 200, height: 200 } },
-                    onScanSuccess
-                ).catch(err => {
-                    console.warn('Scanner start failed:', err);
-                    showCameraError(readerEl);
-                });
-            } catch (err) {
-                console.warn('Html5Qrcode init failed:', err);
-                showCameraError(readerEl);
-            }
+    // Start Html5Qrcode directly — it handles getUserMedia and the OS permission dialog internally
+    // We do NOT use a probe stream; that probe was unreliable on HTTP and caused a double-permission flow
+    try {
+        html5QrScanner = new Html5Qrcode('qr-reader');
+        html5QrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 10, qrbox: { width: 180, height: 180 } },
+            onScanSuccess
+        )
+        .then(() => {
+            // Scanner started — clear any placeholder content Html5Qrcode may have hidden
         })
         .catch(err => {
-            console.warn('Camera permission denied or unavailable:', err);
-            showCameraPermissionDenied(readerEl);
+            console.warn('Scanner start failed:', err);
+            const msg = (err && err.toString().toLowerCase().includes('permission'))
+                || (err && err.toString().toLowerCase().includes('denied'))
+                || (err && err.toString().toLowerCase().includes('notallowed'))
+                ? 'permission' : 'error';
+            if (msg === 'permission') {
+                showCameraPermissionDenied(readerEl);
+            } else {
+                showCameraError(readerEl);
+            }
         });
+    } catch (err) {
+        console.warn('Html5Qrcode init failed:', err);
+        showCameraError(readerEl);
+    }
 }
 
 function showCameraError(readerEl) {

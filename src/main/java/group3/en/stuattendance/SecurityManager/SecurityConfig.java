@@ -41,8 +41,10 @@ public class SecurityConfig {
 
     @Value("${jwt.cookie-name}")
     private String cookieName;
-    // ─────────────────────────────────────────────────────────
 
+    @Value("${server.port:8443}")
+    private int httpsPort;
+    // ─────────────────────────────────────────────────────────
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -92,7 +94,7 @@ public class SecurityConfig {
                             );
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
-                            jwtCookie.setSecure(false);
+                            jwtCookie.setSecure(true); // Required for HTTPS
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
@@ -166,6 +168,29 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    /**
+     * Adds a plain HTTP connector on port 8080 that redirects all traffic to HTTPS.
+     * This allows users who type http://10.50.235.23:8080 to be automatically
+     * forwarded to https://10.50.235.23:8443.
+     */
+    @Bean
+    public org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory tomcatServletWebServerFactory() {
+        org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory factory =
+                new org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory();
+        factory.addAdditionalTomcatConnectors(httpToHttpsRedirectConnector());
+        return factory;
+    }
+
+    private org.apache.catalina.connector.Connector httpToHttpsRedirectConnector() {
+        org.apache.catalina.connector.Connector connector =
+                new org.apache.catalina.connector.Connector(org.apache.coyote.http11.Http11NioProtocol.class.getName());
+        connector.setScheme("http");
+        connector.setPort(8080);
+        connector.setSecure(false);
+        connector.setRedirectPort(httpsPort);
+        return connector;
     }
     // ─────────────────────────────────────────────────────────
 }

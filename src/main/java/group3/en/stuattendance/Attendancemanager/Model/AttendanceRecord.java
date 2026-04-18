@@ -39,6 +39,15 @@ public class AttendanceRecord {
     @JsonIgnore
     private User user;
 
+    /**
+     * Legacy column — references the old `students` table FK.
+     * Set to nullable so MySQL skips FK validation (NULL bypasses FK checks).
+     * Hibernate will ALTER this column to allow NULL on next startup (ddl-auto=update).
+     */
+    @Column(name = "student_id", nullable = true)
+    @JsonIgnore
+    private Integer studentId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id", nullable = false)
     @JsonIgnore
