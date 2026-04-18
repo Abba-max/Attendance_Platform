@@ -65,9 +65,11 @@ public class SecurityConfig {
                                 "/favicon.ico",
                                 "/error"
                         ).permitAll()
+                        .requestMatchers("/admin/classrooms/**").hasAnyRole("ADMIN", "PEDAGOG")
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/pedagog/**", "/api/pedagog/**").hasRole("PEDAGOG")
-                        .requestMatchers("/teacher/**", "/api/teacher/**").hasRole("TEACHER")
+                        .requestMatchers("/teacher/**").hasRole("TEACHER")
+                        .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "PEDAGOG", "ADMIN")
                         .requestMatchers("/api/attendance/**").hasAnyRole("TEACHER", "PEDAGOG")
                         .anyRequest().authenticated()  // ← doit toujours être en dernier
                 )

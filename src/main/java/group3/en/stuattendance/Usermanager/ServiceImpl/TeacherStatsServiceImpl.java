@@ -10,6 +10,7 @@ import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
 import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
 import group3.en.stuattendance.Usermanager.DTO.TeacherClassCourseDto;
 import group3.en.stuattendance.Usermanager.DTO.TeacherStudentStatDto;
+import group3.en.stuattendance.Usermanager.DTO.TeacherFullStudentDto;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.TeacherStatsService;
@@ -82,5 +83,37 @@ public class TeacherStatsServiceImpl implements TeacherStatsService {
         }
         
         return stats;
+    }
+
+    @Override
+    public List<TeacherFullStudentDto> getTeacherFullStudentList(Integer teacherId) {
+        List<TeacherClassCourseDto> contexts = getTeacherClassesAndCourses(teacherId);
+        List<TeacherFullStudentDto> result = new ArrayList<>();
+
+        for (TeacherClassCourseDto ctx : contexts) {
+            List<TeacherStudentStatDto> studentStats = getStudentAttendanceForCourse(ctx.getClassroomId(), ctx.getCourseId());
+            for (TeacherStudentStatDto ss : studentStats) {
+                String initials = "";
+                if (ss.getStudentName() != null && !ss.getStudentName().isEmpty()) {
+                    String[] parts = ss.getStudentName().split(" ");
+                    if (parts.length >= 2) {
+                        initials = (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
+                    } else {
+                        initials = ss.getStudentName().substring(0, Math.min(2, ss.getStudentName().length())).toUpperCase();
+                    }
+                }
+
+                result.add(TeacherFullStudentDto.builder()
+                        .name(ss.getStudentName())
+                        .initials(initials)
+                        .classLabel(ctx.getClassroomName())
+                        .subject(ctx.getCourseName())
+                        .pct(ss.getAttendanceRate())
+                        .attendedHours(ss.getAttendedHours())
+                        .totalHours(ss.getTotalCourseHours())
+                        .build());
+            }
+        }
+        return result;
     }
 }

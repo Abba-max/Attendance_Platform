@@ -45,8 +45,9 @@ public class TimetablecontentMapper {
                 .courseId(entity.getCourse() != null ? entity.getCourse().getCourseId() : null)
                 .courseName(entity.getCourse() != null ? entity.getCourse().getCourseName() : null)
                 .teacherId(entity.getTeacher() != null ? entity.getTeacher().getUserId() : null)
-                .teacherName(entity.getTeacher() != null ? entity.getTeacher().getUsername() : null)
+                .teacherName(entity.getTeacher() != null ? (entity.getTeacher().getFirstName() + " " + entity.getTeacher().getLastName()) : null)
                 .color(entity.getColor())
+                .classroomName(entity.getTimetablecontent() != null && entity.getTimetablecontent().getClassroom() != null ? entity.getTimetablecontent().getClassroom().getName() : null)
                 .build();
     }
 

@@ -127,7 +127,7 @@ public class CourseServiceImpl implements CourseService {
     public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
         return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
-                .filter(c -> c.getLevel() != null && c.getLevel().equals(level))
+                .filter(c -> level == null || (c.getLevel() != null && c.getLevel().equals(level)))
                 .map(courseMapper::toDto)
                 .collect(Collectors.toList());
     }

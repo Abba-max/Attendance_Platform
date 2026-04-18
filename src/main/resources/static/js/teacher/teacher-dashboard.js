@@ -60,7 +60,37 @@ window.navigateTo = function(section) {
     if (target) target.classList.remove('hidden');
 
     window.location.hash = section;
+
+    if (section === 'students') {
+        fetchMyStudents();
+    }
 };
+
+async function fetchMyStudents() {
+    const tbody = document.getElementById('students-table-body');
+    const cards = document.getElementById('students-cards-mobile');
+    
+    // Only show loading if we don't have data yet
+    if (!window.studentsData || window.studentsData.length === 0) {
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-5 py-10 text-center text-slate-400 text-sm">Loading students...</td></tr>';
+    }
+
+    try {
+        const res = await fetch('/api/teacher/students');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        
+        window.studentsData = data;
+        
+        // Trigger the local rendering logic defined in the HTML
+        if (window.refreshStudentsUI) {
+            window.refreshStudentsUI();
+        }
+    } catch (e) {
+        console.error("Failed to load students", e);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-5 py-10 text-center text-red-500 text-sm">failed to load students.</td></tr>';
+    }
+}
 
 // ── Schedule Core ────────────────────────────────────────────────────────
 async function loadSessions() {
@@ -261,156 +291,39 @@ function updateOverview(totalToday, doneToday) {
         pctEl.textContent = `${pct}%`;
     }
     
-    // Sync Pending count (unfinalized sessions across all time)
-    const pendingCount = allSessions.filter(s => s.status === 'IN_PROGRESS' || (s.status === 'COMPLETED' && !s.isValidated)).length;
-    const pendingEl = document.getElementById('pending-attendance-count');
-    if (pendingEl) pendingEl.textContent = String(pendingCount);
+    // Calculate Next Session
+    const nextSessionEl = document.getElementById('overview-upcoming-session');
+    if (nextSessionEl) {
+        const now = new Date();
+        const upcoming = allSessions.filter(s => {
+            if (s.status === 'COMPLETED') return false;
+            if (!s.date || !s.startTime) return false;
+            const sDate = new Date(s.date + 'T' + s.startTime);
+            return sDate >= now || s.status === 'IN_PROGRESS';
+        }).sort((a, b) => new Date(a.date + 'T' + a.startTime) - new Date(b.date + 'T' + b.startTime));
 
-    // Update new dashboard stats
-    updateDashboardStats();
-    updateTodayClasses();
-    updatePendingGrading();
-}
-
-function updateDashboardStats() {
-    // Calculate unique classes
-    const uniqueClasses = new Set();
-    allSessions.forEach(s => {
-        if (s.classroomId && s.courseId) {
-            uniqueClasses.add(`${s.classroomId}-${s.courseId}`);
-        }
-    });
-    const myClassesEl = document.getElementById('stat-my-classes');
-    if (myClassesEl) myClassesEl.textContent = String(uniqueClasses.size);
-
-    // Calculate total students
-    const uniqueStudents = new Set();
-    allSessions.forEach(s => {
-        if (s.classroomId) {
-            // This is an approximation - in real implementation, fetch from backend
-        }
-    });
-    const totalStudentsEl = document.getElementById('stat-total-students');
-    if (totalStudentsEl) {
-        // Keep placeholder for now - should be fetched from backend
-        totalStudentsEl.textContent = '142';
-    }
-
-    // Calculate average attendance
-    const completedSessions = allSessions.filter(s => s.status === 'COMPLETED');
-    let totalAttendance = 0;
-    let sessionCount = 0;
-    completedSessions.forEach(s => {
-        if (s.attendanceRate !== undefined && s.attendanceRate !== null) {
-            totalAttendance += s.attendanceRate;
-            sessionCount++;
-        }
-    });
-    const avgAttendance = sessionCount > 0 ? Math.round(totalAttendance / sessionCount) : 94;
-    const avgAttendanceEl = document.getElementById('stat-avg-attendance');
-    if (avgAttendanceEl) avgAttendanceEl.textContent = `${avgAttendance}%`;
-
-    // Pending grading
-    const pendingCount = allSessions.filter(s =>
-        (s.status === 'COMPLETED' && !s.isValidated) || s.status === 'IN_PROGRESS'
-    ).length;
-    const pendingGradingEl = document.getElementById('stat-pending-grading');
-    if (pendingGradingEl) pendingGradingEl.textContent = String(pendingCount);
-}
-
-function updateTodayClasses() {
-    const todayClassesEl = document.getElementById('today-classes-list');
-    if (!todayClassesEl) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const todaySessions = allSessions
-        .filter(s => s.date === today)
-        .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-
-    if (todaySessions.length === 0) {
-        todayClassesEl.innerHTML = '<div class="text-sm text-slate-500 py-8 text-center">No classes scheduled for today</div>';
-        return;
-    }
-
-    todayClassesEl.innerHTML = todaySessions.map(s => {
-        const timeStr = s.startTime ? s.startTime.substring(0, 5) : '--:--';
-        const endTimeStr = s.endTime ? s.endTime.substring(0, 5) : '--:--';
-        const isActive = s.status === 'IN_PROGRESS';
-        const isDone = s.status === 'COMPLETED';
-
-        let statusBadge = '';
-        if (isActive) {
-            statusBadge = '<span class="text-xs text-red-600 font-semibold">LIVE</span>';
-        } else if (isDone) {
-            statusBadge = '<span class="text-xs text-green-600 font-semibold">Completed</span>';
+        if (upcoming.length > 0) {
+            const next = upcoming[0];
+            nextSessionContext = next; // Store for global access
+            const timeStr = next.startTime ? next.startTime.substring(0, 5) : '--:--';
+            
+            const isActive = next.status === 'IN_PROGRESS';
+            nextSessionEl.innerHTML = `
+                <div onclick="handleSessionAction(${next.sessionId})" class="cursor-pointer group active:scale-[0.98] transition-all">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors truncate">${next.courseName || 'Course'}</h3>
+                            <p class="text-[11px] font-bold text-slate-500 mt-1">${next.classroomName || 'Room'} • <span class="${isActive ? 'text-blue-600' : 'text-emerald-600'}">${timeStr}</span></p>
+                        </div>
+                        ${isActive ? '<span class="px-2 py-1 bg-red-100 text-red-600 text-[9px] font-black uppercase tracking-widest rounded flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span>LIVE</span>' : ''}
+                    </div>
+                </div>
+            `;
         } else {
-            statusBadge = `<span class="text-xs text-slate-500">${s.attendanceRate || '0'}%</span>`;
+            nextSessionContext = null;
+            nextSessionEl.innerHTML = `<p class="text-xs font-bold text-slate-400">No upcoming classes scheduled.</p>`;
         }
-
-        return `
-            <div class="border border-slate-200 rounded-xl p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer ${isActive ? 'bg-blue-50 border-blue-300' : ''}" onclick="handleSessionAction(${s.sessionId})">
-                <div class="flex items-start justify-between mb-2">
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-slate-900 text-sm">${s.courseName || 'Course'}</h4>
-                        <p class="text-xs text-slate-500 mt-1">${s.classroomName || 'Classroom'}</p>
-                    </div>
-                    ${statusBadge}
-                </div>
-                <div class="flex items-center gap-2 text-xs text-slate-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span>${timeStr} - ${endTimeStr}</span>
-                </div>
-                <div class="mt-2 text-xs text-slate-500">
-                    Attendance Rate: <span class="font-semibold">${s.attendanceRate || 0}%</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function updatePendingGrading() {
-    const pendingGradingEl = document.getElementById('pending-grading-list');
-    if (!pendingGradingEl) return;
-
-    const pendingSessions = allSessions.filter(s =>
-        (s.status === 'COMPLETED' && !s.isValidated) || s.status === 'IN_PROGRESS'
-    ).sort((a, b) => {
-        if (!a.date || !b.date) return 0;
-        return b.date.localeCompare(a.date);
-    }).slice(0, 5); // Show only top 5
-
-    if (pendingSessions.length === 0) {
-        pendingGradingEl.innerHTML = '<div class="text-sm text-slate-500 py-8 text-center">No pending grading items</div>';
-        return;
     }
-
-    pendingGradingEl.innerHTML = pendingSessions.map(s => {
-        const progress = s.attendanceRate || 0;
-        const date = s.date ? new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-
-        return `
-            <div class="space-y-2">
-                <div class="flex items-start justify-between">
-                    <div class="flex-1">
-                        <h4 class="font-semibold text-slate-900 text-sm">${s.courseName || 'Course'}</h4>
-                        <p class="text-xs text-slate-500">${s.classroomName || 'Classroom'}</p>
-                    </div>
-                    <span class="text-xs text-slate-500">${date}</span>
-                </div>
-                <div class="w-full">
-                    <div class="flex items-center justify-between text-xs mb-1">
-                        <span class="text-slate-500">Progress</span>
-                        <span class="font-semibold text-slate-900">${Math.round(progress)}%</span>
-                    </div>
-                    <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div class="h-full bg-blue-500 transition-all" style="width: ${progress}%"></div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
 }
 
 window.takeAttendanceFromOverview = function() {

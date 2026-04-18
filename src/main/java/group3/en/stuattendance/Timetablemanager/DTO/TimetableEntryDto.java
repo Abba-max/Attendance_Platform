@@ -34,4 +34,8 @@ public class TimetableEntryDto {
 
     /** Hex color code (e.g. #00B0FF) chosen by the user for the block. */
     private String color;
+
+    private Integer sessionId;
+    private String status; // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+    private String classroomName;
 }

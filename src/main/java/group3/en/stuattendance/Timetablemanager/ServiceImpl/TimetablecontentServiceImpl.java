@@ -180,7 +180,32 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
         Timetablecontent timetablecontent = timetablecontentRepository
                 .findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, finalYearId, week, semester)
                 .orElseThrow(() -> new EntityNotFoundException("Active Timetable not found for classroom " + classroomId + ", year " + finalYearId + ", week " + week + " and semester " + semester));
-        return timetablecontentMapper.toDto(timetablecontent);
+        
+        TimetablecontentDto dto = timetablecontentMapper.toDto(timetablecontent);
+
+        // Enrich entries with session data
+        List<group3.en.stuattendance.Timetablemanager.Model.Session> sessions = sessionRepository.findByClassroomClassIdAndWeek(classroomId, week);
+        java.util.Map<Integer, group3.en.stuattendance.Timetablemanager.Model.Session> sessionMap = sessions.stream()
+                .filter(s -> s.getTimetableEntry() != null)
+                .collect(java.util.stream.Collectors.toMap(
+                    s -> s.getTimetableEntry().getEntryId(), 
+                    s -> s, 
+                    (s1, s2) -> s1 // In case of duplicates
+                ));
+
+        if (dto.getEntries() != null) {
+            for (var entry : dto.getEntries()) {
+                group3.en.stuattendance.Timetablemanager.Model.Session s = sessionMap.get(entry.getEntryId());
+                if (s != null) {
+                    entry.setSessionId(s.getSessionId());
+                    entry.setStatus(s.getStatus().name());
+                } else {
+                    entry.setStatus("SCHEDULED");
+                }
+            }
+        }
+
+        return dto;
     }
 
     @Override

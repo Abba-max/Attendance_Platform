@@ -9,6 +9,7 @@ import group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
 import group3.en.stuattendance.Usermanager.DTO.TeacherClassCourseDto;
 import group3.en.stuattendance.Usermanager.DTO.TeacherStudentStatDto;
+import group3.en.stuattendance.Usermanager.DTO.TeacherFullStudentDto;
 import group3.en.stuattendance.Usermanager.Mapper.UserMapper;
 import group3.en.stuattendance.Usermanager.Service.TeacherStatsService;
 import group3.en.stuattendance.Usermanager.Service.UserService;
@@ -25,7 +26,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/teacher")
-@PreAuthorize("hasRole('TEACHER')")
+@PreAuthorize("hasAnyRole('TEACHER', 'PEDAGOG', 'ADMIN')")
 public class TeacherController {
 
     private final SessionService sessionService;
@@ -161,5 +162,13 @@ public class TeacherController {
             @PathVariable Integer classroomId,
             @PathVariable Integer courseId) {
         return ResponseEntity.ok(teacherStatsService.getStudentAttendanceForCourse(classroomId, courseId));
+    }
+
+    /**
+     * Get All students across all classes taught by this teacher.
+     */
+    @GetMapping("/students")
+    public ResponseEntity<List<TeacherFullStudentDto>> getMyStudents(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(teacherStatsService.getTeacherFullStudentList(userDetails.getUserId()));
     }
 }

@@ -206,83 +206,39 @@
             <!-- Section 1: Dashboard Overview -->
             <section id="section-dashboard" class="content-section space-y-8">
                 <div>
-                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Welcome back, <span th:text="${firstName + ' ' + lastName}">Dr. Robert Smith</span>!</h2>
-                    <p class="text-sm text-slate-500 mt-1">Here's your teaching overview for today</p>
+                    <h2 class="text-2xl font-bold text-slate-900 tracking-tight">Welcome, <span th:text="${firstName}">Teacher</span>.</h2>
+                    <p class="text-sm text-slate-500 mt-1">Here is your functional overview.</p>
                 </div>
 
-                <!-- Stat Cards Row -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <!-- My Classes -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs text-slate-500 mb-1">My Classes</p>
-                            <h3 id="stat-sessions-total" class="text-3xl font-bold text-slate-900">0</h3>
-                        </div>
-                        <div class="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-[#00B0FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        </div>
-                    </div>
-                    <!-- Total Students -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div>
-                            <p class="text-xs text-slate-500 mb-1">Total Students</p>
-                            <h3 id="stat-students-total" class="text-3xl font-bold text-slate-900">0</h3>
-                        </div>
-                        <div class="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                        </div>
-                    </div>
-                    <!-- Next Session -->
-                    <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-xs text-slate-500 mb-1">Next Session</p>
-                            <div id="overview-upcoming-session">
-                                <p class="text-sm font-semibold text-slate-900 truncate">Calculating...</p>
-                            </div>
-                        </div>
-                        <div class="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0 ml-3">
-                            <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- My Classes Today + Pending Grading -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <!-- My Classes Today -->
-                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <h3 class="text-base font-semibold text-slate-900 mb-4">My Classes Today</h3>
-                        <div id="overview-classes-today" class="space-y-3">
-                            <p class="text-sm text-slate-400 text-center py-6">Loading classes...</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Daily Volume -->
+                    <div class="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-lg shadow-slate-500/5 flex flex-col justify-between relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Classes</p>
+                        <div class="flex items-end justify-between relative z-10">
+                            <h3 id="stat-sessions-total" class="text-3xl font-black text-slate-900">0</h3>
+                            <span class="text-[10px] font-bold text-slate-400 pb-1">Sessions</span>
                         </div>
                     </div>
 
-                    <!-- Pending Grading -->
-                    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                        <h3 class="text-base font-semibold text-slate-900 mb-4">Session Summary</h3>
-                        <div class="space-y-4">
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="font-medium text-slate-700">Sessions Completed</span>
-                                    <span id="stat-sessions-done" class="font-bold text-slate-900">0</span>
-                                </div>
-                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div id="progress-sessions-bar" class="h-full bg-[#00B0FF] rounded-full transition-all duration-700" style="width:0%"></div>
-                                </div>
+                    <!-- Progress -->
+                    <div class="bg-white p-6 rounded-3xl border-2 border-emerald-100 shadow-lg shadow-emerald-500/5 flex flex-col justify-between relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl"></div>
+                        <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Covered Already</p>
+                        <div class="flex items-end justify-between relative z-10">
+                            <h3 id="stat-sessions-done" class="text-3xl font-black text-slate-900">0</h3>
+                            <div class="flex flex-col items-end">
+                                <span id="stat-sessions-pct" class="text-[10px] font-black text-emerald-600">0%</span>
+                                <span class="text-[10px] font-bold text-slate-400">Complete</span>
                             </div>
-                            <div>
-                                <div class="flex justify-between text-sm mb-1">
-                                    <span class="font-medium text-slate-700">Attendance Rate</span>
-                                    <span id="stat-attendance-bar-label" class="font-bold text-emerald-600">0%</span>
-                                </div>
-                                <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-                                    <div id="progress-attendance-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-700" style="width:0%"></div>
-                                </div>
-                            </div>
-                            <div class="pt-2 border-t border-slate-100">
-                                <button onclick="navigateTo('schedule')" class="w-full py-2.5 px-4 bg-[#00B0FF] text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition-all">
-                                    View Full Schedule
-                                </button>
-                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Session -->
+                    <div class="bg-white p-6 rounded-3xl border-2 border-slate-200 shadow-lg shadow-slate-500/5 transition-all flex flex-col justify-between relative overflow-hidden group">
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 relative z-10">Upcoming Session</p>
+                        <div id="overview-upcoming-session" class="relative z-10 flex-1 flex flex-col justify-center">
+                            <p class="text-sm font-medium text-slate-500">Calculating next class...</p>
                         </div>
                     </div>
                 </div>
@@ -1028,21 +984,19 @@
                             <span class="font-medium text-slate-800">${s.name}</span></div></td>
                         <td class="px-4 py-3.5 text-slate-600 text-sm">${s.classLabel}</td>
                         <td class="px-4 py-3.5 text-slate-600 text-sm">${s.subject}</td>
-                        <td class="px-4 py-3.5"><div class="flex items-center justify-center gap-2">
-                            <div class="relative w-9 h-9 flex-shrink-0">
-                                <svg class="w-full h-full -rotate-90" viewBox="0 0 24 24">
-                                    <circle cx="12" cy="12" r="10" fill="none" stroke="#F1F5F9" stroke-width="2.5"/>
-                                    <circle cx="12" cy="12" r="10" fill="none" stroke="${color}" stroke-width="2.5"
-                                        stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" stroke-linecap="round"/>
-                                </svg>
-                                <span class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-slate-700">${s.pct}%</span>
-                            </div>
-                            <div class="hidden lg:block min-w-[80px]">
-                                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full" style="width:${s.pct}%;background:${color};"></div>
+                        <td class="px-4 py-3.5">
+                            <div class="flex flex-col gap-1.5 min-w-[140px]">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-tight">${s.pct.toFixed(0)}% Yield</span>
+                                    <span class="text-[10px] font-bold text-slate-400 font-mono tracking-tighter">${s.attendedHours || 0}/${s.totalHours || 0}h</span>
                                 </div>
-                                <span class="text-[10px] text-slate-500">${s.pct}% attendance</span>
-                            </div></div></td>
+                                <div class="h-2 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100/50">
+                                    <div class="h-full rounded-full transition-all duration-1000 shadow-sm" 
+                                         style="width:${s.pct}%; background: ${s.pct >= 80 ? 'linear-gradient(90deg, #00B0FF, #0091D5)' : s.pct >= 60 ? '#f59e0b' : '#f43f5e'};">
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
                         <td class="px-4 py-3.5 text-center"><span class="px-2.5 py-1 rounded-full text-xs font-semibold ${cls}">${label}</span></td>
                     </tr>`;
                 }).join('');
@@ -1056,9 +1010,12 @@
                             <div class="w-10 h-10 rounded-xl bg-[#00B0FF]/10 text-[#00B0FF] flex items-center justify-center text-xs font-bold flex-shrink-0">${s.initials}</div>
                             <div class="flex-1 min-w-0">
                                 <p class="font-semibold text-slate-800 truncate text-sm">${s.name}</p>
-                                <p class="text-xs text-slate-500">${s.classLabel} · ${s.subject}</p>
-                                <div class="mt-1.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                    <div class="h-full rounded-full" style="width:${s.pct}%;background:${color};"></div>
+                                <p class="text-[10px] text-slate-500 mb-1 flex justify-between">
+                                    <span>${s.classLabel} · ${s.subject}</span>
+                                    <span class="font-mono font-bold">${s.pct.toFixed(0)}% (${s.attendedHours || 0}/${s.totalHours || 0}h)</span>
+                                </p>
+                                <div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full" style="width:${s.pct}%;background:${s.pct >= 80 ? '#00B0FF' : s.pct >= 60 ? '#f59e0b' : '#ef4444'};"></div>
                                 </div>
                             </div>
                             <div class="text-right flex-shrink-0 ml-2">
@@ -1089,6 +1046,7 @@
         };
 
         function init() { populateFilters(source()); render(source()); }
+        window.refreshStudentsUI = init;
         document.addEventListener('DOMContentLoaded', init);
         setTimeout(init, 800);
     })();

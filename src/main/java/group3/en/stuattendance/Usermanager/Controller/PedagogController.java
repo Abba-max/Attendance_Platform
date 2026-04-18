@@ -3,6 +3,8 @@ package group3.en.stuattendance.Usermanager.Controller;
 import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Timetablemanager.Service.CourseService;
 import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
+import group3.en.stuattendance.Usermanager.DTO.PedagogAttendanceStatsDto;
+import group3.en.stuattendance.Usermanager.DTO.PedagogStudentAttendanceStatsDto;
 import group3.en.stuattendance.Usermanager.DTO.StudentCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.TeacherCreateDto;
 import group3.en.stuattendance.Usermanager.DTO.UserDto;
@@ -26,6 +28,8 @@ public class PedagogController {
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
     private final group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
+    private final group3.en.stuattendance.Usermanager.Service.PedagogStatsService pedagogStatsService;
+    private final group3.en.stuattendance.Institutionmanager.Repository.DepartmentRepository departmentRepository;
 
     /**
      * Monitor active sessions in delegated classrooms.
@@ -119,7 +123,7 @@ public class PedagogController {
     @GetMapping("/courses/filter")
     public ResponseEntity<List<CourseDto>> getCoursesByFilter(
             @RequestParam Integer specialityId,
-            @RequestParam Integer level) {
+            @RequestParam(required = false) Integer level) {
         return ResponseEntity.ok(courseService.getCoursesBySpecialityAndLevel(specialityId, level));
     }
 
@@ -156,5 +160,43 @@ public class PedagogController {
             @PathVariable Integer id,
             @RequestParam String reason) {
         return ResponseEntity.ok(justificationService.rejectJustification(id, reason));
+    }
+
+    /**
+     * Get Attendance Statistics for the department.
+     */
+    @GetMapping("/stats/attendance")
+    public ResponseEntity<List<PedagogAttendanceStatsDto>> getAttendanceStats(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal group3.en.stuattendance.Usermanager.Authentication.CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer specialityId,
+            @RequestParam(required = false) Integer classroomId,
+            @RequestParam(required = false) Integer courseId,
+            @RequestParam(required = false) Integer week) {
+        
+        // Find the first department this pedagog manages
+        var departments = departmentRepository.findByPedagogicAssistants_UserId(userDetails.getUserId());
+        if (departments.isEmpty()) return ResponseEntity.ok(List.of());
+        
+        return ResponseEntity.ok(pedagogStatsService.getAttendanceStats(
+                departments.get(0).getDepartmentId(), specialityId, classroomId, courseId, week));
+    }
+
+    /**
+     * Get detailed student attendance for a classroom and course.
+     */
+    @GetMapping("/stats/students")
+    public ResponseEntity<List<PedagogStudentAttendanceStatsDto>> getStudentStats(
+            @RequestParam Integer classroomId,
+            @RequestParam Integer courseId,
+            @RequestParam(required = false) Integer week) {
+        return ResponseEntity.ok(pedagogStatsService.getStudentAttendanceStats(classroomId, courseId, week));
+    }
+
+    /**
+     * Get All weeks that have completed sessions.
+     */
+    @GetMapping("/stats/weeks")
+    public ResponseEntity<List<Integer>> getCompletedWeeks() {
+        return ResponseEntity.ok(pedagogStatsService.getCompletedWeeks());
     }
 }

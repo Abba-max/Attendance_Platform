@@ -10,6 +10,9 @@ import java.util.List;
 @Repository
 public interface SessionRepository extends JpaRepository<Session, Integer> {
 
+    @org.springframework.data.jpa.repository.Query("SELECT DISTINCT s.week FROM Session s WHERE s.status = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.COMPLETED ORDER BY s.week DESC")
+    List<Integer> findDistinctWeeksWithCompletedSessions();
+
     List<Session> findByCourseCourseId(Integer courseId);
 
     List<Session> findByStatus(group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
@@ -33,6 +36,8 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
     List<Session> findByTeacherUserIdOrderByDateAscStartTimeAsc(Integer teacherId);
 
     List<Session> findByClassroomClassIdInAndStatus(java.util.Collection<Integer> classroomIds, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
+    List<Session> findByClassroomClassIdAndWeek(Integer classroomId, Integer week);
 
     void deleteByClassroomClassIdAndWeekAndStatus(Integer classroomId, Integer week, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
 }

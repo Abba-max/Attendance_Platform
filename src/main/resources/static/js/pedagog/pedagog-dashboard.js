@@ -80,6 +80,11 @@ function initializeNavigation() {
                     if (typeof loadHubClasses === 'function') loadHubClasses();
                 }
             }
+            if (sectionId === 'stats') {
+                loadStatsWeeks();
+                loadAttendanceStats();
+            }
+
 
             // Update URL
             const url = new URL(window.location);
@@ -2128,30 +2133,81 @@ function escapeHtml(text) {
 /**
  * Weekly Planning Logic for Pedagogic Assistant
  */
-window.loadPlanning = async function() {
-    console.log("Loading planning...");
+window.onPlanningFilterChange = async function() {
+    console.log("Planning filter changed...");
     const specId = document.getElementById('planningSpecId').value;
     const level = document.getElementById('planningLevel').value;
+    const roomSelect = document.getElementById('planningClassroomId');
+    
+    // Reset/Clear classroom select
+    roomSelect.innerHTML = '<option value="">Select Classroom</option>';
+    
+    if (!specId || !level) {
+        clearPlanningGrid();
+        return;
+    }
+    
+    try {
+        console.log(`Fetching classrooms for spec ${specId}...`);
+        const resp = await fetch(`/admin/classrooms/by-speciality/${specId}`);
+        if (resp.ok) {
+            const rooms = await resp.json();
+            console.log("Rooms found:", rooms.length);
+            
+            // Filter by level - handle both "1" and "Level 1" formats
+            const filtered = rooms.filter(r => {
+                const roomLevelNum = String(r.level).replace(/\D/g, '');
+                const targetLevelNum = String(level).replace(/\D/g, '');
+                return roomLevelNum === targetLevelNum;
+            });
+
+            console.log(`Filtered rooms for level ${level}:`, filtered.length);
+            
+            if (filtered.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = rooms.length > 0 ? "No rooms for this level" : "No classrooms found";
+                roomSelect.appendChild(opt);
+            } else {
+                filtered.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.classId;
+                    opt.textContent = `${r.name} (${r.level})`;
+                    roomSelect.appendChild(opt);
+                });
+                
+                if (filtered.length === 1) {
+                    roomSelect.value = filtered[0].classId;
+                    loadPlanning();
+                }
+            }
+        } else {
+            console.error("Failed to fetch classrooms:", resp.status, resp.statusText);
+            roomSelect.innerHTML = '<option value="">Access denied or error</option>';
+        }
+    } catch (e) {
+        console.error("Error refreshing planning classrooms:", e);
+    }
+};
+
+/**
+ * Weekly Planning Logic for Pedagogic Assistant
+ */
+window.loadPlanning = async function() {
+    console.log("Loading planning...");
+    const roomId = document.getElementById('planningClassroomId').value;
     const week = document.getElementById('planningWeek').value;
-    const semester = 1; // Default semester
+    const semester = 1; // Default
     
     // Clear grid and update headers
     clearPlanningGrid();
     updatePlanningDates(week);
 
-    if (!specId || !level || !week) return;
+    if (!roomId || !week) return;
 
     try {
-        // 1. Resolve Classroom
-        const resolveResp = await fetch(`/api/timetablecontent/resolve-classroom?specialityId=${specId}&level=${level}`);
-        if (!resolveResp.ok) {
-            console.warn("No classroom found for the selected speciality and level.");
-            return;
-        }
-        const { classroomId } = await resolveResp.json();
-        
-        // 2. Fetch Timetable
-        const resp = await fetch(`/api/timetablecontent/search?classroomId=${classroomId}&week=${week}&semester=${semester}`);
+        // Direct fetch by classroomId
+        const resp = await fetch(`/api/timetablecontent/search?classroomId=${roomId}&week=${week}&semester=${semester}`);
         if (!resp.ok) throw new Error("Timetable fetch failed");
         
         const timetable = await resp.json();
@@ -2201,6 +2257,13 @@ function renderPlanningGrid(entries) {
         'FRIDAY': 4, 'SATURDAY': 5, 'SUNDAY': 6
     };
 
+    const STATUS_MAP = {
+        'SCHEDULED':   { cls: 'state-scheduled', bCls: 'badge-scheduled', label: '🗓️ Scheduled' },
+        'IN_PROGRESS': { cls: 'state-live',      bCls: 'badge-live',      label: '🔴 LIVE' },
+        'COMPLETED':   { cls: 'state-completed', bCls: 'badge-done',      label: '✅ DONE' },
+        'CANCELLED':   { cls: 'state-scheduled', bCls: 'badge-scheduled', label: 'Cancelled' }
+    };
+
     entries.forEach(entry => {
         const dayIndex = entry.dayOfWeek !== null ? entry.dayOfWeek : dayMap[entry.day.toUpperCase()];
         const startHour = parseInt(entry.startTime.split(':')[0]);
@@ -2209,21 +2272,38 @@ function renderPlanningGrid(entries) {
 
         const slot = document.getElementById(`planning-slot-${startHour}-${dayIndex}`);
         if (slot) {
+            const st = STATUS_MAP[entry.status] || STATUS_MAP['SCHEDULED'];
             const block = document.createElement('div');
-            block.className = 'tt-block p-2';
+            block.className = `tt-block p-2 ${st.cls}`;
             block.style.height = `calc((${duration} * 100%) - 6px)`;
             block.style.borderLeft = `4px solid ${entry.color || '#3b82f6'}`;
             
+            if (entry.status === 'COMPLETED' && entry.sessionId) {
+                block.setAttribute('onclick', `viewSessionPdf(${entry.sessionId})`);
+                block.setAttribute('title', 'Click to view attendance PDF');
+            }
+
             const name = entry.isEvent ? (entry.eventName || 'Event') : (entry.courseName || 'Course');
             const teacher = entry.teacherName ? `By ${entry.teacherName}` : '';
             
             block.innerHTML = `
                 <div class="flex flex-col h-full overflow-hidden">
-                    <span class="text-[9px] font-black uppercase tracking-tight text-slate-400 mb-0.5">${entry.startTime.substring(0, 5)} - ${entry.endTime.substring(0, 5)}</span>
-                    <div class="flex-1 min-w-0">
-                        <p class="font-black text-slate-800 text-[11px] leading-tight line-clamp-2">${name}</p>
-                        <p class="text-[9px] font-bold text-slate-500 mt-0.5 truncate">${teacher}</p>
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[9px] font-black uppercase tracking-tight text-slate-400">
+                            ${entry.startTime.substring(0, 5)} - ${entry.endTime.substring(0, 5)}
+                        </span>
+                        <span class="status-badge ${st.bCls}">${st.label}</span>
                     </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-black text-slate-800 text-[11px] leading-tight line-clamp-2">${escapeHtml(name)}</p>
+                        <p class="text-[9px] font-bold text-slate-500 mt-0.5 truncate">${escapeHtml(teacher)}</p>
+                    </div>
+                    ${entry.status === 'COMPLETED' ? `
+                        <div class="mt-auto flex items-center gap-1 text-[8px] font-black text-emerald-600">
+                            <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            VIEW LIST
+                        </div>
+                    ` : ''}
                 </div>
             `;
             slot.appendChild(block);
@@ -2232,21 +2312,12 @@ function renderPlanningGrid(entries) {
 }
 
 window.exportPlanningPdf = async function() {
-    const specId = document.getElementById('planningSpecId').value;
-    const level = document.getElementById('planningLevel').value;
+    const roomId = document.getElementById('planningClassroomId').value;
     const week = document.getElementById('planningWeek').value;
     
-    if (!specId || !level || !week) return alert("Select Speciality, Level, and Week.");
+    if (!roomId || !week) return alert("Select a Classroom and Week first.");
     
-    try {
-        const resolveResp = await fetch(`/api/timetablecontent/resolve-classroom?specialityId=${specId}&level=${level}`);
-        if (!resolveResp.ok) return alert("Classroom not found.");
-        const { classroomId } = await resolveResp.json();
-        
-        window.open(`/api/timetablecontent/export/pdf?classroomId=${classroomId}&week=${week}&semester=1`, '_blank');
-    } catch (e) {
-        console.error(e);
-    }
+    window.open(`/api/timetablecontent/export/pdf?classroomId=${roomId}&week=${week}&semester=1`, '_blank');
 };
 // ==========================================
 // NOTIFICATION MANAGEMENT
@@ -2862,4 +2933,266 @@ function handleIncomingNotification(n) {
         const count = parseInt(badge.textContent || '0');
         badge.textContent = count + 1;
     }
+}
+
+// ==========================================
+// ATTENDANCE STATISTICS MODULE
+// ==========================================
+
+window.loadStatsWeeks = async function() {
+    try {
+        const response = await fetch('/api/pedagog/stats/weeks');
+        if (response.ok) {
+            const weeks = await response.json();
+            const filter = document.getElementById('statsWeekFilter');
+            if (filter) {
+                // Keep "All Weeks" (first option)
+                const firstOption = filter.options[0];
+                filter.innerHTML = '';
+                filter.appendChild(firstOption);
+                
+                weeks.forEach(w => {
+                    const opt = document.createElement('option');
+                    opt.value = w;
+                    opt.textContent = `Week ${w}`;
+                    filter.appendChild(opt);
+                });
+            }
+        }
+    } catch (e) {
+        console.error("Error loading completed weeks:", e);
+    }
+};
+
+// ==========================================
+// ATTENDANCE STATISTICS MODULE
+// ==========================================
+
+window.currentStatsData = [];
+window.isStatsDetailed = false;
+
+window.onStatsSpecChange = function() {
+    const specId = document.getElementById('statsSpecFilter').value;
+    
+    // Update Classroom Select
+    const classSelect = document.getElementById('statsClassFilter');
+    if (!classSelect) return;
+    classSelect.innerHTML = '<option value="">All Classrooms</option>';
+    
+    const sourceSelect = document.getElementById('emailClassSelect') || document.getElementById('ttClassSelect');
+    if (sourceSelect) {
+        Array.from(sourceSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            const optSpecId = opt.getAttribute('data-spec');
+            if (!specId || optSpecId === specId) {
+                const newOpt = document.createElement('option');
+                newOpt.value = opt.value;
+                newOpt.textContent = opt.textContent;
+                // Preserve level data for classroom
+                newOpt.setAttribute('data-level', opt.getAttribute('data-level') || '0');
+                classSelect.appendChild(newOpt);
+            }
+        });
+    }
+
+    // Update Course Select (all for spec)
+    const courseSelect = document.getElementById('statsCourseFilter');
+    if (!courseSelect) return;
+    courseSelect.innerHTML = '<option value="">All Courses</option>';
+    
+    if (specId) {
+        fetch(`/api/pedagog/courses/filter?specialityId=${specId}`)
+            .then(res => res.json())
+            .then(courses => {
+                courses.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.courseId;
+                    opt.textContent = c.courseName;
+                    courseSelect.appendChild(opt);
+                });
+            });
+    }
+
+    loadAttendanceStats();
+};
+
+window.onStatsClassChange = function() {
+    const specId = document.getElementById('statsSpecFilter').value;
+    const classSelect = document.getElementById('statsClassFilter');
+    const selectedOpt = classSelect.options[classSelect.selectedIndex];
+    const level = selectedOpt ? selectedOpt.getAttribute('data-level') : null;
+    
+    // Update Course Select based on LEVEL of selected classroom
+    const courseSelect = document.getElementById('statsCourseFilter');
+    if (!courseSelect) return;
+    courseSelect.innerHTML = '<option value="">All Courses</option>';
+    
+    if (specId) {
+        let url = `/api/pedagog/courses/filter?specialityId=${specId}`;
+        if (level && level !== "0") url += `&level=${level}`;
+        
+        fetch(url)
+            .then(res => res.json())
+            .then(courses => {
+                courses.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.courseId;
+                    opt.textContent = c.courseName;
+                    courseSelect.appendChild(opt);
+                });
+            });
+    }
+    
+    loadAttendanceStats();
+};
+
+window.loadAttendanceStats = async function() {
+    const specId = document.getElementById('statsSpecFilter')?.value;
+    const roomId = document.getElementById('statsClassFilter')?.value;
+    const courseId = document.getElementById('statsCourseFilter')?.value;
+    const week = document.getElementById('statsWeekFilter')?.value;
+    
+    const tableBody = document.getElementById('statsTableBody');
+    const searchContainer = document.getElementById('statsSearchContainer');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = `
+        <tr>
+            <td colspan="3" class="px-8 py-12 text-center text-slate-400">
+                <div class="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                <p class="font-bold text-sm">Aggregating department data...</p>
+            </td>
+        </tr>
+    `;
+
+    // Mode: Aggregated (per course) vs Detailed (per student)
+    window.isStatsDetailed = (roomId && courseId);
+    
+    // UI: Toggle Search Bar
+    if (searchContainer) {
+        if (window.isStatsDetailed) {
+            searchContainer.classList.remove('hidden');
+        } else {
+            searchContainer.classList.add('hidden');
+            const searchInput = document.getElementById('statsStudentSearch');
+            if (searchInput) searchInput.value = '';
+        }
+    }
+
+    let url = window.isStatsDetailed ? `/api/pedagog/stats/students?` : `/api/pedagog/stats/attendance?`;
+    
+    if (specId && !window.isStatsDetailed) url += `specialityId=${specId}&`;
+    if (roomId) url += `classroomId=${roomId}&`;
+    if (courseId) url += `courseId=${courseId}&`;
+    if (week) url += `week=${week}&`;
+
+    try {
+        const response = await fetch(url);
+        if (response.ok) {
+            window.currentStatsData = await response.json();
+            renderStatsTable(window.currentStatsData, window.isStatsDetailed);
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="3" class="px-8 py-12 text-center text-rose-500 font-bold">Failed to load statistics.</td></tr>';
+        }
+    } catch (e) {
+        console.error("Error loading stats:", e);
+        tableBody.innerHTML = '<tr><td colspan="3" class="px-8 py-12 text-center text-rose-500 font-bold">An unexpected error occurred.</td></tr>';
+    }
+};
+
+window.onStatsSearch = function() {
+    const query = document.getElementById('statsStudentSearch').value.toLowerCase().trim();
+    if (!window.isStatsDetailed) return;
+
+    if (!query) {
+        renderStatsTable(window.currentStatsData, true);
+        return;
+    }
+
+    const filtered = window.currentStatsData.filter(s => {
+        const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+        const matricule = (s.matricule || '').toLowerCase();
+        return fullName.includes(query) || matricule.includes(query);
+    });
+
+    renderStatsTable(filtered, true);
+};
+
+function renderStatsTable(stats, isDetailedMode) {
+    const body = document.getElementById('statsTableBody');
+    const headerOne = document.getElementById('statsHeaderOne');
+    
+    if (!body) return;
+    if (headerOne) {
+        headerOne.textContent = isDetailedMode ? 'STUDENT' : 'TARGET CONTEXT';
+    }
+    
+    if (stats.length === 0) {
+        body.innerHTML = '<tr><td colspan="3" class="px-8 py-16 text-center text-slate-400 font-bold">No attendance data found for the selected filters.</td></tr>';
+        return;
+    }
+
+    body.innerHTML = stats.map(s => {
+        const pct = Math.round(s.attendanceRate);
+        const gradient = pct < 60 ? 'from-rose-400 to-rose-600' : (pct < 80 ? 'from-amber-400 to-amber-600' : 'from-blue-400 to-blue-600');
+
+        const title = isDetailedMode ? `${s.firstName} ${s.lastName}` : s.courseName;
+        const subTitle = isDetailedMode 
+            ? `<span class="text-blue-500 font-black">${escapeHtml(s.matricule || 'NO MATRICULE')}</span>`
+            : `<span class="text-blue-500">${escapeHtml(s.classroomName)}</span><span class="w-1 h-1 bg-slate-200 rounded-full mx-2"></span><span>${escapeHtml(s.specialityName)}</span>`;
+        
+        const avatarIcon = isDetailedMode 
+            ? `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`
+            : `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" /></svg>`;
+
+        return `
+            <tr class="hover:bg-slate-50/50 transition-all duration-200 group">
+                <td class="px-8 py-6 text-left">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 group-hover:scale-110 transition-transform">
+                            ${avatarIcon}
+                        </div>
+                        <div>
+                            <p class="font-black text-slate-800 text-base leading-tight">${escapeHtml(title)}</p>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em] mt-1.5 flex items-center">
+                                ${subTitle}
+                            </p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-6">
+                    <div class="flex flex-col gap-2">
+                        <div class="flex items-center justify-between text-xs font-black">
+                            <span class="text-slate-800">${pct}% <span class="text-slate-400 font-bold ml-1 tracking-tight">Yield</span></span>
+                        </div>
+                        <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
+                            <div class="h-full bg-gradient-to-r ${gradient} rounded-full transition-all duration-1000 ease-out shadow-lg" 
+                                 style="width: 0%;" 
+                                 data-width="${pct}%">
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-8 py-6 text-right">
+                    <div class="inline-flex flex-col items-end">
+                        <span class="text-lg font-black text-slate-800 tracking-tighter">${s.attendedHours}h</span>
+                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">/ ${s.plannedHours}h Total</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    setTimeout(() => {
+        body.querySelectorAll('[data-width]').forEach(el => {
+            el.style.width = el.getAttribute('data-width');
+        });
+    }, 100);
+}
+
+function escapeHtml(text) {
+    if (!text) return "";
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
