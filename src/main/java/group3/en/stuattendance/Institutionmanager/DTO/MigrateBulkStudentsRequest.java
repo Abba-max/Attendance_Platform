@@ -4,10 +4,11 @@ import java.util.List;
 
 public class MigrateBulkStudentsRequest {
 
-    private List<Integer> studentIds;   // List of students to migrate
+    private List<Integer> studentIds;   // Selected students to migrate
     private Integer fromClassroomId;    // The current classroom
     private Integer toClassroomId;      // The target classroom (can be auto-resolved)
     private boolean autoNextLevel;      // If true, system finds the next level automatically
+    private Long academicYearId;        // The academic year of the target classroom
     private String reason;              // Optional reason/note
 
     public MigrateBulkStudentsRequest() {}
@@ -23,6 +24,9 @@ public class MigrateBulkStudentsRequest {
 
     public boolean isAutoNextLevel() { return autoNextLevel; }
     public void setAutoNextLevel(boolean autoNextLevel) { this.autoNextLevel = autoNextLevel; }
+
+    public Long getAcademicYearId() { return academicYearId; }
+    public void setAcademicYearId(Long academicYearId) { this.academicYearId = academicYearId; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }

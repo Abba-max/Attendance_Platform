@@ -12,6 +12,7 @@ public class ClassHistoryResponse {
     private String migratedBy;
     private String reason;
     private LocalDateTime migratedAt;
+    private String academicYear;    // e.g. "2024/2025"
 
     public ClassHistoryResponse() {}
 
@@ -38,4 +39,7 @@ public class ClassHistoryResponse {
 
     public LocalDateTime getMigratedAt() { return migratedAt; }
     public void setMigratedAt(LocalDateTime migratedAt) { this.migratedAt = migratedAt; }
+
+    public String getAcademicYear() { return academicYear; }
+    public void setAcademicYear(String academicYear) { this.academicYear = academicYear; }
 }

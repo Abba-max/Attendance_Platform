@@ -32,7 +32,12 @@ public class StudentClassHistory {
     @JoinColumn(name = "to_classroom_id", nullable = false)
     private Classroom toClassroom;
 
-    // The admin/staff who performed the migration
+    // The academic year of the target classroom
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "academic_year_id", nullable = false)
+    private AcademicYear academicYear;
+
+    // The PEDAGOG who performed the migration
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "migrated_by_id")
     private User migratedBy;
@@ -59,6 +64,9 @@ public class StudentClassHistory {
 
     public Classroom getToClassroom() { return toClassroom; }
     public void setToClassroom(Classroom toClassroom) { this.toClassroom = toClassroom; }
+
+    public AcademicYear getAcademicYear() { return academicYear; }
+    public void setAcademicYear(AcademicYear academicYear) { this.academicYear = academicYear; }
 
     public User getMigratedBy() { return migratedBy; }
     public void setMigratedBy(User migratedBy) { this.migratedBy = migratedBy; }

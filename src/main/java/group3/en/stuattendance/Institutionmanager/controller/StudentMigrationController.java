@@ -19,10 +19,24 @@ public class StudentMigrationController {
     }
 
     // ─────────────────────────────────────────────
-    // 1. Migrate a single student to any classroom
+    // 1. Get all students in a classroom
+    //    PEDAGOG uses this to select students
+    //    before triggering a migration
+    // ─────────────────────────────────────────────
+    @GetMapping("/classroom/{classroomId}/students")
+    @PreAuthorize("hasRole('PEDAGOG')")
+    public ResponseEntity<List<StudentSelectionDto>> getStudentsInClassroom(
+            @PathVariable Integer classroomId) {
+
+        List<StudentSelectionDto> students = migrationService.getStudentsInClassroom(classroomId);
+        return ResponseEntity.ok(students);
+    }
+
+    // ─────────────────────────────────────────────
+    // 2. Migrate a single student to any classroom
     // ─────────────────────────────────────────────
     @PostMapping("/single")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<MigrationResponse> migrateStudent(
             @RequestBody MigrateStudentRequest request) {
 
@@ -31,10 +45,10 @@ public class StudentMigrationController {
     }
 
     // ─────────────────────────────────────────────
-    // 2. Migrate a selection of students (bulk)
+    // 3. Migrate a selection of students (bulk)
     // ─────────────────────────────────────────────
     @PostMapping("/bulk")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<List<MigrationResponse>> migrateBulkStudents(
             @RequestBody MigrateBulkStudentsRequest request) {
 
@@ -43,10 +57,10 @@ public class StudentMigrationController {
     }
 
     // ─────────────────────────────────────────────
-    // 3. Get full migration history of a student
+    // 4. Get full migration history of a student
     // ─────────────────────────────────────────────
     @GetMapping("/history/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<List<ClassHistoryResponse>> getStudentHistory(
             @PathVariable Integer studentId) {
 
