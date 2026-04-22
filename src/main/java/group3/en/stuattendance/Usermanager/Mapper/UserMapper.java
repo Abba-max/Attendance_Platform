@@ -38,9 +38,13 @@ public class UserMapper {
                 .effectivePermissionNames(calculateEffectivePermissionNames(user))
                 
                 .classroomId(user.getClassroom() != null ? user.getClassroom().getClassId() : null)
+                .classroomName(user.getClassroom() != null ? user.getClassroom().getName() : null)
                 .matricule(user.getMatricule())
                 .externalEmail(user.getExternalEmail())
                 .staffClassroomIds(user.getStaffClassrooms().stream().map(Classroom::getClassId).collect(Collectors.toSet()))
+                .staffCourseNames(user.getCourses().stream().map(group3.en.stuattendance.Timetablemanager.Model.Course::getCourseName).collect(Collectors.toList()))
+                .staffDepartmentNames(user.getManagedDepartments() != null ? user.getManagedDepartments().stream().map(group3.en.stuattendance.Institutionmanager.Model.Department::getName).collect(Collectors.toList()) : new java.util.ArrayList<>())
+                .staffSpecialityNames(user.getManagedDepartments() != null ? user.getManagedDepartments().stream().flatMap(d -> d.getSpecialities().stream()).map(group3.en.stuattendance.Institutionmanager.Model.Speciality::getName).distinct().collect(Collectors.toList()) : new java.util.ArrayList<>())
                 .joinCode(user.getJoinCode())
                 .build();
     }

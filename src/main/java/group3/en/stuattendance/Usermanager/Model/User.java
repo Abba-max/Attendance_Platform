@@ -2,6 +2,7 @@ package group3.en.stuattendance.Usermanager.Model;
 
 import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
+import group3.en.stuattendance.Institutionmanager.Model.Department;
 import group3.en.stuattendance.Institutionmanager.Model.Institution;
 import group3.en.stuattendance.Justificationmanager.Model.Justification;
 import group3.en.stuattendance.Notificationmanager.Model.Notification;
@@ -121,6 +122,10 @@ public class User {
     @JsonIgnore
     private Set<Notification> notifications = new HashSet<>();
 
+    @ManyToMany(mappedBy = "pedagogicAssistants")
+    @JsonIgnore
+    private Set<Department> managedDepartments = new HashSet<>();
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -228,6 +233,9 @@ public class User {
 
     public Set<Notification> getNotifications() { return notifications; }
     public void setNotifications(Set<Notification> notifications) { this.notifications = notifications; }
+
+    public Set<Department> getManagedDepartments() { return managedDepartments; }
+    public void setManagedDepartments(Set<Department> managedDepartments) { this.managedDepartments = managedDepartments; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

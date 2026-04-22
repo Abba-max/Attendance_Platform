@@ -15,11 +15,45 @@ document.addEventListener('DOMContentLoaded', function () {
     const navItem = document.querySelector(`[data-section="${section}"]`);
     if (navItem) navItem.click();
 
+    // Initialise custom select dropdowns
+    setTimeout(() => {
+        initializeTomSelects();
+    }, 300);
+
     setTimeout(() => {
         if (typeof applyStudentFilters === 'function') applyStudentFilters();
         if (typeof applyCourseFilters === 'function') applyCourseFilters();
     }, 200);
 });
+
+window.initializeTomSelects = function() {
+    window.tsInstances = {};
+    const selectIds = [
+        'migrationFromClassSelect', 
+        'migrationToClassSelect', 
+        'classroomSelect', 
+        'bulkClassroomId', 
+        'emailClassSelect',
+        'specFilter',
+        'emailSpecSelect',
+        'hubClassFilter',
+        'planningClassroomId'
+    ];
+    
+    selectIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && typeof TomSelect !== 'undefined') {
+            window.tsInstances[id] = new TomSelect(el, {
+                create: false,
+                sortField: { field: "text", direction: "asc" },
+                controlClass: 'ts-control !bg-slate-50 !border !border-slate-200 !rounded-xl !px-4 !py-3 !text-sm !font-bold !text-slate-700 !outline-none !shadow-sm',
+                dropdownClass: 'ts-dropdown !border !border-slate-200 !rounded-xl !shadow-lg !overflow-hidden !text-sm !font-medium',
+                optionClass: 'option !p-3 hover:!bg-emerald-50 hover:!text-emerald-700 !cursor-pointer',
+                itemClass: 'item',
+            });
+        }
+    });
+};
 
 /**
  * Sets default dates for the timetable: Monday-Saturday of current week.
@@ -83,6 +117,9 @@ function initializeNavigation() {
             if (sectionId === 'stats') {
                 loadStatsWeeks();
                 loadAttendanceStats();
+            }
+            if (sectionId === 'migration') {
+                if (typeof loadMigrationData === 'function') loadMigrationData();
             }
 
 
@@ -245,10 +282,17 @@ window.filterClassrooms = function (specId, targetId = 'classroomSelect') {
         const optionSpecId = option.getAttribute('data-spec');
         if (!specId || optionSpecId === specId) {
             option.style.display = "";
+            option.disabled = false;
         } else {
             option.style.display = "none";
+            option.disabled = true;
         }
     });
+
+    // Native TomSelect Sync to update custom dropdown DOM
+    if (window.tsInstances && window.tsInstances[targetId]) {
+        window.tsInstances[targetId].sync();
+    }
 };
 
 // Individual Student Creation
@@ -2140,7 +2184,13 @@ window.onPlanningFilterChange = async function() {
     const roomSelect = document.getElementById('planningClassroomId');
     
     // Reset/Clear classroom select
-    roomSelect.innerHTML = '<option value="">Select Classroom</option>';
+    const ts = window.tsInstances['planningClassroomId'];
+    if (ts) {
+        ts.clear();
+        ts.clearOptions();
+    } else {
+        roomSelect.innerHTML = '<option value="">Select Classroom</option>';
+    }
     
     if (!specId || !level) {
         clearPlanningGrid();
@@ -2148,43 +2198,49 @@ window.onPlanningFilterChange = async function() {
     }
     
     try {
-        console.log(`Fetching classrooms for spec ${specId}...`);
         const resp = await fetch(`/admin/classrooms/by-speciality/${specId}`);
         if (resp.ok) {
             const rooms = await resp.json();
-            console.log("Rooms found:", rooms.length);
             
-            // Filter by level - handle both "1" and "Level 1" formats
+            // Filter by level
             const filtered = rooms.filter(r => {
                 const roomLevelNum = String(r.level).replace(/\D/g, '');
                 const targetLevelNum = String(level).replace(/\D/g, '');
                 return roomLevelNum === targetLevelNum;
             });
 
-            console.log(`Filtered rooms for level ${level}:`, filtered.length);
-            
             if (filtered.length === 0) {
-                const opt = document.createElement('option');
-                opt.value = "";
-                opt.textContent = rooms.length > 0 ? "No rooms for this level" : "No classrooms found";
-                roomSelect.appendChild(opt);
+                if (ts) {
+                    ts.addOption({value: "", text: rooms.length > 0 ? "No rooms for this level" : "No classrooms found"});
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = "";
+                    opt.textContent = rooms.length > 0 ? "No rooms for this level" : "No classrooms found";
+                    roomSelect.appendChild(opt);
+                }
             } else {
                 filtered.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = r.classId;
-                    opt.textContent = `${r.name} (${r.level})`;
-                    roomSelect.appendChild(opt);
+                    const label = `${r.name} (${r.level})`;
+                    if (ts) {
+                        ts.addOption({value: r.classId, text: label});
+                    } else {
+                        const opt = document.createElement('option');
+                        opt.value = r.classId;
+                        opt.textContent = label;
+                        roomSelect.appendChild(opt);
+                    }
                 });
                 
                 if (filtered.length === 1) {
-                    roomSelect.value = filtered[0].classId;
+                    if (ts) {
+                        ts.setValue(filtered[0].classId);
+                    } else {
+                        roomSelect.value = filtered[0].classId;
+                    }
                     loadPlanning();
                 }
             }
-        } else {
-            console.error("Failed to fetch classrooms:", resp.status, resp.statusText);
-            roomSelect.innerHTML = '<option value="">Access denied or error</option>';
-        }
+        } 
     } catch (e) {
         console.error("Error refreshing planning classrooms:", e);
     }
@@ -3196,3 +3252,380 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ==========================================
+// STUDENT MIGRATION UI LOGIC
+// ==========================================
+
+let migrationStudentsData = []; // Store currently loaded eligible students
+
+window.loadMigrationData = async function () {
+    try {
+        // Load Academic Years for the dropdown
+        const response = await fetch('/api/admin/academic-years');
+        if (!response.ok) throw new Error("Failed to fetch academic years");
+        
+        const years = await response.json();
+        const yearSelect = document.getElementById('migrationAcademicYearSelect');
+        if (yearSelect) {
+            yearSelect.innerHTML = '<option value="">Select Target Academic Year...</option>';
+            years.forEach(year => {
+                const opt = document.createElement('option');
+                opt.value = year.academicYearId;
+                opt.textContent = `${year.academicYear} ${year.isActive ? '(Active)' : ''}`;
+                if (year.isActive) {
+                    opt.selected = true; // Pre-select the active year
+                }
+                yearSelect.appendChild(opt);
+            });
+        }
+        
+    } catch (e) {
+        console.error("Error loading migration prerequisite data:", e);
+        showMigrationNotification("Error loading academic years.", "error");
+    }
+};
+
+window.toggleAutoNextLevel = function () {
+    const btn = document.getElementById('toggleAutoNextLevelBtn');
+    const container = document.getElementById('targetClassroomContainer');
+    const select = document.getElementById('migrationToClassSelect');
+    
+    // Toggle state
+    const isAuto = btn.getAttribute('aria-checked') === 'true';
+    const newState = !isAuto;
+    
+    btn.setAttribute('aria-checked', newState.toString());
+    
+    if (newState) {
+        // Turn ON Auto
+        btn.classList.remove('bg-slate-200');
+        btn.classList.add('bg-emerald-600');
+        btn.querySelector('span').classList.remove('translate-x-0');
+        btn.querySelector('span').classList.add('translate-x-5');
+        
+        container.style.opacity = '0.5';
+        select.disabled = true;
+        select.value = ""; 
+    } else {
+        // Turn OFF Auto
+        btn.classList.remove('bg-emerald-600');
+        btn.classList.add('bg-slate-200');
+        btn.querySelector('span').classList.remove('translate-x-5');
+        btn.querySelector('span').classList.add('translate-x-0');
+        
+        container.style.opacity = '1';
+        select.disabled = false;
+    }
+};
+
+window.loadClassroomStudentsForMigration = async function (classroomId) {
+    const tableBody = document.getElementById('migrationStudentsTableBody');
+    const tableEl = document.getElementById('migrationStudentsTable');
+    const emptyState = document.getElementById('migrationEmptyState');
+    const loader = document.getElementById('migrationTableLoader');
+    const executeBtn = document.getElementById('executeMigrationBtn');
+    const selectAllCbx = document.getElementById('selectAllMigrationStudents');
+    
+    migrationStudentsData = []; // Clear current
+    updateMigrationSelectionCount();
+    
+    if (!classroomId) {
+        emptyState.classList.remove('hidden');
+        tableEl.style.display = 'none';
+        executeBtn.disabled = true;
+        executeBtn.classList.add('cursor-not-allowed', 'opacity-50');
+        return;
+    }
+
+    try {
+        loader.classList.remove('hidden');
+        
+        const response = await fetch(`/api/migration/classroom/${classroomId}/students`);
+        if (!response.ok) throw new Error("Failed to load students");
+        
+        migrationStudentsData = await response.json();
+        
+        if (migrationStudentsData.length === 0) {
+            emptyState.classList.remove('hidden');
+            emptyState.innerHTML = `
+                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                </div>
+                <h4 class="text-lg font-bold text-slate-600 mb-1">No Students Found</h4>
+                <p class="text-sm font-medium">This classroom is currently empty.</p>
+            `;
+            tableEl.style.display = 'none';
+        } else {
+            emptyState.classList.add('hidden');
+            tableEl.style.display = 'table';
+            
+            // Build Rows
+            tableBody.innerHTML = migrationStudentsData.map(student => `
+                <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0 group">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" value="${student.studentId}" onchange="updateMigrationSelectionCount()"
+                                class="migration-student-cbx w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300 cursor-pointer">
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs uppercase">
+                                ${student.fullName.substring(0, 2)}
+                            </div>
+                            <div>
+                                <p class="text-sm font-bold text-slate-800 leading-tight">${student.fullName}</p>
+                                <p class="text-[10px] uppercase tracking-widest text-slate-500">${student.email || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2 py-1 rounded bg-slate-100 text-slate-600 text-[10px] font-black font-mono tracking-widest border border-slate-200">
+                            ${student.matricule}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <button onclick="viewStudentMigrationHistory(${student.studentId}, '${escapeHtml(student.fullName)}')" 
+                                class="text-xs font-bold text-slate-400 hover:text-emerald-600 flex items-center justify-end gap-1 w-full transition-colors group-hover:text-emerald-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            History
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            selectAllCbx.checked = false;
+        }
+        
+    } catch (e) {
+        console.error("Error loading eligible students:", e);
+        showMigrationNotification("Error loading eligible students.", "error");
+    } finally {
+        loader.classList.add('hidden');
+    }
+};
+
+window.toggleAllMigrationStudents = function () {
+    const selectAll = document.getElementById('selectAllMigrationStudents').checked;
+    const checkboxes = document.querySelectorAll('.migration-student-cbx');
+    checkboxes.forEach(cbx => cbx.checked = selectAll);
+    updateMigrationSelectionCount();
+};
+
+window.updateMigrationSelectionCount = function () {
+    const checkboxes = document.querySelectorAll('.migration-student-cbx:checked');
+    const badge = document.getElementById('migrationSelectedCountBadge');
+    const executeBtn = document.getElementById('executeMigrationBtn');
+    
+    if (checkboxes.length > 0) {
+        badge.textContent = `${checkboxes.length} Selected`;
+        badge.classList.remove('hidden');
+        executeBtn.disabled = false;
+        executeBtn.classList.remove('cursor-not-allowed', 'opacity-50');
+    } else {
+        badge.classList.add('hidden');
+        executeBtn.disabled = true;
+        executeBtn.classList.add('cursor-not-allowed', 'opacity-50');
+    }
+    
+    // Check 'Select All' sync
+    const allCbx = document.getElementById('selectAllMigrationStudents');
+    if (document.querySelectorAll('.migration-student-cbx').length > 0) {
+        allCbx.checked = document.querySelectorAll('.migration-student-cbx').length === checkboxes.length;
+    }
+};
+
+window.executeMigration = async function () {
+    // Collect Data
+    const fromClassroomId = document.getElementById('migrationFromClassSelect').value;
+    const toClassroomId = document.getElementById('migrationToClassSelect').value;
+    const academicYearId = document.getElementById('migrationAcademicYearSelect').value;
+    const reason = document.getElementById('migrationReason').value;
+    const isAutoLevel = document.getElementById('toggleAutoNextLevelBtn').getAttribute('aria-checked') === 'true';
+    
+    const selectedIds = Array.from(document.querySelectorAll('.migration-student-cbx:checked'))
+                             .map(cbx => parseInt(cbx.value));
+
+    // Validation
+    if (!fromClassroomId) { showMigrationNotification("Please select a source classroom."); return; }
+    if (!academicYearId) { showMigrationNotification("Please select an academic year."); return; }
+    if (!reason.trim()) { showMigrationNotification("Please enter a valid reason for the migration."); return; }
+    if (!isAutoLevel && !toClassroomId) { showMigrationNotification("Please select a target classroom or enable Auto-Next Level."); return; }
+    if (selectedIds.length === 0) { showMigrationNotification("Please select at least one student to migrate."); return; }
+
+    const payload = {
+        studentIds: selectedIds,
+        fromClassroomId: parseInt(fromClassroomId),
+        toClassroomId: isAutoLevel ? null : parseInt(toClassroomId),
+        academicYearId: parseInt(academicYearId),
+        reason: reason,
+        autoNextLevel: isAutoLevel
+    };
+
+    const confirmResult = await Swal.fire({
+        title: 'Confirm Migration',
+        html: `You are about to migrate <b>${selectedIds.length}</b> student(s).<br>Are you strictly sure to proceed?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#10B981',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: 'Yes, Execute Transfer'
+    });
+
+    if (!confirmResult.isConfirmed) return;
+
+    try {
+        const executeBtn = document.getElementById('executeMigrationBtn');
+        const originalText = executeBtn.innerHTML;
+        executeBtn.innerHTML = '<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div><span>Processing...</span>';
+        executeBtn.disabled = true;
+
+        const response = await fetch('/api/migration/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || "Bulk migration backend error");
+        }
+
+        const results = await response.json();
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.length - successCount;
+
+        if (failCount > 0) {
+            Swal.fire('Partial Success', `${successCount} migrated successfully, ${failCount} failed. Check console for details.`, 'warning');
+            console.warn("Migration Failures:", results.filter(r => !r.success));
+        } else {
+            showMigrationNotification(`Successfully migrated ${successCount} student(s)!`, "success");
+            
+            // Clean up UI state
+            document.getElementById('migrationReason').value = "";
+            document.getElementById('migrationToClassSelect').value = "";
+            // Reload the source classroom roster since students moved out
+            loadClassroomStudentsForMigration(fromClassroomId); 
+        }
+
+    } catch (e) {
+        console.error("Migration Error:", e);
+        showMigrationNotification("An error occurred during migration: " + e.message, "error");
+    } finally {
+        const executeBtn = document.getElementById('executeMigrationBtn');
+        executeBtn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            <span>Execute Migration</span>`;
+        // updateMigrationSelectionCount will re-disable it if needed
+        updateMigrationSelectionCount();
+    }
+};
+
+window.viewStudentMigrationHistory = async function (studentId, studentName) {
+    const modal = document.getElementById('migrationHistoryModal');
+    const content = document.getElementById('migrationHistoryModalContent');
+    const timeline = document.getElementById('migrationHistoryTimeline');
+    const loader = document.getElementById('migrationHistoryLoader');
+    const empty = document.getElementById('migrationHistoryEmpty');
+    const nameLabel = document.getElementById('migrationHistoryStudentName');
+    
+    nameLabel.textContent = `${studentName} - Transfer Logs`;
+    timeline.innerHTML = '';
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+
+    try {
+        loader.classList.remove('hidden');
+        timeline.classList.add('hidden');
+        empty.classList.add('hidden');
+
+        const response = await fetch(`/api/migration/history/${studentId}`);
+        if (!response.ok) throw new Error("Failed to fetch history");
+
+        const records = await response.json();
+        
+        if (records.length === 0) {
+            empty.classList.remove('hidden');
+        } else {
+            timeline.classList.remove('hidden');
+            timeline.innerHTML = records.map(record => `
+                <div class="relative">
+                    <div class="absolute -left-[25px] top-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-4 border-white shadow-sm"></div>
+                    <div class="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+                        <div class="flex justify-between items-start mb-3">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded bg-slate-50 text-slate-500 text-[10px] font-black tracking-widest border border-slate-200 uppercase">
+                                Academic Year: ${record.academicYear || 'N/A'}
+                            </span>
+                            <span class="text-[10px] font-bold text-slate-400">
+                                ${new Date(record.migratedAt).toLocaleDateString()}
+                            </span>
+                        </div>
+                        
+                        <div class="flex items-center gap-3 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div class="flex-1">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">From</p>
+                                <p class="text-sm font-black text-slate-700">${record.fromClassroom}</p>
+                            </div>
+                            <div class="text-emerald-400">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                            </div>
+                            <div class="flex-1 text-right">
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">To</p>
+                                <p class="text-sm font-black text-emerald-700">${record.toClassroom}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-1">
+                            <p class="text-xs text-slate-600 font-medium">
+                                <span class="text-slate-400 font-bold">Reason:</span> ${record.reason || 'No reason provided'}
+                            </p>
+                            <p class="text-[10px] text-slate-400 font-bold">
+                                Executed by: ${record.migratedBy || 'System'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (e) {
+        console.error("Error loading history:", e);
+        empty.classList.remove('hidden');
+        empty.innerHTML = `<p class="text-red-500 font-bold text-sm">Failed to load migration history records.</p>`;
+    } finally {
+        loader.classList.add('hidden');
+    }
+};
+
+window.closeMigrationHistoryModal = function () {
+    const modal = document.getElementById('migrationHistoryModal');
+    const content = document.getElementById('migrationHistoryModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+};
+
+window.showMigrationNotification = function (message, type = "error") {
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        icon: type,
+        title: message,
+        customClass: {
+            popup: 'rounded-xl shadow-2xl',
+            title: 'text-sm font-bold text-slate-700'
+        }
+    });
+};

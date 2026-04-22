@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.Set;
+import java.util.List;
 
 @Data
 @Builder
@@ -45,10 +46,14 @@ public class UserDto {
 
     // Student specific
     private Integer classroomId;
+    private String classroomName;
     private String matricule;
     private String externalEmail;
 
     // Staff specific
     private Set<Integer> staffClassroomIds;
+    private List<String> staffCourseNames;
+    private List<String> staffDepartmentNames;
+    private List<String> staffSpecialityNames;
     private String joinCode;
 }

@@ -62,9 +62,9 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedPermissions() {
         String[] permissions = {
-                "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_INSTITUTIONS",
-                "RECORD_ATTENDANCE", "VIEW_REPORTS", "MANAGE_COURSES",
-                "SCAN_QR", "GENERATE_QR"
+            "MANAGE_USERS", "MANAGE_ROLES", "MANAGE_INSTITUTIONS",
+            "RECORD_ATTENDANCE", "VIEW_REPORTS", "MANAGE_COURSES",
+            "SCAN_QR", "GENERATE_QR"
         };
         for (String permName : permissions) {
             if (permissionRepository.findByName(permName).isEmpty()) {
@@ -91,10 +91,10 @@ public class DataInitializer implements CommandLineRunner {
                     .institution(institution)
                     .build();
 
-            userRepository.save(admin);
-            System.out.println(" User  created.");
-            System.out.println(" Username : admin");
-            System.out.println(" Password : admin123");
+                    userRepository.save(admin);
+                    System.out.println(" User  created.");
+                    System.out.println(" Username : admin");
+                    System.out.println(" Password : admin123");
         }else {
             System.out.println(" User admin present in BDD");
         }

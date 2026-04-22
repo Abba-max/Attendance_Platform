@@ -274,6 +274,14 @@ function renderUserTable(users) {
             </td>
             <td class="px-6 py-4 text-right">
                 <div class="flex items-center justify-end gap-2">
+                    <button onclick="handleViewUserDetails(${user.userId})" 
+                            class="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all cursor-pointer relative z-10" 
+                            title="View Details">
+                        <svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                    </button>
                     <button onclick="handleResetPassword(${user.userId})" class="p-2 text-gray-400 hover:text-[#00B0FF] transition-colors" title="Reset Password">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
@@ -598,6 +606,132 @@ async function handleDeleteUser(userId) {
         showNotification('Error deleting user', 'error');
     }
 }
+
+/**
+ * Native Detail Modal Handlers
+ */
+window.openDetailModal = function(title, subtitle = 'Viewing detailed information') {
+    const modal = document.getElementById('detailViewModal');
+    const content = document.getElementById('detailViewModalContent');
+    const titleEl = document.getElementById('detailModalTitle');
+    const subtitleEl = document.getElementById('detailModalSubtitle');
+    const bodyEl = document.getElementById('detailModalBody');
+
+    if (!modal) return;
+
+    titleEl.textContent = title;
+    subtitleEl.textContent = subtitle;
+    bodyEl.innerHTML = '<div class="flex justify-center p-10"><div class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin"></div></div>';
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+};
+
+window.closeDetailModal = function() {
+    const modal = document.getElementById('detailViewModal');
+    const content = document.getElementById('detailViewModalContent');
+    if (!modal) return;
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+};
+
+/**
+ * Enhanced User Details View
+ */
+window.handleViewUserDetails = function(userId) {
+    const user = allUsers.find(u => u.userId === userId);
+    if (!user) {
+        showNotification("User not found.", "error");
+        return;
+    }
+
+    const roles = user.roleNames || [];
+    let roleDetailsHtml = '';
+
+    // Student Context
+    if (roles.includes("STUDENT")) {
+        roleDetailsHtml += `
+            <div class="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-left">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Student Academic Record</h4>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Matricule</p>
+                        <p class="text-sm font-black text-slate-800">${user.matricule || '<span class="text-slate-400 font-normal italic">Unassigned</span>'}</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] uppercase text-slate-500 font-bold mb-1">Assigned Classroom</p>
+                        <p class="text-sm font-black text-emerald-700">${user.classroomName || '<span class="text-slate-400 font-normal italic">Unassigned</span>'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Teacher Context
+    if (roles.includes("TEACHER")) {
+        const courses = user.staffCourseNames && user.staffCourseNames.length > 0 
+            ? user.staffCourseNames.map(c => `<span class="inline-flex px-2 py-1 bg-amber-50 border border-amber-100 text-amber-700 text-xs font-bold rounded-md">${escapeHtml(c)}</span>`).join(' ')
+            : '<span class="text-sm text-slate-400 italic font-medium">No courses assigned.</span>';
+            
+        roleDetailsHtml += `
+            <div class="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-left">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Teaching Portfolio</h4>
+                <div class="flex flex-wrap gap-2">
+                    ${courses}
+                </div>
+            </div>
+        `;
+    }
+
+    // Pedagogic Assistant Context
+    if (roles.includes("PEDAGOGIC_ASSISTANT")) {
+        const departments = user.staffDepartmentNames && user.staffDepartmentNames.length > 0
+            ? user.staffDepartmentNames.map(d => `<span class="inline-flex px-2 py-1 bg-[#00B0FF]/10 border border-[#00B0FF]/20 text-[#00B0FF] text-xs font-bold rounded-md">${escapeHtml(d)}</span>`).join(' ')
+            : '<span class="text-sm text-slate-400 italic font-medium">No Departments Managed.</span>';
+
+        const specialities = user.staffSpecialityNames && user.staffSpecialityNames.length > 0
+            ? user.staffSpecialityNames.map(s => `<li class="text-sm font-bold border-l-2 border-emerald-400 pl-2 text-slate-700">${escapeHtml(s)}</li>`).join('')
+            : '<li class="text-sm text-slate-400 italic font-medium">No Specialities Available.</li>';
+
+        roleDetailsHtml += `
+            <div class="mt-4 p-4 bg-slate-50 border border-slate-100 rounded-xl text-left">
+                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Management Coverage</h4>
+                <div class="mb-4">
+                    <p class="text-[10px] uppercase text-slate-500 font-bold mb-2">Departments Managed</p>
+                    <div class="flex flex-wrap gap-2">${departments}</div>
+                </div>
+                <div>
+                    <p class="text-[10px] uppercase text-slate-500 font-bold mb-2">Specialities Handled</p>
+                    <ul class="space-y-1">${specialities}</ul>
+                </div>
+            </div>
+        `;
+    }
+
+    openDetailModal('User Summary', `Viewing details for ${user.firstName} ${user.lastName}`);
+    document.getElementById('detailModalBody').innerHTML = `
+        <div class="flex flex-col text-left">
+            <div class="flex items-center gap-4 border-b border-slate-100 pb-4 mb-2">
+                <div class="w-14 h-14 bg-[#00B0FF]/10 rounded-full flex items-center justify-center text-[#00B0FF] font-black text-xl shrink-0">
+                    ${user.username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                    <h2 class="text-lg font-black text-slate-800">${escapeHtml(user.firstName || '')} ${escapeHtml(user.lastName || '')}</h2>
+                    <p class="text-sm text-slate-500 font-medium">@${escapeHtml(user.username)}</p>
+                    <p class="text-xs text-slate-400">${escapeHtml(user.email || 'No email provided')}</p>
+                </div>
+            </div>
+            ${roleDetailsHtml || '<div class="mt-4 text-center text-sm text-slate-400 italic font-medium">No advanced role context required for this user account.</div>'}
+        </div>
+    `;
+};
 
 /**
  * Render Roles Grid
