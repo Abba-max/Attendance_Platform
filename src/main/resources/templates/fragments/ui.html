@@ -100,5 +100,75 @@
     </script>
 </div>
 
+<!-- Modern Prompt Modal Fragment -->
+<div th:fragment="modernPrompt" id="modern-prompt-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md opacity-0 transition-opacity duration-500" id="mp-backdrop"></div>
+    
+    <div class="relative bg-white/90 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden transform scale-90 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]" id="mp-content">
+        <div class="p-8 pb-4 text-center">
+            <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2 font-display" id="mp-title">Enter Value</h3>
+            <p class="text-slate-500 font-medium text-sm leading-relaxed mb-6" id="mp-message">Please provide the required information.</p>
+            
+            <input type="text" id="mp-input" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Type here...">
+        </div>
+        
+        <div class="p-6 pt-2 flex gap-3">
+            <button id="mp-cancel-btn" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl font-black text-sm tracking-widest text-slate-600 transition-colors">
+                Cancel
+            </button>
+            <button id="mp-confirm-btn" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 rounded-2xl font-black text-sm tracking-widest text-white shadow-xl shadow-blue-500/25 active:scale-[0.97] transition-all">
+                Submit
+            </button>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        window.ModernPrompt = function({ title = "Enter Value", message = "", placeholder = "Type here...", type = "text" }) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modern-prompt-modal');
+                const backdrop = document.getElementById('mp-backdrop');
+                const content = document.getElementById('mp-content');
+                const titleEl = document.getElementById('mp-title');
+                const messageEl = document.getElementById('mp-message');
+                const inputEl = document.getElementById('mp-input');
+                const confirmBtn = document.getElementById('mp-confirm-btn');
+                const cancelBtn = document.getElementById('mp-cancel-btn');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                inputEl.placeholder = placeholder;
+                inputEl.type = type;
+                inputEl.value = '';
+
+                const close = (result) => {
+                    content.classList.add('scale-90', 'opacity-0');
+                    backdrop.classList.add('opacity-0');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        resolve(result);
+                    }, 300);
+                };
+
+                confirmBtn.onclick = () => close(inputEl.value);
+                cancelBtn.onclick = () => close(null);
+                backdrop.onclick = () => close(null);
+                
+                inputEl.onkeydown = (e) => {
+                    if (e.key === 'Enter') close(inputEl.value);
+                    if (e.key === 'Escape') close(null);
+                };
+
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    backdrop.classList.remove('opacity-0');
+                    content.classList.remove('scale-90', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                    inputEl.focus();
+                });
+            });
+        };
+    </script>
+</div>
+
 </body>
 </html>

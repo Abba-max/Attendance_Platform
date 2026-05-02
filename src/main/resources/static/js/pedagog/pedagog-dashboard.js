@@ -2870,13 +2870,33 @@ function renderHubRoster(records) {
 window.hubMarkHourStatus = function(sessionId, userId, hourIndex, isChecked) {
     const status = isChecked ? 'PRESENT' : 'ABSENT';
     const url = "/api/attendance/session/" + sessionId + "/student/" + userId + "/hour/" + hourIndex + "?status=" + status;
-    
+
     fetch(url, { method: 'POST' })
         .then(res => {
             if (!res.ok) throw new Error();
-            loadHubRoster(); // Refresh to update "Attended" count and sync check marks
+            // Update the hours-attended counter in this student's row without a full reload
+            const allCheckboxes = document.querySelectorAll(
+                '#hubRosterBody input[type="checkbox"][onchange*="hubMarkHourStatus(' + sessionId + ',' + userId + '"]');
+            const attendedCount = Array.from(allCheckboxes).filter(cb => cb.checked).length;
+            // Find the attended cell (3rd td in the row) and update it
+            if (allCheckboxes.length > 0) {
+                const row = allCheckboxes[0].closest('tr');
+                if (row) {
+                    const attendedCell = row.querySelectorAll('td')[2];
+                    if (attendedCell) {
+                        const countSpan = attendedCell.querySelector('span.text-sm');
+                        if (countSpan) countSpan.textContent = attendedCount;
+                    }
+                }
+            }
         })
-        .catch(() => showNotification("Failed to update hour status", "error"));
+        .catch(() => {
+            // Revert the checkbox to the state before the failed request
+            const cb = document.querySelector(
+                '#hubRosterBody input[type="checkbox"][onchange*="hubMarkHourStatus(' + sessionId + ',' + userId + ',' + hourIndex + '"]');
+            if (cb) cb.checked = !isChecked;
+            showNotification("Failed to update attendance. Change reverted.", "error");
+        });
 };
 
 window.hubMarkAll = async function(status) {
@@ -2907,13 +2927,13 @@ window.hubMarkAll = async function(status) {
 };
 
 window.saveHubRoster = function() {
-    showNotification("Roster state synchronized with database.", "success");
+    showNotification("All changes are saved automatically.", "success");
 };
 
 window.exportHubAttendance = function() {
     const sessionId = document.getElementById('hubSessionFilter').value;
     if (!sessionId) return;
-    window.open("/api/attendance/session/" + sessionId + "/export/pdf", '_blank');
+    window.open("/api/pedagog/sessions/" + sessionId + "/export", '_blank');
 };
 
 // ==========================================
@@ -3261,18 +3281,24 @@ let migrationStudentsData = []; // Store currently loaded eligible students
 
 window.loadMigrationData = async function () {
     try {
-        // Load Academic Years for the dropdown
-        const response = await fetch('/api/admin/academic-years');
+        // Load Academic Years — use the pedagog-accessible endpoint
+        const response = await fetch('/api/pedagog/academic-years');
         if (!response.ok) throw new Error("Failed to fetch academic years");
         
         const years = await response.json();
         const yearSelect = document.getElementById('migrationAcademicYearSelect');
         if (yearSelect) {
-            yearSelect.innerHTML = '<option value="">Select Target Academic Year...</option>';
+            yearSelect.innerHTML = '<option value="">Select Academic Year to View...</option>';
+            // Sort: active first, then by start date descending
+            years.sort((a, b) => {
+                if (a.isActive && !b.isActive) return -1;
+                if (!a.isActive && b.isActive) return 1;
+                return (b.startDate || '').localeCompare(a.startDate || '');
+            });
             years.forEach(year => {
                 const opt = document.createElement('option');
-                opt.value = year.academicYearId;
-                opt.textContent = `${year.academicYear} ${year.isActive ? '(Active)' : ''}`;
+                opt.value = year.id;  // AcademicYearDto field is 'id'
+                opt.textContent = `${year.academicYear}${year.isActive ? ' (Current)' : ''}`;
                 if (year.isActive) {
                     opt.selected = true; // Pre-select the active year
                 }
@@ -3289,6 +3315,7 @@ window.loadMigrationData = async function () {
 window.toggleAutoNextLevel = function () {
     const btn = document.getElementById('toggleAutoNextLevelBtn');
     const container = document.getElementById('targetClassroomContainer');
+    const ts = window.tsInstances && window.tsInstances['migrationToClassSelect'];
     const select = document.getElementById('migrationToClassSelect');
     
     // Toggle state
@@ -3305,8 +3332,7 @@ window.toggleAutoNextLevel = function () {
         btn.querySelector('span').classList.add('translate-x-5');
         
         container.style.opacity = '0.5';
-        select.disabled = true;
-        select.value = ""; 
+        if (ts) { ts.disable(); ts.setValue(''); } else { select.disabled = true; select.value = ''; }
     } else {
         // Turn OFF Auto
         btn.classList.remove('bg-emerald-600');
@@ -3315,9 +3341,89 @@ window.toggleAutoNextLevel = function () {
         btn.querySelector('span').classList.add('translate-x-0');
         
         container.style.opacity = '1';
-        select.disabled = false;
+        // Re-trigger eligible targets for the currently selected source classroom
+        const fromClassroomId = document.getElementById('migrationFromClassSelect')?.value;
+        if (fromClassroomId) {
+            loadEligibleTargetClassrooms(fromClassroomId);
+        } else {
+            if (ts) ts.enable(); else select.disabled = false;
+        }
     }
 };
+
+/**
+ * Fetch classrooms eligible as migration targets for the given source classroom
+ * (same speciality, level = source level + 1) and repopulate the target select.
+ * Uses TomSelect API when the instance exists, falls back to native select otherwise.
+ */
+async function loadEligibleTargetClassrooms(classroomId) {
+    const select = document.getElementById('migrationToClassSelect');
+    if (!select) return;
+
+    // Use TomSelect API when available (it manages the visible UI)
+    const ts = window.tsInstances && window.tsInstances['migrationToClassSelect'];
+
+    // Helper: set a single placeholder option and optionally disable
+    function setPlaceholder(text, disabled = true) {
+        if (ts) {
+            ts.clearOptions();
+            ts.addOption({ value: '', text });
+            ts.setValue('', true);
+            if (disabled) ts.disable(); else ts.enable();
+        } else {
+            select.innerHTML = `<option value="">${text}</option>`;
+            select.disabled = disabled;
+        }
+    }
+
+    // Auto-next-level mode manages its own state — skip when enabled
+    const autoBtn = document.getElementById('toggleAutoNextLevelBtn');
+    if (autoBtn && autoBtn.getAttribute('aria-checked') === 'true') return;
+
+    if (!classroomId) {
+        setPlaceholder('\u2014 Select a source classroom first \u2014', true);
+        return;
+    }
+
+    setPlaceholder('Loading eligible classrooms...', true);
+
+    try {
+        const res = await fetch(`/api/pedagog/classrooms/eligible-targets?fromClassroomId=${classroomId}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const classrooms = await res.json();
+
+        if (classrooms.length === 0) {
+            setPlaceholder('No next-level classrooms found in this speciality', true);
+            return;
+        }
+
+        if (ts) {
+            ts.clearOptions();
+            ts.addOption({ value: '', text: 'Select destination classroom...' });
+            classrooms.forEach(c => {
+                ts.addOption({
+                    value: String(c.classId),
+                    text: `${c.name}  \u2014  Level ${c.level}  (${c.specialityName || 'Same speciality'})`
+                });
+            });
+            ts.refreshOptions(false);
+            ts.setValue('', true);
+            ts.enable();
+        } else {
+            select.innerHTML = '<option value="">Select destination classroom...</option>';
+            classrooms.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.classId;
+                opt.textContent = `${c.name}  \u2014  Level ${c.level}  (${c.specialityName || 'Same speciality'})`;
+                select.appendChild(opt);
+            });
+            select.disabled = false;
+        }
+    } catch (e) {
+        console.error('Failed to load eligible target classrooms:', e);
+        setPlaceholder(`Error loading classrooms (${e.message})`, false); // enable so user isn't stuck
+    }
+}
 
 window.loadClassroomStudentsForMigration = async function (classroomId) {
     const tableBody = document.getElementById('migrationStudentsTableBody');
@@ -3329,6 +3435,9 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
     
     migrationStudentsData = []; // Clear current
     updateMigrationSelectionCount();
+
+    // Always refresh eligible target classrooms when source changes
+    loadEligibleTargetClassrooms(classroomId);
     
     if (!classroomId) {
         emptyState.classList.remove('hidden');
@@ -3341,7 +3450,13 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
     try {
         loader.classList.remove('hidden');
         
-        const response = await fetch(`/api/migration/classroom/${classroomId}/students`);
+        // Include the selected academic year so the backend can filter appropriately
+        const academicYearId = document.getElementById('migrationAcademicYearSelect')?.value || '';
+        const url = academicYearId
+            ? `/api/migration/classroom/${classroomId}/students?academicYearId=${academicYearId}`
+            : `/api/migration/classroom/${classroomId}/students`;
+        
+        const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to load students");
         
         migrationStudentsData = await response.json();
@@ -3436,6 +3551,76 @@ window.updateMigrationSelectionCount = function () {
     }
 };
 
+let migrationConfirmResolver = null;
+
+window.showMigrationConfirmModal = function(count) {
+    return new Promise((resolve) => {
+        migrationConfirmResolver = resolve;
+        document.getElementById('migrationConfirmText').innerHTML = `You are about to migrate <b>${count}</b> student(s).<br>Are you strictly sure to proceed?`;
+        
+        const modal = document.getElementById('migrationConfirmModal');
+        const content = document.getElementById('migrationConfirmModalContent');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        setTimeout(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+    });
+};
+
+window.closeMigrationConfirmModal = function(isConfirmed) {
+    const modal = document.getElementById('migrationConfirmModal');
+    const content = document.getElementById('migrationConfirmModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        if (migrationConfirmResolver) {
+            migrationConfirmResolver(isConfirmed);
+            migrationConfirmResolver = null;
+        }
+    }, 300);
+};
+
+window.showMigrationResultModal = function(isSuccess, title, message) {
+    const modal = document.getElementById('migrationResultModal');
+    const content = document.getElementById('migrationResultModalContent');
+    const iconContainer = document.getElementById('migrationResultIcon');
+    const titleEl = document.getElementById('migrationResultTitle');
+    const textEl = document.getElementById('migrationResultText');
+
+    titleEl.textContent = title;
+    textEl.textContent = message;
+
+    if (isSuccess) {
+        iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-emerald-100 text-emerald-500';
+        iconContainer.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+    } else {
+        iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-500';
+        iconContainer.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        content.classList.remove('scale-95', 'opacity-0');
+        content.classList.add('scale-100', 'opacity-100');
+    }, 10);
+};
+
+window.closeMigrationResultModal = function() {
+    const modal = document.getElementById('migrationResultModal');
+    const content = document.getElementById('migrationResultModalContent');
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+};
+
 window.executeMigration = async function () {
     // Collect Data
     const fromClassroomId = document.getElementById('migrationFromClassSelect').value;
@@ -3463,17 +3648,9 @@ window.executeMigration = async function () {
         autoNextLevel: isAutoLevel
     };
 
-    const confirmResult = await Swal.fire({
-        title: 'Confirm Migration',
-        html: `You are about to migrate <b>${selectedIds.length}</b> student(s).<br>Are you strictly sure to proceed?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#10B981',
-        cancelButtonColor: '#94a3b8',
-        confirmButtonText: 'Yes, Execute Transfer'
-    });
+    const isConfirmed = await showMigrationConfirmModal(selectedIds.length);
 
-    if (!confirmResult.isConfirmed) return;
+    if (!isConfirmed) return;
 
     try {
         const executeBtn = document.getElementById('executeMigrationBtn');
@@ -3497,10 +3674,10 @@ window.executeMigration = async function () {
         const failCount = results.length - successCount;
 
         if (failCount > 0) {
-            Swal.fire('Partial Success', `${successCount} migrated successfully, ${failCount} failed. Check console for details.`, 'warning');
+            showMigrationResultModal(false, 'Partial Success', `${successCount} migrated successfully, ${failCount} failed. Check console for details.`);
             console.warn("Migration Failures:", results.filter(r => !r.success));
         } else {
-            showMigrationNotification(`Successfully migrated ${successCount} student(s)!`, "success");
+            showMigrationResultModal(true, 'Migration Successful', `Successfully migrated ${successCount} student(s)!`);
             
             // Clean up UI state
             document.getElementById('migrationReason').value = "";
@@ -3511,7 +3688,7 @@ window.executeMigration = async function () {
 
     } catch (e) {
         console.error("Migration Error:", e);
-        showMigrationNotification("An error occurred during migration: " + e.message, "error");
+        showMigrationResultModal(false, 'System Error', "An error occurred during migration: " + e.message);
     } finally {
         const executeBtn = document.getElementById('executeMigrationBtn');
         executeBtn.innerHTML = `

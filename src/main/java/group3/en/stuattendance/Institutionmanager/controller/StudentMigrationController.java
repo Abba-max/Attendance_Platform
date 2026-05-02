@@ -26,9 +26,10 @@ public class StudentMigrationController {
     @GetMapping("/classroom/{classroomId}/students")
     @PreAuthorize("hasRole('PEDAGOG')")
     public ResponseEntity<List<StudentSelectionDto>> getStudentsInClassroom(
-            @PathVariable Integer classroomId) {
+            @PathVariable Integer classroomId,
+            @RequestParam(required = false) Long academicYearId) {
 
-        List<StudentSelectionDto> students = migrationService.getStudentsInClassroom(classroomId);
+        List<StudentSelectionDto> students = migrationService.getStudentsInClassroom(classroomId, academicYearId);
         return ResponseEntity.ok(students);
     }
 

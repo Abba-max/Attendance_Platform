@@ -558,7 +558,13 @@ async function handleToggleStatus(userId, currentIsActive) {
  * Handle Reset Password
  */
 async function handleResetPassword(userId) {
-    const newPassword = prompt("Enter new password for this user:");
+    const newPassword = await window.ModernPrompt({
+        title: "Reset Password",
+        message: "Enter the new password for this user:",
+        placeholder: "New password...",
+        type: "password"
+    });
+    
     if (!newPassword) return;
 
     try {

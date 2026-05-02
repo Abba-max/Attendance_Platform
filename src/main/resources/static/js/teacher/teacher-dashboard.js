@@ -488,11 +488,7 @@ function connectWebSocket(sessionId) {
     });
 }
 
-function disconnectWebSocket() {
-    if (stompClient !== null) {
-        stompClient.disconnect();
-    }
-}
+
 
 function updateRollCallRealTime(dto) {
     // dto is an AttendanceRecordDto from the backend
@@ -803,12 +799,10 @@ window.toggleQrView = () => {
         ov.classList.remove('hidden');
         ov.classList.add('flex');
         generateQr();
-        connectWebSocket();
         startQrTimer();
     } else {
         ov.classList.add('hidden');
         ov.classList.remove('flex');
-        disconnectWebSocket();
         stopQrTimer();
     }
 };

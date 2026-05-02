@@ -1,5 +1,10 @@
 package group3.en.stuattendance.Usermanager.Controller;
 
+import group3.en.stuattendance.Institutionmanager.DTO.AcademicYearDto;
+import group3.en.stuattendance.Institutionmanager.DTO.ClassroomDto;
+import group3.en.stuattendance.Institutionmanager.Mapper.ClassroomMapper;
+import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
+import group3.en.stuattendance.Institutionmanager.Service.AcademicYearService;
 import group3.en.stuattendance.Timetablemanager.DTO.CourseDto;
 import group3.en.stuattendance.Timetablemanager.Service.CourseService;
 import group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto;
@@ -30,6 +35,9 @@ public class PedagogController {
     private final group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
     private final group3.en.stuattendance.Usermanager.Service.PedagogStatsService pedagogStatsService;
     private final group3.en.stuattendance.Institutionmanager.Repository.DepartmentRepository departmentRepository;
+    private final AcademicYearService academicYearService;
+    private final ClassroomRepository classroomRepository;
+    private final ClassroomMapper classroomMapper;
 
     /**
      * Monitor active sessions in delegated classrooms.
@@ -198,5 +206,36 @@ public class PedagogController {
     @GetMapping("/stats/weeks")
     public ResponseEntity<List<Integer>> getCompletedWeeks() {
         return ResponseEntity.ok(pedagogStatsService.getCompletedWeeks());
+    }
+
+    /**
+     * Get all academic years — used by the migration page to populate the year selector.
+     * Intentionally on the /api/pedagog/ path so PEDAGOG role can access it.
+     */
+    @GetMapping("/academic-years")
+    public ResponseEntity<List<AcademicYearDto>> getAcademicYears() {
+        return ResponseEntity.ok(academicYearService.getAllAcademicYears());
+    }
+
+    /**
+     * Return classrooms eligible as migration targets for a given source classroom.
+     * Rules: same speciality, level = source level + 1.
+     */
+    @GetMapping("/classrooms/eligible-targets")
+    public ResponseEntity<List<ClassroomDto>> getEligibleTargetClassrooms(
+            @RequestParam Integer fromClassroomId) {
+        group3.en.stuattendance.Institutionmanager.Model.Classroom source =
+                classroomRepository.findById(fromClassroomId).orElse(null);
+        if (source == null || source.getSpeciality() == null || source.getLevel() == null) {
+            return ResponseEntity.ok(List.of());
+        }
+        Integer targetLevel = source.getLevel() + 1;
+        List<group3.en.stuattendance.Institutionmanager.Model.Classroom> targets =
+                classroomRepository.findBySpeciality_SpecialityIdAndLevel(
+                        source.getSpeciality().getSpecialityId(), targetLevel);
+        List<ClassroomDto> dtos = targets.stream()
+                .map(classroomMapper::toDto)
+                .collect(java.util.stream.Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 }

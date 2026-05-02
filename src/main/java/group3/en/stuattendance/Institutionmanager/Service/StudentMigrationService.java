@@ -60,6 +60,59 @@ public class StudentMigrationService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * Return students for a classroom filtered by academic year.
+     * - Active year → current enrollment (user.classroom).
+     * - Historical year → union of students who LEFT or ARRIVED in this classroom
+     *   during that year, reconstructed from migration history.
+     */
+    public List<StudentSelectionDto> getStudentsInClassroom(Integer classroomId, Long academicYearId) {
+
+        if (academicYearId == null) {
+            return getStudentsInClassroom(classroomId);
+        }
+
+        classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found with id: " + classroomId));
+
+        AcademicYear year = academicYearRepository.findById(academicYearId)
+                .orElseThrow(() -> new RuntimeException("Academic year not found with id: " + academicYearId));
+
+        // For the active year, use live enrollment data
+        if (year.isActive()) {
+            return getStudentsInClassroom(classroomId);
+        }
+
+        // For historical years: reconstruct from migration records
+        // Departures: students who were IN this classroom and got migrated OUT during that year
+        List<StudentClassHistory> departures = historyRepository
+                .findByFromClassroom_ClassIdAndAcademicYear_Id(classroomId, academicYearId);
+        // Arrivals: students who were migrated INTO this classroom during that year
+        List<StudentClassHistory> arrivals = historyRepository
+                .findByToClassroom_ClassIdAndAcademicYear_Id(classroomId, academicYearId);
+
+        // Deduplicate using a map keyed by userId
+        java.util.Map<Integer, User> uniqueStudents = new java.util.LinkedHashMap<>();
+        for (StudentClassHistory h : departures) {
+            User s = h.getStudent();
+            if (s != null) uniqueStudents.put(s.getUserId(), s);
+        }
+        for (StudentClassHistory h : arrivals) {
+            User s = h.getStudent();
+            if (s != null) uniqueStudents.put(s.getUserId(), s);
+        }
+
+        return uniqueStudents.values().stream().map(student -> {
+            StudentSelectionDto dto = new StudentSelectionDto();
+            dto.setStudentId(student.getUserId());
+            dto.setFullName(student.getFirstName() + " " + student.getLastName());
+            dto.setMatricule(student.getMatricule());
+            dto.setEmail(student.getEmail());
+            dto.setClassroomId(classroomId);
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
     // ─────────────────────────────────────────────
     // 2. Migrate a single student to any classroom
     // ─────────────────────────────────────────────

@@ -20,4 +20,10 @@ public interface StudentClassHistoryRepository extends JpaRepository<StudentClas
 
     // Get all migrations performed by a specific admin/staff
     List<StudentClassHistory> findByMigratedBy_UserId(Integer migratedById);
+
+    // Historical enrollment: students who LEFT a classroom in a specific academic year
+    List<StudentClassHistory> findByFromClassroom_ClassIdAndAcademicYear_Id(Integer classroomId, Long academicYearId);
+
+    // Historical enrollment: students who ARRIVED in a classroom in a specific academic year
+    List<StudentClassHistory> findByToClassroom_ClassIdAndAcademicYear_Id(Integer classroomId, Long academicYearId);
 }

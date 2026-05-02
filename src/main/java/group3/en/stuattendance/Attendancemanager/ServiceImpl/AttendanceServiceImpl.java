@@ -185,7 +185,9 @@ public class AttendanceServiceImpl implements AttendanceService {
             sessionRepository.save(session);
             return pin;
         } else {
+            String oldQrCode = session.getQrCode();
             String qrToken = java.util.UUID.randomUUID().toString();
+            if (oldQrCode != null) session.setPreviousQrCode(oldQrCode);
             session.setQrCode(qrToken);
             sessionRepository.save(session);
             return qrToken;
@@ -199,7 +201,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
 
-        if (!"IN_PROGRESS".equals(session.getStatus())) {
+        if (session.getStatus() != group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.IN_PROGRESS) {
             throw new IllegalStateException("Session is not currently in progress.");
         }
 
