@@ -205,6 +205,9 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new IllegalStateException("Session is not currently in progress.");
         }
 
+        // --- Geofence Check ---
+        validateGeofence(student, location);
+
         AttendanceRecord record = resolveAttendanceRecord(student, session);
 
         // ── Validation: BOTH QR code AND PIN are required ──
@@ -432,5 +435,85 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendanceRecordRepository.deleteAll(toDelete);
         
         return latest;
+    }
+
+    private void validateGeofence(User student, String location) {
+        group3.en.stuattendance.Institutionmanager.Model.Institution inst = student.getInstitution();
+        
+        // If student has no direct institution link, try through classroom hierarchy
+        if (inst == null && student.getClassroom() != null 
+            && student.getClassroom().getSpeciality() != null
+            && student.getClassroom().getSpeciality().getDepartment() != null) {
+            inst = student.getClassroom().getSpeciality().getDepartment().getInstitution();
+        }
+
+        if (inst == null || !Boolean.TRUE.equals(inst.getGeofencingEnabled()) || inst.getGeofenceData() == null || inst.getGeofenceData().isBlank()) {
+            return;
+        }
+
+        if (location == null || location.isBlank()) {
+            throw new IllegalArgumentException("Location services are required to check-in at " + inst.getName());
+        }
+
+        try {
+            String[] parts = location.split(",");
+            double lat = Double.parseDouble(parts[0]);
+            double lng = Double.parseDouble(parts[1]);
+
+            var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            double[][] polygon = mapper.readValue(inst.getGeofenceData(), double[][].class);
+
+            if (polygon.length < 3) return;
+
+            boolean isInside = isPointInPolygon(lat, lng, polygon);
+            if (!isInside) {
+                double minDistance = getMinDistanceToPolygon(lat, lng, polygon);
+                if (minDistance > 20) { // 20m grace buffer
+                    throw new IllegalArgumentException(String.format(
+                        "Security Alert: You are outside the authorized campus perimeter (%.0fm away).", minDistance));
+                }
+            }
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            System.err.println("Geofence Data Error for " + inst.getName() + ": " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            System.err.println("Unexpected Geofence Error: " + e.getMessage());
+        }
+    }
+
+    private boolean isPointInPolygon(double x, double y, double[][] polygon) {
+        boolean inside = false;
+        for (int i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+            double xi = polygon[i][0], yi = polygon[i][1];
+            double xj = polygon[j][0], yj = polygon[j][1];
+            boolean intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    private double getMinDistanceToPolygon(double lat, double lng, double[][] polygon) {
+        double minDistance = Double.POSITIVE_INFINITY;
+        for (int i = 0; i < polygon.length; i++) {
+            double[] p1 = polygon[i];
+            double[] p2 = polygon[(i + 1) % polygon.length];
+            double dist = getDistanceToSegment(lat, lng, p1[0], p1[1], p2[0], p2[1]);
+            if (dist < minDistance) minDistance = dist;
+        }
+        return minDistance;
+    }
+
+    private double getDistanceToSegment(double px, double py, double v1x, double v1y, double v2x, double v2y) {
+        double l2 = dist2(v1x, v1y, v2x, v2y);
+        if (l2 == 0) return Math.sqrt(dist2(px, py, v1x, v1y)) * 111320;
+        double t = ((px - v1x) * (v2x - v1x) + (py - v1y) * (v2y - v1y)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        double distDeg = Math.sqrt(dist2(px, py, v1x + t * (v2x - v1x), v1y + t * (v2y - v1y)));
+        return distDeg * 111320;
+    }
+
+    private double dist2(double x1, double y1, double x2, double y2) {
+        return Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2);
     }
 }

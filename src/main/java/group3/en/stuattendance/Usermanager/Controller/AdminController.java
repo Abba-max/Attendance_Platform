@@ -19,6 +19,7 @@ public class AdminController {
     private final UserService userService;
     private final group3.en.stuattendance.Usermanager.Service.PermissionService permissionService;
     private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
+    private final group3.en.stuattendance.Institutionmanager.Service.InstitutionService institutionService;
 
     @PutMapping("/users/{id}/roles")
     public ResponseEntity<Void> updateUserRoles(@PathVariable Integer id, @RequestBody java.util.Set<Integer> roleIds) {

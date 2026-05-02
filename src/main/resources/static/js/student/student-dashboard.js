@@ -586,13 +586,23 @@ async function submitFinalCheckin() {
     if (btn) { btn.disabled = true; btn.textContent = 'Verifying...'; }
 
     try {
+        // --- Geofence Check ---
+        const geoCheck = await validateGeofence();
+        if (!geoCheck.allowed) {
+            alert(geoCheck.message);
+            if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
+            return;
+        }
+
         const response = await fetch('/api/student/attendance/check-in', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sessionId: currentCheckinContext.sessionId,
                 qrData:   currentCheckinContext.qrCode,
-                pinCode:  currentCheckinContext.pin
+                pinCode:  currentCheckinContext.pin,
+                latitude: geoCheck.lat,
+                longitude: geoCheck.lng
             })
         });
 
@@ -734,3 +744,103 @@ function getStatusStyle(status) {
         default: return 'bg-orange-50 text-orange-700';
     }
 }
+
+/**
+ * --- GEOFENCING VALIDATION ---
+ */
+async function validateGeofence() {
+    try {
+        // 1. Fetch Geofence Data
+        const geofenceRes = await fetch('/api/student/geofence');
+        if (!geofenceRes.ok) return { allowed: true };
+        
+        const geofence = await geofenceRes.json();
+        if (!geofence || !geofence.geofencingEnabled || !geofence.geofenceData) return { allowed: true };
+        
+        const polygon = JSON.parse(geofence.geofenceData);
+        if (!polygon || polygon.length < 3) return { allowed: true };
+
+        // 2. Get Student Location
+        let position;
+        try {
+            position = await getCurrentPosition();
+        } catch (e) {
+            throw new Error("Location Error: Please enable GPS/Location services to check-in.");
+        }
+        
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const studentPoint = [lat, lng];
+        
+        // Store for request
+        currentCheckinContext.lat = lat;
+        currentCheckinContext.lng = lng;
+        
+        // 3. Ray Casting Check
+        const isInside = isPointInPolygon(studentPoint, polygon);
+        if (isInside) return { allowed: true, lat, lng };
+
+        // 4. Buffer Check (20m)
+        const minDistance = getMinDistanceToPolygon(studentPoint, polygon);
+        if (minDistance <= 20) return { allowed: true, lat, lng }; 
+
+        return { 
+            allowed: false, 
+            message: `Location Error: You are outside the campus perimeter. (Approx. ${Math.round(minDistance)}m away)`,
+            lat,
+            lng
+        };
+    } catch (err) {
+        if (err.message.includes('Location Error')) throw err;
+        console.warn("Geofence check failed, allowing as fallback", err);
+        return { allowed: true };
+    }
+}
+
+function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocation not supported"));
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 8000,
+            maximumAge: 0
+        });
+    });
+}
+
+function isPointInPolygon(point, polygon) {
+    const x = point[0], y = point[1];
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+        const xi = polygon[i][0], yi = polygon[i][1];
+        const xj = polygon[j][0], yj = polygon[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+    }
+    return inside;
+}
+
+function getMinDistanceToPolygon(point, polygon) {
+    let minDistance = Infinity;
+    for (let i = 0; i < polygon.length; i++) {
+        const p1 = polygon[i];
+        const p2 = polygon[(i + 1) % polygon.length];
+        const dist = getDistanceToSegment(point, p1, p2);
+        if (dist < minDistance) minDistance = dist;
+    }
+    return minDistance;
+}
+
+function getDistanceToSegment(p, v, w) {
+    const l2 = dist2(v, w);
+    if (l2 === 0) return Math.sqrt(dist2(p, v)) * 111320; 
+    let t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
+    t = Math.max(0, Math.min(1, t));
+    const distDeg = Math.sqrt(dist2(p, [v[0] + t * (w[0] - v[0]), v[1] + t * (w[1] - v[1])]));
+    return distDeg * 111320; // 1 degree ≈ 111.32km
+}
+
+function dist2(v, w) { return Math.pow(v[0] - w[0], 2) + Math.pow(v[1] - w[1], 2); }
+

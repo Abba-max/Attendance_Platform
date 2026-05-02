@@ -39,4 +39,21 @@ public class InstitutionServiceImpl implements InstitutionService {
     public void deleteById(Integer id) {
         institutionRepository.deleteById(id);
     }
+
+    @Autowired
+    private group3.en.stuattendance.Institutionmanager.Mapper.InstitutionMapper institutionMapper;
+
+    @Override
+    public group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto getInstitutionDto(Integer id) {
+        return institutionMapper.toDto(findById(id));
+    }
+
+    @Override
+    @Auditable(action = "GEOFENCE_UPDATE", category = "INSTITUTION_MANAGEMENT", severity = "INFO")
+    public void updateGeofence(Integer id, String geofenceData, boolean enabled) {
+        Institution inst = findById(id);
+        inst.setGeofenceData(geofenceData);
+        inst.setGeofencingEnabled(enabled);
+        institutionRepository.save(inst);
+    }
 }

@@ -18,4 +18,6 @@ public interface StudentService {
     List<StudentAttendanceStatsDto> getCourseAttendanceStats(Integer userId);
 
     StudentDashboardStatsDto getDashboardStats(Integer userId);
+
+    group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto getInstitutionGeofence(Integer userId);
 }

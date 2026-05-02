@@ -8,5 +8,7 @@ public interface InstitutionService {
     Institution findById(Integer id);
     List<Institution> getAllInstitutions();
     void deleteById(Integer id);
+    group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto getInstitutionDto(Integer id);
+    void updateGeofence(Integer id, String geofenceData, boolean enabled);
 }
 

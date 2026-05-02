@@ -13,6 +13,8 @@ public class InstitutionMapper {
                 .institutionId(institution.getInstitutionId())
                 .name(institution.getName())
                 .address(institution.getLocation())
+                .geofenceData(institution.getGeofenceData())
+                .geofencingEnabled(institution.getGeofencingEnabled() != null ? institution.getGeofencingEnabled() : false)
                 .build();
     }
 
@@ -22,6 +24,8 @@ public class InstitutionMapper {
                 .institutionId(dto.getInstitutionId())
                 .name(dto.getName())
                 .location(dto.getAddress())
+                .geofenceData(dto.getGeofenceData())
+                .geofencingEnabled(dto.getGeofencingEnabled() != null ? dto.getGeofencingEnabled() : false)
                 .build();
     }
 }

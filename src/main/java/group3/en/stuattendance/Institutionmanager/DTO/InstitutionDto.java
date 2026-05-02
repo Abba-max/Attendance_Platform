@@ -26,4 +26,7 @@ public class InstitutionDto {
     private String contactInfo;
 
     private String location; // Added for UI compatibility
+
+    private String geofenceData;
+    private Boolean geofencingEnabled;
 }

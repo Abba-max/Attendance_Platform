@@ -40,6 +40,12 @@ public class Institution {
     @JsonIgnore
     private Set<Department> departments = new HashSet<>();
 
+    @Column(name = "geofence_data", columnDefinition = "TEXT")
+    private String geofenceData;
+
+    @Column(name = "geofencing_enabled")
+    private Boolean geofencingEnabled = false;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

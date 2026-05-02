@@ -62,6 +62,11 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getDashboardStats(userDetails.getUserId()));
     }
 
+    @GetMapping("/geofence")
+    public ResponseEntity<group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto> getGeofence(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(studentService.getInstitutionGeofence(userDetails.getUserId()));
+    }
+
     @GetMapping("/attendance/stats")
     public ResponseEntity<List<StudentAttendanceStatsDto>> getCourseAttendanceStats(@AuthenticationPrincipal CustomUserDetails userDetails) {
         return ResponseEntity.ok(studentService.getCourseAttendanceStats(userDetails.getUserId()));

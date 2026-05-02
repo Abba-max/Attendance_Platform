@@ -31,6 +31,27 @@ public class StudentServiceImpl implements StudentService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final JustificationRepository justificationRepository;
     private final CourseRepository courseRepository;
+    private final group3.en.stuattendance.Institutionmanager.Mapper.InstitutionMapper institutionMapper;
+
+    @Override
+    public group3.en.stuattendance.Institutionmanager.DTO.InstitutionDto getInstitutionGeofence(Integer userId) {
+        User student = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + userId));
+        
+        group3.en.stuattendance.Institutionmanager.Model.Institution inst = student.getInstitution();
+        
+        if (inst == null && student.getClassroom() != null 
+            && student.getClassroom().getSpeciality() != null
+            && student.getClassroom().getSpeciality().getDepartment() != null) {
+            inst = student.getClassroom().getSpeciality().getDepartment().getInstitution();
+        }
+
+        if (inst == null) {
+            return null;
+        }
+        
+        return institutionMapper.toDto(inst);
+    }
 
     @Override
     public List<StudentScheduleDto> getTodaySchedule(Integer userId) {
