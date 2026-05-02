@@ -34,7 +34,7 @@
         .timetable-grid {
             display: grid;
             grid-template-columns: 80px repeat(6, 1fr);
-            grid-template-rows: auto repeat(18, minmax(40px, 1fr));
+            grid-template-rows: auto repeat(540, minmax(1.5px, 1fr));
             background-color: white;
             border: 1px solid #F1F5F9;
             border-radius: 1rem;
@@ -161,7 +161,12 @@
                 <div id="view-status" class="space-y-4">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-900">Welcome, <span th:text="${firstName}">Student</span></h2>
-                        <p class="text-sm text-slate-500">Here's an overview of your academic status.</p>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <p class="text-sm text-slate-500">Academic status for <span id="current-date-student" class="font-semibold text-slate-700">Loading date...</span></p>
+                            <span id="today-count-student" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                0 classes today
+                            </span>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

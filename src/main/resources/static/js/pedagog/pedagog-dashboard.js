@@ -2322,16 +2322,31 @@ function renderPlanningGrid(entries) {
 
     entries.forEach(entry => {
         const dayIndex = entry.dayOfWeek !== null ? entry.dayOfWeek : dayMap[entry.day.toUpperCase()];
-        const startHour = parseInt(entry.startTime.split(':')[0]);
-        const endHour = parseInt(entry.endTime.split(':')[0]);
-        const duration = endHour - startHour;
+        const startParts = entry.startTime.split(':');
+        const startH = parseInt(startParts[0]);
+        const startM = parseInt(startParts[1]);
+        
+        const endParts = entry.endTime.split(':');
+        const endH = parseInt(endParts[0]);
+        const endM = parseInt(endParts[1]);
+        
+        const startOffsetMinutes = startM;
+        const durationMinutes = ((endH * 60) + endM) - ((startH * 60) + startM);
 
-        const slot = document.getElementById(`planning-slot-${startHour}-${dayIndex}`);
+        const slot = document.getElementById(`planning-slot-${startH}-${dayIndex}`);
         if (slot) {
             const st = STATUS_MAP[entry.status] || STATUS_MAP['SCHEDULED'];
             const block = document.createElement('div');
             block.className = `tt-block p-2 ${st.cls}`;
-            block.style.height = `calc((${duration} * 100%) - 6px)`;
+            
+            // Absolute positioning for precise minute alignment
+            block.style.position = 'absolute';
+            block.style.top = `calc((${startOffsetMinutes} / 60) * 100%)`;
+            block.style.height = `calc((${durationMinutes} / 60) * 100%)`;
+            block.style.width = 'calc(100% - 8px)';
+            block.style.left = '4px';
+            block.style.zIndex = '10';
+            
             block.style.borderLeft = `4px solid ${entry.color || '#3b82f6'}`;
             
             if (entry.status === 'COMPLETED' && entry.sessionId) {

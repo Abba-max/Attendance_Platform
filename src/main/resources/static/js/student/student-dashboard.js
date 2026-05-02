@@ -173,9 +173,28 @@ async function loadGridSessions() {
             }
         });
 
+        // Update Date and Today's Class Count
+        const dateEl = document.getElementById('current-date-student');
+        const countBadge = document.getElementById('today-count-student');
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${y}-${m}-${d}`;
+        
+        if (dateEl) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.textContent = now.toLocaleDateString('en-US', options);
+        }
+        
+        const sessionsToday = allGridSessions.filter(s => s.date === todayStr);
+        if (countBadge) {
+            countBadge.textContent = `${sessionsToday.length} ${sessionsToday.length === 1 ? 'class' : 'classes'} today`;
+        }
+
         renderGrid();
     } catch (err) {
-        stack.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Sync Error: ${err.message}</p>`;
+        if (stack) stack.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Sync Error: ${err.message}</p>`;
     }
 }
 
@@ -202,8 +221,9 @@ function calculateGridPosition(startStr, endStr) {
 
     if (sMinutesSince8 < 0 || eMinutesSince8 <= sMinutesSince8) return null;
 
-    const startRow = Math.floor(sMinutesSince8 / 30) + 2; 
-    const endRow = Math.ceil(eMinutesSince8 / 30) + 2;
+    // 1 minute = 1 row. Base row is 2 (row 1 is header)
+    const startRow = sMinutesSince8 + 2; 
+    const endRow = eMinutesSince8 + 2;
     
     return { start: startRow, end: endRow };
 }
@@ -218,23 +238,22 @@ function renderGrid() {
     matrix.innerHTML = '';
     headerEls.forEach(h => matrix.appendChild(h));
 
-    for (let slot = 0; slot < 18; slot++) {
-        const rowIndex = slot + 2; 
-        const hour = 8 + Math.floor(slot / 2);
+    // Create 9 hour blocks (8:00 to 17:00)
+    for (let hourOffset = 0; hourOffset < 9; hourOffset++) {
+        const hour = 8 + hourOffset;
+        const startRow = (hourOffset * 60) + 2;
 
-        if (slot % 2 === 0) {
-            const label = document.createElement('div');
-            label.className = 'time-label';
-            label.style.gridRow = `${rowIndex} / span 2`;
-            label.style.gridColumn = '1';
-            label.textContent = `${String(hour).padStart(2,'0')}:00`;
-            matrix.appendChild(label);
-        }
+        const label = document.createElement('div');
+        label.className = 'time-label';
+        label.style.gridRow = `${startRow} / span 60`;
+        label.style.gridColumn = '1';
+        label.textContent = `${String(hour).padStart(2,'0')}:00`;
+        matrix.appendChild(label);
 
         for (let d = 0; d < 6; d++) {
             const cell = document.createElement('div');
-            cell.className = `timetable-slot ${slot % 2 === 0 ? 'border-b border-slate-100' : 'border-b border-dashed border-slate-100/50'}`;
-            cell.style.gridRow = String(rowIndex);
+            cell.className = `timetable-slot border-b border-r border-slate-200`;
+            cell.style.gridRow = `${startRow} / span 60`;
             cell.style.gridColumn = String(d + 2);
             matrix.appendChild(cell);
         }
@@ -249,6 +268,8 @@ function renderGrid() {
             card.className = 'session-card-grid';
             card.style.gridRow = `${pos.start} / ${pos.end}`;
             card.style.gridColumn = String(dayIdx + 2);
+            card.style.zIndex = '10';
+            card.style.margin = '2px';
             card.innerHTML = renderSessionCard(s, true);
             matrix.appendChild(card);
         }
