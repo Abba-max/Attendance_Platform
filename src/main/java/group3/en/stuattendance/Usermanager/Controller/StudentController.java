@@ -45,8 +45,10 @@ public class StudentController {
     }
 
     @GetMapping("/sessions/grid")
-    public ResponseEntity<List<StudentScheduleDto>> getSessionsForGrid(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        return ResponseEntity.ok(studentService.getSessionsForGrid(userDetails.getUserId()));
+    public ResponseEntity<List<StudentScheduleDto>> getSessionsForGrid(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestParam(required = false) Integer week) {
+        return ResponseEntity.ok(studentService.getSessionsForGrid(userDetails.getUserId(), week));
     }
 
     @GetMapping("/attendance/history")

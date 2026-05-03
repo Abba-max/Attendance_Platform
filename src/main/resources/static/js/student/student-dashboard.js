@@ -13,12 +13,22 @@ let currentCheckinContext = {
     lng: null
 };
 
+function getISOWeek(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+}
+
+let currentScheduleWeek = getISOWeek(new Date());
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Dashboard
     loadDashboardStats();
     loadGridSessions();
     loadCourseStats();
-    loadJustifications();
+    loadAttendanceHistory();
 });
 
 /**
@@ -26,14 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function switchTab(tabId) {
     // Hide all views
-    document.querySelectorAll('.content-section, #view-status, #view-checkin, #view-justification, #view-courses, #view-stats, #view-calendar').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.content-section, #view-status, #view-checkin, #view-justification, #view-courses, #view-calendar').forEach(el => el.classList.add('hidden'));
     
     // Show selected
     const target = document.getElementById('view-' + tabId);
     if (target) target.classList.remove('hidden');
     
     // Update Tab Styles
-    const tabs = ['status', 'checkin', 'justification', 'courses', 'stats', 'calendar'];
+    const tabs = ['status', 'checkin', 'justification', 'courses', 'calendar'];
     tabs.forEach(t => {
         // Desktop
         const deskEl = document.getElementById('nav-desk-' + t);
@@ -60,8 +70,8 @@ function switchTab(tabId) {
 
     // Specific triggers
     if (tabId === 'checkin' || tabId === 'calendar') loadGridSessions();
-    if (tabId === 'stats' || tabId === 'courses') loadCourseStats();
-    if (tabId === 'justification') loadJustifications();
+    if (tabId === 'courses') loadCourseStats();
+    if (tabId === 'justification') loadAttendanceHistory();
 }
 
 /**
@@ -134,8 +144,8 @@ function enableCheckinWidget(session) {
     desc.classList.add('text-xs', 'text-blue-100');
     
     btn.disabled = false;
-    btn.classList.add('bg-white', 'text-blue-600', 'hover:bg-blue-50', 'shadow-md');
-    btn.classList.remove('bg-white/10', 'text-white');
+    btn.classList.add('bg-[#00B0FF]', 'text-white', 'hover:bg-blue-600', 'shadow-md');
+    btn.classList.remove('bg-white/10', 'text-white/50');
     
     // Bind click wrapper bounds
     const trigger = (e) => {
@@ -155,8 +165,14 @@ function enableCheckinWidget(session) {
 async function loadGridSessions() {
     const stack = document.getElementById('student-schedule-stack');
     try {
-        const response = await fetch('/api/student/sessions/grid');
+        const response = await fetch('/api/student/sessions/grid?week=' + currentScheduleWeek);
         allGridSessions = await response.json();
+        
+        // Update week display
+        const weekDisplay = document.getElementById('current-week-display');
+        if (weekDisplay) {
+            weekDisplay.textContent = 'Week ' + currentScheduleWeek;
+        }
         
         // Update Home Check-in Widget if there's a LIVE session
         const active = allGridSessions.find(s => s.status === 'IN_PROGRESS');
@@ -205,6 +221,13 @@ window.setMobileDay = function(day) {
         btn.classList.toggle('active', onclickAttr.includes(`'${day}'`));
     });
     renderGrid();
+};
+
+window.changeWeek = function(delta) {
+    currentScheduleWeek += delta;
+    if (currentScheduleWeek < 1) currentScheduleWeek = 52;
+    if (currentScheduleWeek > 52) currentScheduleWeek = 1;
+    loadGridSessions();
 };
 
 function calculateGridPosition(startStr, endStr) {
@@ -292,11 +315,11 @@ function handleSessionClick(sessionId, status) {
     if (status === 'IN_PROGRESS') {
         openScanner(sessionId);
     } else if (status === 'SCHEDULED') {
-        alert("The course has not been initiated by the instructor yet. Please wait.");
+        Swal.fire('Session Scheduled', 'The course has not been initiated by the instructor yet. Please wait.', 'info');
     } else if (status === 'COMPLETED') {
         const s = allGridSessions.find(x => x.sessionId === sessionId);
         const st = s?.attendanceStatus || 'ABSENT';
-        alert(`Session complete! Your attendance status is: ${st}`);
+        Swal.fire('Session Complete', `Your attendance status is: ${st}`, 'success');
     }
 }
 
@@ -386,49 +409,45 @@ async function loadCourseStats() {
             }
 
             return `
-            <div class="bg-[#00B0FF] p-6 rounded-3xl border-2 border-white/20 hover:bg-[#0091EA] hover:shadow-xl hover:shadow-blue-500/30 transition-all flex flex-col justify-between group relative overflow-hidden shadow-lg shadow-blue-500/10">
-                <div class="absolute -right-8 -top-8 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all"></div>
-                
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 hover:border-[#00B0FF]/30 hover:shadow-lg shadow-sm transition-all flex flex-col justify-between group relative overflow-hidden">
                 <div class="relative z-10">
-                    <div class="flex items-start justify-between mb-4">
-                        <div class="space-y-1">
-                            <h4 class="text-lg font-black text-white leading-tight">${c.courseName}</h4>
-                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">Academic Insight</p>
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="space-y-0.5">
+                            <h4 class="text-base font-bold text-slate-900 leading-tight">${c.courseName}</h4>
+                            <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Academic Insight</p>
                         </div>
-                        <div class="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 group-hover:bg-white/20 shadow-inner overflow-hidden backdrop-blur-sm">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        <div class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 text-[#00B0FF]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                         </div>
                     </div>
                 </div>
 
-                <div class="relative z-10 pt-4 border-t border-white/10 mt-4">
-                    <div class="flex items-center justify-between mb-3 text-xs">
-                         <div class="flex items-center gap-2">
-                             <div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-                             <span class="font-black text-white/90 uppercase tracking-tighter">${c.teacherName || 'TBD'}</span>
+                <div class="relative z-10 pt-3 border-t border-slate-100 mt-2">
+                    <div class="flex items-center justify-between mb-2 text-xs">
+                         <div class="flex items-center gap-1.5 text-slate-600">
+                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                             <span class="font-bold">${c.teacherName || 'TBD'}</span>
                          </div>
-                         <div class="px-2 py-0.5 rounded-lg border border-white/30 bg-white/10 font-black text-[9px] uppercase tracking-widest text-white">${pct}% Global Yield</div>
+                         <div class="${colorClass} px-2 py-0.5 rounded-lg border font-black text-[9px] uppercase tracking-widest">${pct}% Yield</div>
                     </div>
 
-                    <div class="flex items-baseline gap-1.5 mb-2.5 text-white">
-                        <span class="text-2xl font-black">${c.studentAttendedHours}<span class="text-xs font-bold text-white/50 ml-1">Attended Hours</span></span>
+                    <div class="flex items-baseline gap-1.5 mb-2 text-slate-800">
+                        <span class="text-xl font-black">${c.studentAttendedHours}<span class="text-xs font-bold text-slate-400 ml-1">Attended Hours</span></span>
                     </div>
 
-                    <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden shadow-inner flex">
-                        <div class="bg-white h-full rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(255,255,255,0.4)]" style="width: ${pct}%"></div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
+                        <div class="bg-gradient-to-r ${barClass} h-full rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
                     </div>
                     
                     <div class="flex justify-between mt-1.5">
-                        <span class="text-[9px] font-black text-white/40 uppercase tracking-tighter">Objective: ${c.courseTotalHours}h</span>
-                        <span class="text-[9px] font-black text-white uppercase tracking-tight">${pct}% Goal Milestone</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Objective: ${c.courseTotalHours}h</span>
+                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">${pct}% Goal</span>
                     </div>
                 </div>
             </div>`;
         }).join('');
 
         if (container) container.innerHTML = html;
-        const detailContainer = document.getElementById('detailed-reports-container');
-        if (detailContainer) detailContainer.innerHTML = html;
 
     } catch (err) {
         container.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Failed to load courses: ${err.message}</p>`;
@@ -454,23 +473,95 @@ function searchCourses() {
 /**
  * --- 4. MULTI-STEP CHECK-IN (QR -> PIN) ---
  */
-function openScanner(sessionId) {
+async function openScanner(sessionId) {
     currentCheckinContext.sessionId = sessionId;
     currentCheckinContext.qrCode = null;
     currentCheckinContext.pin = null;
     
-    // Reset Modal State
-    document.getElementById('scanner-overlay').classList.remove('hidden');
-    document.getElementById('pin-input').value = '';
-    
-    const btn = document.getElementById('btn-validate');
-    if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = 'Validate Presence';
-        btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
-    }
+    const locModal = document.getElementById('location-modal');
+    const locContent = document.getElementById('location-modal-content');
+    if (!locModal || !locContent) return;
 
-    startQrCamera();
+    // 1. Show Location Modal First
+    locModal.classList.remove('hidden');
+    locContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-500">
+            <div class="relative w-20 h-20 mb-2">
+                <div class="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20"></div>
+                <div class="relative bg-white rounded-full p-5 shadow-sm border border-blue-50">
+                    <svg class="w-10 h-10 text-[#00B0FF] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-black text-slate-800 tracking-tight">Perimeter Sync</h3>
+                <p class="text-xs text-slate-500 font-medium">Authenticating your presence on campus...</p>
+            </div>
+            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2 relative">
+                <div class="bg-[#00B0FF] h-full absolute inset-0 animate-[shimmer_2s_infinite] w-full origin-left" style="background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); background-size: 200% 100%;"></div>
+            </div>
+        </div>
+    `;
+
+    try {
+        // --- Geofence Check with 60s Timeout ---
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("Verification Timeout: The location check is taking too long. Please ensure GPS is active.")), 60000)
+        );
+
+        const geoCheck = await Promise.race([validateGeofence(), timeoutPromise]);
+        
+        if (!geoCheck.allowed) {
+            Swal.fire({
+                title: 'Access Denied',
+                text: geoCheck.message,
+                icon: 'error',
+                confirmButtonColor: '#00B0FF'
+            });
+            locModal.classList.add('hidden');
+            return;
+        }
+
+        // 2. Success Animation & Transition
+        locContent.innerHTML = `
+            <div class="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-300">
+                <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-lg font-black text-slate-800">Zone Verified</h3>
+                    <p class="text-xs text-slate-500 font-medium">Secure connection established.</p>
+                </div>
+            </div>
+        `;
+
+        setTimeout(() => {
+            locModal.classList.add('hidden');
+            // Now open the actual scanner modal
+            document.getElementById('scanner-overlay').classList.remove('hidden');
+            document.getElementById('pin-input').value = '';
+            
+            const btn = document.getElementById('btn-validate');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Validate Presence';
+                btn.classList.remove('bg-emerald-500', 'opacity-50');
+                btn.classList.add('bg-[#00B0FF]');
+            }
+            startQrCamera();
+        }, 1200);
+
+    } catch (err) {
+        Swal.fire({
+            title: 'Sync Failed',
+            text: err.message || 'Please enable GPS to check in.',
+            icon: 'warning',
+            confirmButtonColor: '#00B0FF'
+        });
+        locModal.classList.add('hidden');
+    }
 }
 
 function startQrCamera() {
@@ -570,11 +661,11 @@ async function submitFinalCheckin() {
 
     // Enforce Logical AND — BOTH are required
     if (!currentCheckinContext.qrCode) {
-        alert('Please scan the instructor\'s QR code first.');
+        Swal.fire('Scan Required', 'Please scan the instructor\'s QR code first.', 'warning');
         return;
     }
     if (!pin || pin.length < 4) {
-        alert('Please enter the 4-digit PIN provided by the instructor.');
+        Swal.fire('PIN Required', 'Please enter the 4-digit PIN provided by the instructor.', 'warning');
         return;
     }
     
@@ -589,7 +680,7 @@ async function submitFinalCheckin() {
         // --- Geofence Check ---
         const geoCheck = await validateGeofence();
         if (!geoCheck.allowed) {
-            alert(geoCheck.message);
+            Swal.fire('Location Restriction', geoCheck.message, 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
             return;
         }
@@ -614,7 +705,7 @@ async function submitFinalCheckin() {
             loadDashboardStats();
             loadCourseStats();
         } else {
-            alert(data.error || 'Invalid QR code or PIN. Please try again.');
+            Swal.fire('Check-In Failed', data.error || 'Invalid QR code or PIN. Please try again.', 'error');
             document.getElementById('pin-input').value = '';
             
             // Re-render button state if failure
@@ -630,7 +721,7 @@ async function submitFinalCheckin() {
             }
         }
     } catch (err) {
-        alert('Network error. Please try again.');
+        Swal.fire('Network Error', 'Please check your connection and try again.', 'error');
         if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
     }
 }
@@ -653,29 +744,23 @@ function closeScanner() {
 }
 
 /**
- * --- 5. JUSTIFICATIONS (Unchanged) ---
+ * --- 5. HISTORY & JUSTIFICATIONS ---
  */
-function toggleJustifyModal() {
+function openJustifyModal(attendanceId, courseName, dateStr) {
     const modal = document.getElementById('justify-modal');
-    modal.classList.toggle('hidden');
-    if (!modal.classList.contains('hidden')) {
-        populateAbsentSessions();
-    }
+    document.getElementById('just-attendance-id').value = attendanceId;
+    document.getElementById('just-session-display').textContent = `${courseName} (${dateStr})`;
+    
+    // Reset form
+    document.getElementById('just-reason').value = '';
+    document.getElementById('just-file').value = '';
+    document.getElementById('camera-preview').classList.add('hidden');
+    
+    modal.classList.remove('hidden');
 }
 
-async function populateAbsentSessions() {
-    const select = document.getElementById('absent-sessions-select');
-    try {
-        const response = await fetch('/api/student/attendance/history?status=ABSENT');
-        const data = await response.json();
-        const sessions = data.content || [];
-        
-        select.innerHTML = sessions.length > 0 
-            ? sessions.map(s => `<option value="${s.attendanceId}">${s.courseName} (${s.date})</option>`).join('')
-            : '<option disabled selected>No recordable absences found</option>';
-    } catch (err) {
-        console.error("Failed to load absences", err);
-    }
+function toggleJustifyModal() {
+    document.getElementById('justify-modal').classList.add('hidden');
 }
 
 function previewFile(input) {
@@ -695,7 +780,7 @@ function previewFile(input) {
 document.getElementById('justification-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData();
-    formData.append('attendanceId', document.getElementById('absent-sessions-select').value);
+    formData.append('attendanceId', document.getElementById('just-attendance-id').value);
     formData.append('reason', document.getElementById('just-reason').value);
     formData.append('file', document.getElementById('just-file').files[0]);
 
@@ -707,41 +792,89 @@ document.getElementById('justification-form').addEventListener('submit', async (
 
         if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
         
-        alert("Justification successfully sent for review.");
+        Swal.fire('Success', 'Justification successfully sent for review.', 'success');
         toggleJustifyModal();
-        loadJustifications();
+        loadAttendanceHistory();
     } catch (err) {
-        alert(err.message);
+        Swal.fire('Error', err.message, 'error');
     }
 });
 
-async function loadJustifications() {
-    const list = document.getElementById('justification-list');
+async function loadAttendanceHistory() {
+    const container = document.getElementById('history-list-container');
+    if (!container) return;
+    
     try {
-        const response = await fetch('/api/student/justifications');
-        const justifications = await response.json();
+        // Fetch history and justifications in parallel
+        const [historyRes, justRes] = await Promise.all([
+            fetch('/api/student/attendance/history?size=100'),
+            fetch('/api/student/justifications')
+        ]);
         
-        list.innerHTML = justifications.length > 0 
-            ? justifications.map(j => `
-                <div class="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
-                    <div>
-                        <p class="text-[13px] font-bold text-slate-900 group-hover:text-[#00B0FF] transition-colors line-clamp-1">${j.reason}</p>
-                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">Ref ID: ${j.id}</p>
-                    </div>
-                    <span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-all ${getStatusStyle(j.status)}">
-                        ${j.status}
-                    </span>
-                </div>
-            `).join('')
-            : '<p class="text-slate-500 text-xs text-center py-4">No justification records found.</p>';
-    } catch (err) {}
-}
+        const historyData = await historyRes.json();
+        const historyList = historyData.content || [];
+        const justifications = await justRes.json();
+        
+        if (historyList.length === 0) {
+            container.innerHTML = '<p class="text-slate-500 text-sm text-center py-6 border border-slate-200 rounded-2xl bg-white">No session history found.</p>';
+            return;
+        }
 
-function getStatusStyle(status) {
-    switch(status) {
-        case 'APPROVED': return 'bg-emerald-50 text-emerald-700';
-        case 'REJECTED': return 'bg-red-50 text-red-700';
-        default: return 'bg-orange-50 text-orange-700';
+        container.innerHTML = historyList.map(h => {
+            const isAbsent = h.status === 'ABSENT';
+            let statusBadge = '';
+            let actionHtml = '';
+
+            // Status Styling
+            if (h.status === 'PRESENT') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100">PRESENT</span>';
+            } else if (h.status === 'LATE') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-100">LATE</span>';
+            } else if (h.status === 'EXCUSED') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">EXCUSED</span>';
+            } else {
+                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100">ABSENT</span>';
+            }
+
+            // Check justifications for absences
+            if (isAbsent || h.status === 'EXCUSED') {
+                const just = justifications.find(j => j.attendanceId === h.attendanceId);
+                if (just) {
+                    const jStatus = just.status;
+                    let jStyle = jStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                 jStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                                 'bg-amber-50 text-amber-700 border-amber-100';
+                    
+                    actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs text-slate-500 font-medium">Justification: <span class="font-bold text-slate-700 truncate max-w-[150px] inline-block align-bottom" title="${just.reason}">${just.reason}</span></span>
+                                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${jStyle}">${jStatus}</span>
+                                  </div>`;
+                } else if (isAbsent) {
+                    const safeName = (h.courseName || '').replace(/'/g, "\\'");
+                    actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100">
+                                    <button onclick="openJustifyModal(${h.attendanceId}, '${safeName}', '${h.date}')" class="w-full py-2 bg-white border-2 border-slate-200 hover:border-[#00B0FF] hover:text-[#00B0FF] hover:bg-blue-50 rounded-xl text-slate-600 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                        Submit Justification
+                                    </button>
+                                  </div>`;
+                }
+            }
+
+            return `
+            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-bold text-slate-900 text-sm leading-tight">${h.courseName}</h4>
+                        <p class="text-xs text-slate-500 mt-1"><span class="font-semibold text-slate-700">${h.date}</span> • ${(h.startTime||'').substring(0,5)} - ${(h.endTime||'').substring(0,5)}</p>
+                    </div>
+                    ${statusBadge}
+                </div>
+                ${actionHtml}
+            </div>`;
+        }).join('');
+
+    } catch (err) {
+        container.innerHTML = '<p class="text-rose-500 text-sm text-center py-4">Failed to load history.</p>';
     }
 }
 

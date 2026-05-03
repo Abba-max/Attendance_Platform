@@ -11,7 +11,7 @@ public interface StudentService {
     
     List<StudentScheduleDto> getTodaySchedule(Integer userId);
 
-    List<StudentScheduleDto> getSessionsForGrid(Integer userId);
+    List<StudentScheduleDto> getSessionsForGrid(Integer userId, Integer week);
 
     Page<StudentAttendanceHistoryDto> getAttendanceHistory(Integer userId, AttendanceStatus status, Pageable pageable);
 

@@ -84,7 +84,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public List<StudentScheduleDto> getSessionsForGrid(Integer userId) {
+    public List<StudentScheduleDto> getSessionsForGrid(Integer userId, Integer week) {
         User student = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + userId));
 
@@ -92,8 +92,13 @@ public class StudentServiceImpl implements StudentService {
             return java.util.Collections.emptyList();
         }
 
-        // Fetch all sessions and sort from newest to oldest
-        return sessionRepository.findByClassroomClassId(student.getClassroom().getClassId())
+        Integer targetWeek = week;
+        if (targetWeek == null) {
+            targetWeek = LocalDate.now().get(java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear());
+        }
+
+        // Fetch sessions for the specific week and sort from newest to oldest
+        return sessionRepository.findByClassroomClassIdAndWeek(student.getClassroom().getClassId(), targetWeek)
                 .stream()
                 .sorted((s1, s2) -> {
                     int dateCompare = s2.getDate().compareTo(s1.getDate());
