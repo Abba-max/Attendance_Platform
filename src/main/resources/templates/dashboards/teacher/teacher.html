@@ -222,7 +222,7 @@
                     <!-- Daily Volume -->
                     <div class="bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-lg shadow-slate-500/5 flex flex-col justify-between relative overflow-hidden group">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Total Classes</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Classes Today</p>
                         <div class="flex items-end justify-between relative z-10">
                             <h3 id="stat-sessions-total" class="text-3xl font-black text-slate-900">0</h3>
                             <span class="text-[10px] font-bold text-slate-400 pb-1">Sessions</span>
@@ -232,13 +232,23 @@
                     <!-- Progress -->
                     <div class="bg-white p-6 rounded-3xl border-2 border-emerald-100 shadow-lg shadow-emerald-500/5 flex flex-col justify-between relative overflow-hidden group">
                         <div class="absolute -right-6 -top-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl"></div>
-                        <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Covered Already</p>
+                        <p class="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Today's Covered</p>
                         <div class="flex items-end justify-between relative z-10">
                             <h3 id="stat-sessions-done" class="text-3xl font-black text-slate-900">0</h3>
                             <div class="flex flex-col items-end">
                                 <span id="stat-sessions-pct" class="text-[10px] font-black text-emerald-600">0%</span>
                                 <span class="text-[10px] font-bold text-slate-400">Complete</span>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Overall Hours -->
+                    <div class="bg-white p-6 rounded-3xl border-2 border-indigo-100 shadow-lg shadow-indigo-500/5 flex flex-col justify-between relative overflow-hidden group">
+                        <div class="absolute -right-6 -top-6 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl"></div>
+                        <p class="text-xs font-bold text-indigo-600 uppercase tracking-widest mb-1 relative z-10">Overall Hours</p>
+                        <div class="flex items-end justify-between relative z-10">
+                            <h3 id="stat-hours-overall" class="text-3xl font-black text-slate-900">0</h3>
+                            <span class="text-[10px] font-bold text-slate-400 pb-1">Total Hours</span>
                         </div>
                     </div>
 

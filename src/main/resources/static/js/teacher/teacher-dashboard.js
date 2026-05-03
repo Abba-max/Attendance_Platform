@@ -216,10 +216,7 @@ function renderGrid() {
     const mobileList = document.getElementById('mobile-sessions-list');
     if (!matrix || !mobileList) return;
 
-    // 1. Calculate Stats for Overview
-    const totalClasses = allSessions.length;
-    const doneClasses = allSessions.filter(s => s.status === 'COMPLETED').length;
-    updateOverview(totalClasses, doneClasses);
+    updateOverview();
 
     // 2. Render Desktop Matrix
     // Save and restore the 7 static header elements
@@ -285,10 +282,11 @@ function renderGrid() {
     }
 }
 
-function updateOverview(totalFull, doneFull) {
+function updateOverview() {
     const totalEl = document.getElementById('stat-sessions-total');
     const doneEl = document.getElementById('stat-sessions-done');
     const pctEl = document.getElementById('stat-sessions-pct');
+    const overallHoursEl = document.getElementById('stat-hours-overall');
     
     // 1. Update Date and Today's Class Count
     const dateEl = document.getElementById('current-date-teacher');
@@ -305,16 +303,28 @@ function updateOverview(totalFull, doneFull) {
         dateEl.textContent = now.toLocaleDateString('en-US', options);
     }
     
+    // Calculate Today's Stats
     const sessionsToday = allSessions.filter(s => s.date === todayStr);
+    const totalToday = sessionsToday.length;
+    const doneToday = sessionsToday.filter(s => s.status === 'COMPLETED').length;
+
     if (todayCountBadge) {
-        todayCountBadge.textContent = `${sessionsToday.length} ${sessionsToday.length === 1 ? 'class' : 'classes'} today`;
+        todayCountBadge.textContent = `${totalToday} ${totalToday === 1 ? 'class' : 'classes'} today`;
     }
 
-    if (totalEl) totalEl.textContent = String(totalFull);
-    if (doneEl) doneEl.textContent = String(doneFull);
+    if (totalEl) totalEl.textContent = String(totalToday);
+    if (doneEl) doneEl.textContent = String(doneToday);
     if (pctEl) {
-        const pct = totalFull > 0 ? Math.round((doneFull / totalFull) * 100) : 0;
+        const pct = totalToday > 0 ? Math.round((doneToday / totalToday) * 100) : 0;
         pctEl.textContent = `${pct}%`;
+    }
+
+    // Overall Hours Covered (All COMPLETED sessions in history)
+    if (overallHoursEl) {
+        const overallHours = allSessions
+            .filter(s => s.status === 'COMPLETED')
+            .reduce((sum, s) => sum + (s.totalHours || 0), 0);
+        overallHoursEl.textContent = String(overallHours);
     }
     
     // Calculate Next Session
