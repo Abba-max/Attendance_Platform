@@ -320,12 +320,15 @@ function handleSessionClick(sessionId, status) {
         const s = allGridSessions.find(x => x.sessionId === sessionId);
         const st = s?.attendanceStatus || 'ABSENT';
         Swal.fire('Session Complete', `Your attendance status is: ${st}`, 'success');
+    } else if (status === 'MISSED') {
+        Swal.fire('Session Missed', 'This session was scheduled but did not take place. No attendance can be recorded.', 'warning');
     }
 }
 
 function renderSessionCard(s, isGrid = false) {
     const isLive = s.status === 'IN_PROGRESS';
     const isDone = s.status === 'COMPLETED';
+    const isMissed = s.status === 'MISSED';
     const isAttended = s.attendanceStatus === 'PRESENT' || s.attendanceStatus === 'LATE';
     
     // Grid mode
@@ -336,46 +339,58 @@ function renderSessionCard(s, isGrid = false) {
         let textRoom = 'text-indigo-500';
 
         if (isLive) {
-            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400';
+            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400 animate-pulse-subtle';
             textCourse = 'text-white';
             textTime = 'text-blue-50';
             textRoom = 'text-blue-100';
         } else if (isDone) {
-            cardBg = 'border-emerald-600 bg-emerald-500 hover:bg-emerald-400';
-            textCourse = 'text-white';
-            textTime = 'text-emerald-50';
-            textRoom = 'text-emerald-100';
+            cardBg = isAttended ? 'border-emerald-600 bg-emerald-500 hover:bg-emerald-400' : 'border-slate-400 bg-slate-200 hover:bg-slate-300';
+            textCourse = isAttended ? 'text-white' : 'text-slate-700';
+            textTime = isAttended ? 'text-emerald-50' : 'text-slate-500';
+            textRoom = isAttended ? 'text-emerald-100' : 'text-slate-400';
+        } else if (isMissed) {
+            cardBg = 'border-slate-300 bg-slate-100/60 opacity-60 grayscale-[0.5]';
+            textCourse = 'text-slate-600 line-through';
+            textTime = 'text-slate-400';
+            textRoom = 'text-slate-400';
         }
 
         // Onlick triggers handleSessionClick
         const clickAction = `handleSessionClick(${s.sessionId}, '${s.status}')`;
+        const badgeHtml = isLive ? '<span class="absolute top-1 right-1 px-1 py-0.5 bg-red-500 text-white text-[7px] font-black rounded">LIVE</span>' : 
+                         (isMissed ? '<span class="absolute top-1 right-1 px-1 py-0.5 bg-slate-400 text-white text-[7px] font-black rounded uppercase">Missed</span>' : '');
 
         return `
             <div onclick="${clickAction}" class="h-full w-full p-2 rounded-xl border-l-4 ${cardBg} cursor-pointer transition-all flex flex-col justify-start gap-1 overflow-hidden relative">
-                ${isAttended && isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
+                ${isAttended && isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : badgeHtml}
                 <p class="text-[10px] font-black ${textCourse} truncate leading-tight w-[85%]">${s.courseName || 'Course'}</p>
                 <div class="flex flex-col gap-0.5">
                     <span class="text-[9px] font-bold ${textTime}">${(s.startTime||'--:--').substring(0,5)}–${(s.endTime||'--:--').substring(0,5)}</span>
                     <span class="text-[9px] font-medium ${textRoom} truncate">${s.classroomName || ''}</span>
+                    ${isDone ? `<span class="text-[7px] font-black mt-0.5 ${isAttended ? 'text-emerald-100' : 'text-slate-400'}">${s.attendanceStatus || 'ABSENT'}</span>` : ''}
                 </div>
             </div>`;
     }
     
     // Mobile layout
+    const statusLabel = isLive ? 'LIVE' : (isMissed ? 'MISSED' : s.status);
+    const statusBg = isLive ? 'bg-blue-600 text-white animate-pulse' : (isMissed ? 'bg-slate-200 text-slate-500' : (isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'));
+
     return `
-        <div onclick="handleSessionClick(${s.sessionId}, '${s.status}')" class="bg-white p-5 rounded-2xl border-2 ${isLive ? 'border-[#00B0FF] shadow-lg shadow-blue-500/10' : 'border-slate-100'} hover:border-[#00B0FF]/30 cursor-pointer transition-all flex items-center justify-between group">
+        <div onclick="handleSessionClick(${s.sessionId}, '${s.status}')" class="bg-white p-5 rounded-2xl border-2 ${isLive ? 'border-[#00B0FF] shadow-lg shadow-blue-500/10' : 'border-slate-100'} ${isMissed ? 'opacity-60' : ''} hover:border-[#00B0FF]/30 cursor-pointer transition-all flex items-center justify-between group">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl ${isLive ? 'bg-blue-50 text-blue-600' : (isDone ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400')} flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-xl ${isLive ? 'bg-blue-50 text-blue-600' : (isDone ? (isAttended ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400') : 'bg-slate-50 text-slate-400')} flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-black text-slate-900 mb-0.5 line-clamp-1">${s.courseName}</h4>
+                    <h4 class="text-sm font-black text-slate-900 mb-0.5 line-clamp-1 ${isMissed ? 'line-through' : ''}">${s.courseName}</h4>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${(s.startTime||'--:--').substring(0,5)} • ${s.teacherName}</p>
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1">
-                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${isLive ? 'bg-blue-600 text-white' : (isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500')}">${isLive ? 'LIVE' : s.status}</span>
+                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${statusBg}">${statusLabel}</span>
                 ${isAttended && isDone ? '<svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                ${!isAttended && isDone && !isMissed ? '<span class="text-[8px] font-black text-rose-500">ABSENT</span>' : ''}
             </div>
         </div>
     `;

@@ -359,11 +359,13 @@ window.takeAttendanceFromOverview = function() {
 function renderSessionCard(s, isGrid = false) {
     const isActive = s.status === 'IN_PROGRESS';
     const isDone = s.status === 'COMPLETED';
+    const isMissed = s.status === 'MISSED';
     const isValid = s.isValidated === true;
     
     let statusClasses = 'bg-slate-100 text-slate-500 border border-slate-200';
     if (isActive) statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
     else if (isDone) statusClasses = isValid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white';
+    else if (isMissed) statusClasses = 'bg-slate-200 text-slate-500';
 
     const clickAction = isDone ? `viewAttendancePdf(${s.sessionId})` : `handleSessionAction(${s.sessionId})`;
 
@@ -372,46 +374,67 @@ function renderSessionCard(s, isGrid = false) {
         let textCourse = 'text-indigo-950';
         let textTime = 'text-indigo-600';
         let textRoom = 'text-indigo-500';
+        let statsColor = 'text-indigo-400';
 
         if (isActive) {
-            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400';
+            cardBg = 'border-[#0091D5] bg-[#00B0FF] shadow-md shadow-blue-500/30 hover:bg-blue-400 animate-pulse-subtle';
             textCourse = 'text-white';
             textTime = 'text-blue-50';
             textRoom = 'text-blue-100';
+            statsColor = 'text-white/80';
         } else if (isDone) {
             cardBg = 'border-emerald-600 bg-emerald-500 hover:bg-emerald-400';
             textCourse = 'text-white';
             textTime = 'text-emerald-50';
             textRoom = 'text-emerald-100';
+            statsColor = 'text-white/80';
+        } else if (isMissed) {
+            cardBg = 'border-slate-300 bg-slate-100/60 opacity-60 grayscale-[0.5]';
+            textCourse = 'text-slate-600 line-through';
+            textTime = 'text-slate-400';
+            textRoom = 'text-slate-400';
+            statsColor = 'text-slate-300';
         }
 
+        const showStats = isDone || isActive;
+        const statsHtml = showStats ? `<div class="mt-auto flex items-center gap-1 ${statsColor} text-[8px] font-black">
+            <svg class="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>
+            ${s.presentCount || 0}/${s.totalStudents || 0}
+        </div>` : '';
+
+        const badgeHtml = isActive ? '<span class="absolute top-1 right-1 px-1 py-0.5 bg-red-500 text-white text-[7px] font-black rounded">LIVE</span>' : 
+                         (isMissed ? '<span class="absolute top-1 right-1 px-1 py-0.5 bg-slate-400 text-white text-[7px] font-black rounded uppercase">Missed</span>' : '');
+
         return `
-            <div onclick="${clickAction}" class="h-full w-full p-2 rounded-xl border-l-4 ${cardBg} cursor-pointer transition-all flex flex-col justify-start gap-1 overflow-hidden relative">
-                ${isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : ''}
+            <div onclick="${clickAction}" class="h-full w-full p-2 rounded-xl border-l-4 ${cardBg} cursor-pointer transition-all flex flex-col justify-start gap-0.5 overflow-hidden relative">
+                ${isDone ? '<div class="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center text-emerald-600"><svg class="w-2 h-2" fill="none" stroke="currentColor" stroke-width="4" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg></div>' : badgeHtml}
                 <p class="text-[10px] font-black ${textCourse} truncate leading-tight w-[85%]">${s.courseName || 'Course'}</p>
-                <div class="flex flex-col gap-0.5">
+                <div class="flex flex-col">
                     <span class="text-[9px] font-bold ${textTime}">${(s.startTime||'--:--').substring(0,5)}–${(s.endTime||'--:--').substring(0,5)}</span>
                     <span class="text-[9px] font-medium ${textRoom} truncate">${s.classroomName || ''}</span>
                 </div>
+                ${statsHtml}
             </div>`;
     }
 
     const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short'}) : 'TBD';
+    let statusLabel = isActive ? 'LIVE' : (isDone ? (isValid ? 'DONE' : 'CLOSED') : (isMissed ? 'MISSED' : 'WAIT'));
 
     return `
-        <div onclick="${clickAction}" class="bg-white p-4 rounded-2xl border-2 ${isActive ? 'border-[#00B0FF] shadow-blue-500/10' : 'border-slate-100'} flex items-center justify-between group active:scale-[0.98] transition-all">
+        <div onclick="${clickAction}" class="bg-white p-4 rounded-2xl border-2 ${isActive ? 'border-[#00B0FF] shadow-lg shadow-blue-500/10' : 'border-slate-100'} ${isMissed ? 'opacity-60' : ''} flex items-center justify-between group active:scale-[0.98] transition-all">
             <div class="flex items-center gap-4">
-                <div class="w-10 h-10 rounded-xl ${isActive ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'} flex items-center justify-center shrink-0">
+                <div class="w-10 h-10 rounded-xl ${isActive ? 'bg-blue-50 text-blue-600' : (isDone ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400')} flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <div>
-                    <h4 class="text-sm font-black text-slate-900 mb-0.5">${s.courseName || 'Course'}</h4>
+                    <h4 class="text-sm font-black text-slate-900 mb-0.5 ${isMissed ? 'line-through' : ''}">${s.courseName || 'Course'}</h4>
                     <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">${s.startTime?.substring(0,5)} • ${s.classroomName || 'Room'}</p>
                 </div>
             </div>
             <div class="flex flex-col items-end gap-1">
-                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${statusClasses}">${isDone ? (isValid ? 'DONE' : 'CLOSED') : (isActive ? 'LIVE' : 'WAIT')}</span>
+                <span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest ${statusClasses}">${statusLabel}</span>
                 <span class="text-[9px] font-bold text-slate-300">${dateStr}</span>
+                ${(isDone || isActive) ? `<span class="text-[10px] font-black text-slate-900 mt-1">${s.presentCount || 0}/${s.totalStudents || 0}</span>` : ''}
             </div>
         </div>`;
 }
@@ -422,10 +445,27 @@ window.handleSessionAction = async function (sessionId) {
     if (!session) return;
 
     if (session.status === 'SCHEDULED') {
+        const now = new Date();
+        const [h, m] = (session.startTime || '00:00').split(':').map(Number);
+        const [y, mon, d] = (session.date || '').split('-').map(Number);
+        
+        // Use the date from the session (mon is 0-indexed in Date constructor)
+        const sDate = new Date(y, mon - 1, d, h, m, 0);
+        const diffMinutes = (sDate - now) / (1000 * 60);
+        
+        // Window: 15 mins before to 30 mins after start (but if after end it is handled by backend)
+        if (diffMinutes > 15) {
+            showNotification(`Too early! You can start this class at ${session.startTime.substring(0,5)}.`, 'warning');
+            return;
+        }
+
         try {
             showNotification('Initializing session...', 'info');
             const res = await fetch(`/api/teacher/sessions/${sessionId}/start`, { method: 'POST' });
-            if (!res.ok) throw new Error();
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Failed to start session.');
+            }
             const updated = await res.json();
             
             const idx = allSessions.findIndex(s => s.sessionId === sessionId);
@@ -434,8 +474,12 @@ window.handleSessionAction = async function (sessionId) {
             renderGrid();
             openRollCall(sessionId);
         } catch (e) {
-            showNotification('Failed to start session.', 'error');
+            showNotification(e.message || 'Failed to start session.', 'error');
+            // Refresh grid if it was a MISSED transition on backend
+            fetchSessions(); 
         }
+    } else if (session.status === 'MISSED') {
+        showNotification("This session has expired and cannot be started.", "error");
     } else {
         openRollCall(sessionId);
     }
@@ -524,8 +568,6 @@ function connectWebSocket(sessionId) {
         setTimeout(() => connectWebSocket(sid), 5000);
     });
 }
-
-
 
 function updateRollCallRealTime(dto) {
     // dto is an AttendanceRecordDto from the backend
@@ -714,8 +756,6 @@ function renderAttendanceGrid(records) {
                     <span class="text-[10px] font-black text-slate-400">${idx + 1}</span>
                 </td>
                 <td class="px-5 py-4">
-
-
                     <div class="flex flex-col gap-0.5">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-black text-slate-900">${r.firstName} ${r.lastName}</span>

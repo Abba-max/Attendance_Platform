@@ -197,9 +197,19 @@ public class Session {
     public boolean isActive() {
         LocalTime now = LocalTime.now();
         LocalDate today = LocalDate.now();
+        // Allow starting 15 mins early and up to the end of the session
         return this.date != null && this.date.equals(today) &&
-                now.isAfter(startTime.minusMinutes(5)) &&
-                now.isBefore(endTime.plusMinutes(15));
+                now.isAfter(startTime.minusMinutes(15)) &&
+                now.isBefore(endTime);
+    }
+
+    public boolean isPast() {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        if (this.date == null) return false;
+        if (this.date.isBefore(today)) return true;
+        if (this.date.equals(today) && now.isAfter(endTime)) return true;
+        return false;
     }
 
     @Override

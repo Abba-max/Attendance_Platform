@@ -68,6 +68,11 @@ public class StudentServiceImpl implements StudentService {
                     List<AttendanceRecord> records = attendanceRecordRepository.findByUserAndSession(student, session);
                     String attStatus = records.isEmpty() ? "NOT_MARKED" : records.get(0).getStatus().name();
                     
+                    String sessionStatus = session.getStatus().name();
+                    if (group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED.name().equals(sessionStatus) && session.isPast()) {
+                        sessionStatus = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.MISSED.name();
+                    }
+
                     return StudentScheduleDto.builder()
                         .sessionId(session.getSessionId())
                         .courseName(session.getCourse() != null ? session.getCourse().getCourseName() : "N/A")
@@ -76,7 +81,7 @@ public class StudentServiceImpl implements StudentService {
                         .startTime(session.getStartTime())
                         .endTime(session.getEndTime())
                         .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : "N/A")
-                        .status(session.getStatus().name())
+                        .status(sessionStatus)
                         .attendanceStatus(attStatus)
                         .build();
                 })
@@ -109,6 +114,11 @@ public class StudentServiceImpl implements StudentService {
                     List<AttendanceRecord> records = attendanceRecordRepository.findByUserAndSession(student, session);
                     String attStatus = records.isEmpty() ? "NOT_MARKED" : records.get(0).getStatus().name();
                     
+                    String sessionStatus = session.getStatus().name();
+                    if (group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED.name().equals(sessionStatus) && session.isPast()) {
+                        sessionStatus = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.MISSED.name();
+                    }
+
                     return StudentScheduleDto.builder()
                         .sessionId(session.getSessionId())
                         .courseName(session.getCourse() != null ? session.getCourse().getCourseName() : "N/A")
@@ -117,7 +127,7 @@ public class StudentServiceImpl implements StudentService {
                         .startTime(session.getStartTime())
                         .endTime(session.getEndTime())
                         .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : "N/A")
-                        .status(session.getStatus().name())
+                        .status(sessionStatus)
                         .attendanceStatus(attStatus)
                         .build();
                 })

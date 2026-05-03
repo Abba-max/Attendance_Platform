@@ -11,6 +11,31 @@ public class SessionMapper {
 
     public SessionDto toDto(Session session) {
         if (session == null) return null;
+
+        long present = 0;
+        if (session.getAttendanceRecords() != null) {
+            present = session.getAttendanceRecords().stream()
+                .filter(r -> r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT || 
+                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
+                .count();
+        }
+        
+        int totalEnrolled = (session.getClassroom() != null && session.getClassroom().getStudents() != null) ? 
+                            session.getClassroom().getStudents().size() : 0;
+
+        String effectiveStatus = session.getStatus() != null ? session.getStatus().name() : null;
+        
+        // Logic: If it's still SCHEDULED but the time is past, show as MISSED in UI
+        if (group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.SCHEDULED.name().equals(effectiveStatus) && session.isPast()) {
+            effectiveStatus = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.MISSED.name();
+        }
+        
+        // Logic: If it's IN_PROGRESS but from a previous day, show as COMPLETED (orphaned)
+        if (group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.IN_PROGRESS.name().equals(effectiveStatus) && 
+            session.getDate() != null && session.getDate().isBefore(java.time.LocalDate.now())) {
+            effectiveStatus = group3.en.stuattendance.Timetablemanager.Enum.SessionStatus.COMPLETED.name();
+        }
+
         return SessionDto.builder()
                 .sessionId(session.getSessionId())
                 .day(session.getDay())
@@ -26,7 +51,7 @@ public class SessionMapper {
                 .teacherName(session.getTeacher() != null ? session.getTeacher().getUsername() : null)
                 .classroomId(session.getClassroom() != null ? session.getClassroom().getClassId() : null)
                 .classroomName(session.getClassroom() != null ? session.getClassroom().getName() : null)
-                .status(session.getStatus() != null ? session.getStatus().name() : null)
+                .status(effectiveStatus)
                 .level(session.getClassroom() != null ? session.getClassroom().getLevel() : null)
                 .specialityName(session.getClassroom() != null && session.getClassroom().getSpeciality() != null ? session.getClassroom().getSpeciality().getName() : null)
                 .actualStartTime(session.getActualStartTime())
@@ -36,20 +61,10 @@ public class SessionMapper {
                 .isActive(session.isActive())
                 .totalHours(session.getStartTime() != null && session.getEndTime() != null ? 
                     (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 0)
-                .attendanceRate(calculateAttendanceRate(session))
+                .presentCount((int) present)
+                .totalStudents(totalEnrolled)
+                .attendanceRate(totalEnrolled > 0 ? (double) present / totalEnrolled * 100.0 : 0.0)
                 .build();
-    }
-
-    private Double calculateAttendanceRate(Session session) {
-        if (session.getAttendanceRecords() == null || session.getAttendanceRecords().isEmpty()) {
-            return 0.0;
-        }
-        long total = session.getAttendanceRecords().size();
-        long present = session.getAttendanceRecords().stream()
-                .filter(r -> r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT || 
-                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
-                .count();
-        return (double) present / total * 100.0;
     }
 
     public Session toEntity(SessionDto dto) {

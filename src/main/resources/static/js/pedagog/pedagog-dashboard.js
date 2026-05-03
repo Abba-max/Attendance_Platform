@@ -2599,6 +2599,7 @@ function renderSessionRow(s) {
         IN_PROGRESS: { bg: '#eff6ff', color: '#1d4ed8', label: 'In Progress' },
         COMPLETED:   { bg: '#f8fafc', color: '#475569', label: 'Completed' },
         CANCELLED:   { bg: '#fff1f2', color: '#be123c', label: 'Cancelled' },
+        MISSED:      { bg: '#f1f5f9', color: '#64748b', label: 'Missed' },
     };
     const st = STATUS_STYLES[s.status] || { bg: '#f8fafc', color: '#64748b', label: s.status || '—' };
 
@@ -2608,14 +2609,19 @@ function renderSessionRow(s) {
     const timeStr = (s.startTime || '--').substring(0,5) + " – " + (s.endTime || '--').substring(0,5);
 
     // Attendance bar
+    const presentCount = s.presentCount || 0;
+    const totalCount = s.totalStudents || 0;
     const attBar = s.status === 'COMPLETED'
-        ? '<div style="display:flex;align-items:center;gap:6px">' +
-               '<div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
-                   '<div style="height:100%;background:#10b981;border-radius:4px;width:' + (s.attendanceRate || 0) + '%"></div>' +
+        ? '<div style="display:flex;flex-direction:column;gap:4px">' +
+               '<div style="display:flex;align-items:center;gap:6px">' +
+                   '<div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
+                       '<div style="height:100%;background:#10b981;border-radius:4px;width:' + (s.attendanceRate || 0) + '%"></div>' +
+                   '</div>' +
+                   '<span style="font-size:11px;font-weight:700;color:#475569">' + (s.attendanceRate || 0) + '%</span>' +
                '</div>' +
-               '<span style="font-size:11px;font-weight:700;color:#475569">' + (s.attendanceRate || '?') + '%</span>' +
+               '<span style="font-size:10px;font-weight:600;color:var(--text-3)">' + presentCount + ' / ' + totalCount + ' Present</span>' +
            '</div>'
-        : '<span style="font-size:11px;color:var(--text-3)">—</span>';
+        : (s.status === 'MISSED' ? '<span style="font-size:11px;color:#be123c;font-weight:700">0% (Expired)</span>' : '<span style="font-size:11px;color:var(--text-3)">—</span>');
 
      return '<tr style="border-top:1px solid #f1f5f9;transition:background .15s" onmouseover="this.style.background=\'#fafcff\'" onmouseout="this.style.background=\'\'">' +
             '<td style="padding:13px 16px">' +

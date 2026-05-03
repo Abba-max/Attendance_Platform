@@ -38,4 +38,6 @@ public class SessionDto {
     private Boolean isActive;
     private Integer totalHours;
     private Double attendanceRate;
+    private Integer presentCount;
+    private Integer totalStudents;
 }

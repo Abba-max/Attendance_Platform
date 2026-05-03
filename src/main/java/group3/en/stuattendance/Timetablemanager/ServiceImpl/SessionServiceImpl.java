@@ -47,6 +47,19 @@ public class SessionServiceImpl implements SessionService {
             throw new IllegalStateException("Session must be in SCHEDULED status to start. Current status: " + session.getStatus());
         }
 
+        // Strict Scheduling Enforcement
+        if (session.isPast()) {
+            session.setStatus(SessionStatus.MISSED);
+            sessionRepository.save(session);
+            throw new IllegalStateException("This session is in the past and cannot be started. It has been marked as MISSED.");
+        }
+
+        if (!session.isActive()) {
+            throw new IllegalStateException(String.format(
+                "Cannot start session yet. It is scheduled for %s at %s.", 
+                session.getDate(), session.getStartTime()));
+        }
+
         session.setStatus(SessionStatus.IN_PROGRESS);
         session.setActualStartTime(LocalDateTime.now());
         
