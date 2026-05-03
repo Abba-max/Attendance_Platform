@@ -904,44 +904,8 @@
         setTimeout(renderCal, 500);
     })();
 
-    // ── Attendance Stat Cards + Rate Circle sync ──────────────────────
-    // Intercept mutations on att-table-body to keep stat cards updated
-    (function() {
-        function updateAttStats() {
-            const rows = document.querySelectorAll('#att-table-body tr[data-status]');
-            let present = 0, absent = 0, late = 0;
-            rows.forEach(r => {
-                const s = (r.dataset.status || '').toUpperCase();
-                if (s === 'PRESENT') present++;
-                else if (s === 'ABSENT') absent++;
-                else if (s === 'LATE') late++;
-            });
-            const total = rows.length;
-            const rate  = total > 0 ? Math.round((present / total) * 100) : 0;
+    // Roster Stats Sync handled in teacher-dashboard.js
 
-            const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-            set('att-stat-total',   total);
-            set('att-stat-present', present);
-            set('att-stat-absent',  absent);
-            set('att-stat-late',    late);
-            set('att-rate-pct',     rate + '%');
-            set('att-rate-present-lbl', present);
-            set('att-rate-absent-lbl',  absent);
-            set('att-rate-late-lbl',    late);
-
-            const circle = document.getElementById('att-rate-circle');
-            if (circle) circle.setAttribute('stroke-dasharray', rate + ' ' + (100 - rate));
-        }
-
-        const observer = new MutationObserver(updateAttStats);
-        // Start observing once the table body exists
-        function tryObserve() {
-            const tbody = document.getElementById('att-table-body');
-            if (tbody) { observer.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-status'] }); }
-            else { setTimeout(tryObserve, 500); }
-        }
-        tryObserve();
-    })();
 
     // ── My Students ──────────────────────────────────────────────────
     (function() {

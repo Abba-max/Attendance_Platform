@@ -504,13 +504,24 @@ function connectWebSocket(sessionId) {
     stompClient.debug = null; // disable noisy console logs
     
     stompClient.connect({}, function (frame) {
+        console.log('Connected to WebSocket');
         // Real-time attendance updates from student check-ins
         stompClient.subscribe('/topic/session/' + sid, function (message) {
-            const dto = JSON.parse(message.body);
-            updateRollCallRealTime(dto);
+            try {
+                const dto = JSON.parse(message.body);
+                updateRollCallRealTime(dto);
+            } catch (e) {
+                console.error("Error parsing WebSocket message:", e);
+            }
         });
         // QR refresh notifications
-        stompClient.subscribe('/topic/session/' + sid + '/qr', generateQr);
+        stompClient.subscribe('/topic/session/' + sid + '/qr', function() {
+            generateQr();
+        });
+    }, function(error) {
+        console.error('STOMP error:', error);
+        // Try to reconnect after 5 seconds
+        setTimeout(() => connectWebSocket(sid), 5000);
     });
 }
 
@@ -518,45 +529,127 @@ function connectWebSocket(sessionId) {
 
 function updateRollCallRealTime(dto) {
     // dto is an AttendanceRecordDto from the backend
-    // Fields: userId, hoursAttended, status, qrValidated, pinValidated
     const studentId = dto.userId;
     if (!studentId) return;
 
     const row = document.querySelector(`.student-row[data-student-id="${studentId}"]`);
     if (!row) {
-        // Student not in current view — do a full reload to pick them up
+        // Student not in current view (could be due to filter or delay)
         loadRollCall(activeSessionId);
         return;
     }
 
-    // Visual highlight
-    row.classList.add('bg-emerald-50', 'transition-colors', 'duration-500');
-    setTimeout(() => row.classList.remove('bg-emerald-50'), 1200);
+    // 1. Visual highlight for the row
+    row.classList.add('bg-blue-50/50', 'transition-colors', 'duration-500');
+    setTimeout(() => row.classList.remove('bg-blue-50/50'), 2000);
 
-    // Mark ALL checkboxes for this student as checked (they scanned in)
-    const checkboxes = document.querySelectorAll(`.slot-checkbox[data-user-id="${studentId}"]`);
+    // 2. Mark ALL checkboxes for this student as checked (they scanned in)
+    const checkboxes = row.querySelectorAll(`.slot-checkbox`);
     checkboxes.forEach(cb => { cb.checked = true; });
 
-    // Add or update "Scanned" badge
+    // 3. Update the Scanned badge
     const nameContainer = row.querySelector('.flex.items-center.gap-2');
     if (nameContainer && !nameContainer.querySelector('.scanned-badge')) {
         const badge = document.createElement('span');
-        badge.className = 'scanned-badge px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest rounded-md';
+        badge.className = 'scanned-badge px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md';
         badge.textContent = 'Scanned';
         nameContainer.appendChild(badge);
     }
 
-    // Show a toast notification
+    // 4. Update the status badge in the row
+    const statusCell = row.querySelector('.status-badge-cell');
+    if (statusCell) {
+        const status = dto.status || 'PRESENT';
+        statusCell.innerHTML = getStatusBadge(status);
+    }
+    row.setAttribute('data-status', dto.status || 'PRESENT');
+
+    // 5. Re-calculate summary stats immediately
+    updateSummaryStats();
+
+    // 6. Show a toast notification
     const studentName = row.querySelector('span.text-sm')?.textContent?.trim() || 'A student';
     showNotification(`${studentName} just checked in!`, 'success');
 }
 
+function updateSummaryStats() {
+    const rows = document.querySelectorAll('.student-row');
+    const total = rows.length;
+    let present = 0;
+    let late = 0;
+    
+    rows.forEach(row => {
+        // Source of truth: are any hour checkboxes checked?
+        const isAnyPresent = Array.from(row.querySelectorAll('.slot-checkbox')).some(cb => cb.checked);
+        const statusAttr = row.getAttribute('data-status') || 'ABSENT';
+        
+        // If the student isn't EXCUSED/JUSTIFIED, their status MUST match the checkboxes
+        if (statusAttr !== 'EXCUSED' && statusAttr !== 'JUSTIFIED') {
+            const derivedStatus = isAnyPresent ? 'PRESENT' : 'ABSENT';
+            if (statusAttr !== derivedStatus) {
+                row.setAttribute('data-status', derivedStatus);
+                const badgeCell = row.querySelector('.status-badge-cell');
+                if (badgeCell) badgeCell.innerHTML = getStatusBadge(derivedStatus);
+            }
+        }
+
+        // Count for stats (Excused counts as present for some metrics, but here we count actual presence)
+        const currentStatus = row.getAttribute('data-status');
+        if (currentStatus === 'PRESENT') present++;
+        else if (currentStatus === 'LATE') present++;
+        else if (currentStatus === 'EXCUSED' || currentStatus === 'JUSTIFIED') present++; // Excused are often counted as 'handled'
+        
+        if (currentStatus === 'LATE') late++;
+    });
+
+    const absent = total - present;
+
+    // Update the UI cards
+    const totalEl = document.getElementById('att-stat-total');
+    const presentEl = document.getElementById('att-stat-present');
+    const absentEl = document.getElementById('att-stat-absent');
+    const lateEl = document.getElementById('att-stat-late');
+
+    if (totalEl) totalEl.textContent = total;
+    if (presentEl) presentEl.textContent = present;
+    if (absentEl) absentEl.textContent = absent;
+    if (lateEl) lateEl.textContent = late;
+
+    // Update circular progress rate
+    const ratePct = total > 0 ? Math.round((present / total) * 100) : 0;
+    const rateCircle = document.getElementById('att-rate-circle');
+    const rateText = document.getElementById('att-rate-pct');
+    const presentLbl = document.getElementById('att-rate-present-lbl');
+    const absentLbl = document.getElementById('att-rate-absent-lbl');
+    const lateLbl = document.getElementById('att-rate-late-lbl');
+
+    if (rateText) rateText.textContent = `${ratePct}%`;
+    if (rateCircle) rateCircle.setAttribute('stroke-dasharray', `${ratePct} ${100 - ratePct}`);
+    if (presentLbl) presentLbl.textContent = present;
+    if (absentLbl) absentLbl.textContent = absent;
+    if (lateLbl) lateLbl.textContent = late;
+}
+
+function getStatusBadge(status) {
+    status = (status || 'ABSENT').toUpperCase();
+    let cls = 'bg-slate-100 text-slate-500';
+    if (status === 'PRESENT') cls = 'bg-emerald-500 text-white';
+    else if (status === 'LATE') cls = 'bg-amber-500 text-white';
+    else if (status === 'ABSENT') cls = 'bg-rose-500 text-white';
+    else if (status === 'EXCUSED' || status === 'JUSTIFIED') cls = 'bg-blue-500 text-white';
+    
+    return `<span class="px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${cls}">${status}</span>`;
+}
+
 function resolveHours(s) { 
+    if (!s) return 1;
     if (s.totalHours > 0) return s.totalHours;
     if (s.startTime && s.endTime) {
-        const [sh, sm] = s.startTime.split(':').map(Number);
-        const [eh, em] = s.endTime.split(':').map(Number);
-        return Math.max(1, Math.round((eh * 60 + em - sh * 60 - sm) / 60));
+        try {
+            const [sh, sm] = s.startTime.split(':').map(Number);
+            const [eh, em] = s.endTime.split(':').map(Number);
+            return Math.max(1, Math.round((eh * 60 + em - sh * 60 - sm) / 60));
+        } catch(e) { return 1; }
     }
     return 1;
 }
@@ -567,15 +660,40 @@ function renderAttendanceGrid(records) {
     const totalHours = resolveHours(activeSession);
 
     // Build header
-    let headHtml = `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-1/3">Student</th>`;
+    let headHtml = `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-[50px] text-center">#</th>`;
+    headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] w-1/4">Student</th>`;
+    headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">Status</th>`;
     for (let i = 0; i < totalHours; i++) {
         headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">H${i+1}</th>`;
     }
     headHtml += `<th class="px-5 py-4 font-black text-[#00B0FF] uppercase tracking-widest text-[10px] text-center">Actions</th>`;
     thead.innerHTML = headHtml;
 
-    tbody.innerHTML = records.map(r => {
+    // Sort alphabetically by last name, then first name
+    records.sort((a, b) => {
+        const nameA = ((a.lastName || '') + (a.firstName || '')).toLowerCase();
+        const nameB = ((b.lastName || '') + (b.firstName || '')).toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+
+    tbody.innerHTML = records.map((r, idx) => {
         const isLive = r.isLive;
+        
+        // Determine initial status based on both backend and slots
+        const hasCheckedHours = r.hourSlots?.some(h => h.status === 'PRESENT' || h.status === 'LATE');
+        let effectiveStatus = r.status || 'ABSENT';
+        
+        // Consistency check: if they have checked hours, they MUST be at least PRESENT
+        if (hasCheckedHours && (effectiveStatus === 'ABSENT' || !effectiveStatus)) {
+            effectiveStatus = 'PRESENT';
+        } 
+        // If they have NO checked hours and aren't EXCUSED, they are ABSENT
+        else if (!hasCheckedHours && effectiveStatus !== 'EXCUSED' && effectiveStatus !== 'JUSTIFIED') {
+            effectiveStatus = 'ABSENT';
+        }
+
+        const badgeHtml = getStatusBadge(effectiveStatus);
+
         let hoursHtml = '';
         for (let i = 0; i < totalHours; i++) {
             const slot = r.hourSlots?.find(h => h.hourIndex === i);
@@ -590,26 +708,38 @@ function renderAttendanceGrid(records) {
         }
 
         return `
-            <tr class="student-row hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0 ${isLive ? 'bg-blue-50/40' : ''}" data-student-id="${r.userId}">
+            <tr class="student-row hover:bg-blue-50/30 transition-colors border-b border-slate-50 last:border-0 ${isLive ? 'bg-blue-50/20' : ''}" 
+                data-student-id="${r.userId}" data-status="${effectiveStatus}">
+                <td class="px-5 py-4 text-center">
+                    <span class="text-[10px] font-black text-slate-400">${idx + 1}</span>
+                </td>
                 <td class="px-5 py-4">
+
+
                     <div class="flex flex-col gap-0.5">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-black text-slate-900">${r.firstName} ${r.lastName}</span>
-                            ${isLive ? '<span class="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md">Scanned</span>' : ''}
+                            ${isLive ? '<span class="scanned-badge px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[8px] font-black uppercase tracking-widest rounded-md">Scanned</span>' : ''}
                         </div>
                         <span class="text-[10px] font-bold text-slate-400 font-mono tracking-tight">${r.matricule || 'NO-MATRIC'}</span>
                     </div>
+                </td>
+                <td class="px-4 py-3 text-center align-middle status-badge-cell">
+                    ${badgeHtml}
                 </td>
                 ${hoursHtml}
                 <td class="px-4 py-3 text-center align-middle">
                     <button onclick="teacherMarkAllPresent(${r.userId})"
                             title="Mark all hours present"
-                            class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 shadow-sm shadow-emerald-500/20">
+                            class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 shadow-sm">
                         ✓ All
                     </button>
                 </td>
             </tr>`;
     }).join('');
+
+    // After rendering the grid, update the summary stats cards
+    updateSummaryStats();
 }
 
 window.markHourStatus = async (userId, hourIndex, isPresent) => {
@@ -622,10 +752,49 @@ window.markHourStatus = async (userId, hourIndex, isPresent) => {
             // Revert the checkbox to its previous state
             const cb = document.querySelector(`.slot-checkbox[data-user-id="${userId}"][data-hour="${hourIndex}"]`);
             if (cb) cb.checked = !isPresent;
+        } else {
+            // Success: update stats and row badge if necessary
+            const row = document.querySelector(`.student-row[data-student-id="${userId}"]`);
+            if (row) {
+                const isAnyPresent = Array.from(row.querySelectorAll('.slot-checkbox')).some(cb => cb.checked);
+                const statusCell = row.querySelector('.status-badge-cell');
+                if (statusCell) {
+                    const status = isAnyPresent ? 'PRESENT' : 'ABSENT';
+                    statusCell.innerHTML = getStatusBadge(status);
+                    row.setAttribute('data-status', status);
+                }
+            }
+            updateSummaryStats();
         }
     } catch {
         showNotification('Network error: could not update attendance.', 'error');
     }
+};
+
+window.filterByStatus = function(status, btn) {
+    // 1. Update button styles
+    document.querySelectorAll('.status-filter-btn').forEach(b => {
+        b.classList.remove('bg-white', 'shadow-sm', 'font-semibold');
+        b.classList.add('text-slate-500');
+    });
+    btn.classList.add('bg-white', 'shadow-sm', 'font-semibold');
+    btn.classList.remove('text-slate-500');
+
+    // 2. Filter the rows
+    const rows = document.querySelectorAll('.student-row');
+    rows.forEach(row => {
+        const rowStatusText = row.querySelector('.status-badge-cell')?.textContent?.trim() || 'ABSENT';
+        const isScanned = row.querySelector('.scanned-badge') !== null;
+        
+        if (status === 'all') {
+            row.classList.remove('hidden');
+        } else if (status === 'absent') {
+            row.classList.toggle('hidden', rowStatusText !== 'ABSENT');
+        } else if (status === 'not-marked') {
+            // 'Review' filter: students who are present but not yet verified (scanned only)
+            row.classList.toggle('hidden', !isScanned);
+        }
+    });
 };
 
 window.teacherMarkAllPresent = async (userId) => {
