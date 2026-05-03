@@ -898,12 +898,15 @@ async function validateGeofence() {
         try {
             position = await getCurrentPosition();
         } catch (e) {
-            throw new Error("Location Error: Please enable GPS/Location services to check-in.");
+            throw e;
         }
         
         const lat = position.coords.latitude;
         const lng = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
         const studentPoint = [lat, lng];
+        
+        console.log(`[Geofence] Student at: ${lat}, ${lng} (Accuracy: ${Math.round(accuracy)}m)`);
         
         // Store for request
         currentCheckinContext.lat = lat;
@@ -933,23 +936,49 @@ async function validateGeofence() {
 function getCurrentPosition() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject(new Error("Geolocation not supported"));
+            reject(new Error("Geolocation not supported by this browser."));
+            return;
         }
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
+        navigator.geolocation.getCurrentPosition(resolve, (err) => {
+            let msg = "Location Error: ";
+            
+            // Check for insecure origin (Chrome blocks geolocation on HTTP)
+            if (!window.isSecureContext) {
+                msg += "Browser security blocked location access because this site is not using HTTPS. Please use a secure connection.";
+                reject(new Error(msg));
+                return;
+            }
+
+            switch(err.code) {
+                case 1: // PERMISSION_DENIED
+                    msg += "Permission Denied. Please tap the 'lock' or 'settings' icon in your browser's address bar and ensure 'Location' is set to 'Allow'.";
+                    break;
+                case 2: // POSITION_UNAVAILABLE
+                    msg += "Position Unavailable. We couldn't get a fix on your location. Try moving near a window or outdoors.";
+                    break;
+                case 3: // TIMEOUT
+                    msg += "Verification Timeout. It took too long to get a GPS lock. Please ensure your GPS is active and try again.";
+                    break;
+                default:
+                    msg += "An unexpected error occurred while fetching your location.";
+                    break;
+            }
+            reject(new Error(msg));
+        }, {
             enableHighAccuracy: true,
-            timeout: 8000,
+            timeout: 30000, // 30 seconds for mobile GPS lock
             maximumAge: 0
         });
     });
 }
 
 function isPointInPolygon(point, polygon) {
-    const x = point[0], y = point[1];
+    const lat = point[0], lng = point[1];
     let inside = false;
     for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
         const xi = polygon[i][0], yi = polygon[i][1];
         const xj = polygon[j][0], yj = polygon[j][1];
-        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+        const intersect = ((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi);
         if (intersect) inside = !inside;
     }
     return inside;
@@ -967,13 +996,49 @@ function getMinDistanceToPolygon(point, polygon) {
 }
 
 function getDistanceToSegment(p, v, w) {
-    const l2 = dist2(v, w);
-    if (l2 === 0) return Math.sqrt(dist2(p, v)) * 111320; 
-    let t = ((p[0] - v[0]) * (w[0] - v[0]) + (p[1] - v[1]) * (w[1] - v[1])) / l2;
+    // Earth radius in meters
+    const R = 6371000;
+    
+    // Convert to radians for math
+    const toRad = (deg) => deg * Math.PI / 180;
+    const latP = toRad(p[0]), lngP = toRad(p[1]);
+    const latV = toRad(v[0]), lngV = toRad(v[1]);
+    const latW = toRad(w[0]), lngW = toRad(w[1]);
+
+    // Use Equirectangular approximation for small distances
+    const xV = (lngV - lngP) * Math.cos((latP + latV) / 2);
+    const yV = (latV - latP);
+    const xW = (lngW - lngP) * Math.cos((latP + latW) / 2);
+    const yW = (latW - latP);
+
+    // Vector from V to W
+    const dx = xW - xV;
+    const dy = yW - yV;
+    const l2 = dx * dx + dy * dy;
+
+    if (l2 === 0) return getHaversineDistance(p, v);
+
+    // Projection factor
+    let t = ((-xV) * dx + (-yV) * dy) / l2;
     t = Math.max(0, Math.min(1, t));
-    const distDeg = Math.sqrt(dist2(p, [v[0] + t * (w[0] - v[0]), v[1] + t * (w[1] - v[1])]));
-    return distDeg * 111320; // 1 degree ≈ 111.32km
+
+    // Closest point on segment in local cartesian
+    const closestX = xV + t * dx;
+    const closestY = yV + dy * t;
+
+    // Distance in meters
+    return Math.sqrt(closestX * closestX + closestY * closestY) * R;
 }
 
-function dist2(v, w) { return Math.pow(v[0] - w[0], 2) + Math.pow(v[1] - w[1], 2); }
+function getHaversineDistance(p1, p2) {
+    const R = 6371000;
+    const toRad = (deg) => deg * Math.PI / 180;
+    const dLat = toRad(p2[0] - p1[0]);
+    const dLon = toRad(p2[1] - p1[1]);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRad(p1[0])) * Math.cos(toRad(p2[0])) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
