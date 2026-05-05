@@ -14,4 +14,7 @@ public interface AcademicYearRepository extends JpaRepository<AcademicYear, Long
     Optional<AcademicYear> findActiveAcademicYear();
 
     Optional<AcademicYear> findByAcademicYear(String academicYear);
+
+    @Query("SELECT a FROM AcademicYear a WHERE a.status = 'PLANNED' ORDER BY a.startDate ASC LIMIT 1")
+    Optional<AcademicYear> findNextAcademicYear();
 }

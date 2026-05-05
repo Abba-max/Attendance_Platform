@@ -6,6 +6,7 @@ public class MigrateStudentRequest {
     private Integer toClassroomId;   // The target classroom
     private Long academicYearId;     // The academic year of the target classroom
     private String reason;           // Optional reason/note
+    private Boolean useNextAcademicYear = false;
 
     public MigrateStudentRequest() {}
 

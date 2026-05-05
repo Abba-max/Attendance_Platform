@@ -172,6 +172,29 @@ public class StudentMigrationService {
         );
     }
 
+    public AcademicYear getOrCreateNextAcademicYear() {
+        return academicYearRepository.findNextAcademicYear()
+                .orElseGet(() -> {
+                    // Auto-create a placeholder if none exists
+                    AcademicYear next = new AcademicYear();
+                    AcademicYear current = academicYearRepository.findActiveAcademicYear()
+                            .orElseThrow(() -> new RuntimeException("No active academic year"));
+
+                    next.setAcademicYear(generateNextYearName(current.getAcademicYear()));
+                    next.setStartDate(current.getEndDate().plusDays(1));
+                    next.setEndDate(next.getStartDate().plusYears(1).minusDays(1));
+                    next.setStatus(AcademicYearStatus.PLANNED);
+                    return academicYearRepository.save(next);
+                });
+    }
+
+    private String generateNextYearName(String current) {
+        // e.g. "2025/2026" → "2026/2027"
+        String[] parts = current.split("/");
+        int start = Integer.parseInt(parts[0]);
+        return (start + 1) + "/" + (start + 2);
+    }
+
     // ─────────────────────────────────────────────
     // 3. Migrate a selection of students (bulk)
     // ─────────────────────────────────────────────
@@ -305,14 +328,16 @@ public class StudentMigrationService {
     // If academicYearId is provided → use it
     // Otherwise → fall back to the active one
     // ─────────────────────────────────────────────
-    private AcademicYear resolveAcademicYear(Long academicYearId) {
+    private AcademicYear resolveAcademicYear(Long academicYearId, boolean useNextYear) {
+        if (useNextYear) {
+            return getOrCreateNextAcademicYear();
+        }
         if (academicYearId != null) {
             return academicYearRepository.findById(academicYearId)
-                    .orElseThrow(() -> new RuntimeException("Academic year not found with id: " + academicYearId));
+                    .orElseThrow(() -> new RuntimeException("Academic year not found"));
         }
-        // Fall back to active academic year
         return academicYearRepository.findActiveAcademicYear()
-                .orElseThrow(() -> new RuntimeException("No active academic year found. Please provide an academicYearId."));
+                .orElseThrow(() -> new RuntimeException("No active academic year"));
     }
 
     // ─────────────────────────────────────────────

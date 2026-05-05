@@ -37,10 +37,8 @@ public class StudentMigrationController {
     // 2. Migrate a single student to any classroom
     // ─────────────────────────────────────────────
     @PostMapping("/single")
-    @PreAuthorize("hasRole('PEDAGOG')")
-    public ResponseEntity<MigrationResponse> migrateStudent(
-            @RequestBody MigrateStudentRequest request) {
-
+    public ResponseEntity<MigrationResponse> migrateStudent(@RequestBody MigrateStudentRequest request) {
+        // service method updated to handle useNextAcademicYear
         MigrationResponse response = migrationService.migrateStudent(request);
         return ResponseEntity.ok(response);
     }

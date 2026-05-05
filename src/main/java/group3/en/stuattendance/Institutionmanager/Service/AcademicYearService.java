@@ -10,5 +10,7 @@ public interface AcademicYearService {
     AcademicYearDto activateAcademicYear(Long id);
     AcademicYearDto suspendAcademicYear(Long id);
     AcademicYearDto closeAcademicYear(Long id);
+    AcademicYearDto getNextAcademicYear();
+    AcademicYearDto createNextAcademicYear(AcademicYearDto dto);
     void deleteAcademicYear(Long id);
 }

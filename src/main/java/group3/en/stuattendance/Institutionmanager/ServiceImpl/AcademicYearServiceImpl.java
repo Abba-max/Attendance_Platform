@@ -23,6 +23,11 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Override
     @Transactional
     public AcademicYearDto createAcademicYear(AcademicYearDto dto) {
+
+        if (entity.getStatus() == null) {
+            entity.setStatus(AcademicYearStatus.PLANNED);
+        }
+
         if (dto.getStartDate().isAfter(dto.getEndDate())) {
             throw new IllegalArgumentException("Start date must be before end date");
         }
@@ -39,6 +44,23 @@ public class AcademicYearServiceImpl implements AcademicYearService {
 
         AcademicYear saved = academicYearRepository.save(entity);
         return academicYearMapper.toDto(saved);
+    }
+
+    @Override
+    public AcademicYearDto getNextAcademicYear() {
+        return academicYearRepository.findNextAcademicYear()
+                .map(academicYearMapper::toDto)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public AcademicYearDto createNextAcademicYear(AcademicYearDto dto) {
+        // Force PLANNED status for next year
+        if (dto.getStatus() == null || dto.getStatus().isEmpty()) {
+            dto.setStatus("PLANNED");
+        }
+        return createAcademicYear(dto);
     }
 
     @Override

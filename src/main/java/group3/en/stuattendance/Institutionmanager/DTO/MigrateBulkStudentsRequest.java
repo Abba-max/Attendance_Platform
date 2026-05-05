@@ -10,6 +10,7 @@ public class MigrateBulkStudentsRequest {
     private boolean autoNextLevel;      // If true, system finds the next level automatically
     private Long academicYearId;        // The academic year of the target classroom
     private String reason;              // Optional reason/note
+    private Boolean useNextAcademicYear = false;
 
     public MigrateBulkStudentsRequest() {}
 
