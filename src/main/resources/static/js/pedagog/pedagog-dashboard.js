@@ -29,17 +29,17 @@ document.addEventListener('DOMContentLoaded', function () {
 window.initializeTomSelects = function() {
     window.tsInstances = {};
     const selectIds = [
-        'migrationFromClassSelect', 
-        'migrationToClassSelect', 
-        'classroomSelect', 
-        'bulkClassroomId', 
+        'migrationFromClassSelect',
+        'migrationToClassSelect',
+        'classroomSelect',
+        'bulkClassroomId',
         'emailClassSelect',
         'specFilter',
         'emailSpecSelect',
         'hubClassFilter',
         'planningClassroomId'
     ];
-    
+
     selectIds.forEach(id => {
         const el = document.getElementById(id);
         if (el && typeof TomSelect !== 'undefined') {
@@ -256,7 +256,7 @@ window.closeBulkImportModal = function () {
 window.updateFileName = function (input) {
     const display = document.getElementById('fileNameDisplay');
     const colorClass = currentBulkImportMode === 'STUDENT' ? 'text-emerald-600' : 'text-blue-600';
-    
+
     if (input.files && input.files.length > 0) {
         display.textContent = input.files[0].name;
         display.classList.add(colorClass, 'font-black');
@@ -348,7 +348,7 @@ window.startBulkImport = async function () {
         showNotification('Please select a target classroom', 'warning');
         return;
     }
-    
+
     if (currentBulkImportMode === 'COURSE') {
         if (!courseSpecId) { showNotification('Please select a target speciality', 'warning'); return; }
         if (!courseLevel) { showNotification('Please select a target level', 'warning'); return; }
@@ -368,8 +368,8 @@ window.startBulkImport = async function () {
     startBtn.disabled = true;
 
     try {
-        let url = currentBulkImportMode === 'STUDENT' 
-            ? '/api/pedagog/students/bulk-import?dryRun=true' 
+        let url = currentBulkImportMode === 'STUDENT'
+            ? '/api/pedagog/students/bulk-import?dryRun=true'
             : `/api/pedagog/courses/bulk-import?dryRun=true&specialityId=${courseSpecId}&level=${courseLevel}`;
 
         const response = await fetch(url, {
@@ -464,8 +464,8 @@ window.confirmBulkImport = async function() {
         const courseSpecId = document.getElementById('bulkCourseSpecId').value;
         const courseLevel = document.getElementById('bulkCourseLevel').value;
 
-        const url = currentBulkImportMode === 'STUDENT' 
-            ? '/api/pedagog/students/bulk-import?dryRun=false' 
+        const url = currentBulkImportMode === 'STUDENT'
+            ? '/api/pedagog/students/bulk-import?dryRun=false'
             : `/api/pedagog/courses/bulk-import?dryRun=false&specialityId=${courseSpecId}&level=${courseLevel}`;
 
         const response = await fetch(url, {
@@ -584,7 +584,7 @@ function renderTeacherOptions() {
     container.innerHTML = availableTeachers.map(teacher => {
         const isSelected = selectedTeachers.some(t => t.userId === teacher.userId);
         return `
-            <div onclick="selectTeacher(${teacher.userId})" 
+            <div onclick="selectTeacher(${teacher.userId})"
                 class="px-4 py-2 text-sm hover:bg-slate-50 cursor-pointer flex items-center justify-between group ${isSelected ? 'bg-blue-50 text-blue-600' : ''}">
                 <span>${teacher.username}</span>
                 ${isSelected ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"/></svg>' : ''}
@@ -708,10 +708,10 @@ window.renderStudentPagination = function () {
 
     if (totalPages > 1) {
         let html = '<tr><td colspan="4" class="px-6 py-4"><div class="flex justify-between items-center"><div class="text-xs text-slate-500">Showing ' + (startIdx + 1) + ' to ' + Math.min(endIdx, filteredStudentRows.length) + ' of ' + filteredStudentRows.length + ' entries</div><div class="inline-flex rounded-md shadow-sm">';
-        
+
         const prevDisabled = currentStudentPage === 1 ? 'disabled cursor-not-allowed opacity-50' : '';
         html += '<button onclick="changeStudentPage(' + (currentStudentPage - 1) + ')" class="px-3 py-1 border border-slate-200 bg-white text-xs text-slate-600 rounded-l-md hover:bg-slate-50 ' + prevDisabled + '" ' + (currentStudentPage === 1 ? 'disabled' : '') + '>Previous</button>';
-        
+
         for (let i = 1; i <= totalPages; i++) {
             const activeClass = i === currentStudentPage ? 'bg-blue-50 text-blue-600 font-bold border-blue-500 z-10' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
             html += '<button onclick="changeStudentPage(' + i + ')" class="px-3 py-1 border -ml-px text-xs ' + activeClass + '">' + i + '</button>';
@@ -719,7 +719,7 @@ window.renderStudentPagination = function () {
 
         const nextDisabled = currentStudentPage === totalPages ? 'disabled cursor-not-allowed opacity-50' : '';
         html += '<button onclick="changeStudentPage(' + (currentStudentPage + 1) + ')" class="px-3 py-1 border border-slate-200 -ml-px bg-white text-xs text-slate-600 rounded-r-md hover:bg-slate-50 ' + nextDisabled + '" ' + (currentStudentPage === totalPages ? 'disabled' : '') + '>Next</button>';
-        
+
         html += '</div></div></td></tr>';
         tfoot.innerHTML = html;
     } else {
@@ -792,10 +792,10 @@ window.renderCoursePagination = function () {
 
     if (totalPages > 1) {
         let html = '<tr><td colspan="4" class="px-6 py-4"><div class="flex justify-between items-center"><div class="text-xs text-slate-500">Showing ' + (startIdx + 1) + ' to ' + Math.min(endIdx, filteredCourseRows.length) + ' of ' + filteredCourseRows.length + ' entries</div><div class="inline-flex rounded-md shadow-sm">';
-        
+
         const prevDisabled = currentCoursePage === 1 ? 'disabled cursor-not-allowed opacity-50' : '';
         html += '<button onclick="changeCoursePage(' + (currentCoursePage - 1) + ')" class="px-3 py-1 border border-slate-200 bg-white text-xs text-slate-600 rounded-l-md hover:bg-slate-50 ' + prevDisabled + '" ' + (currentCoursePage === 1 ? 'disabled' : '') + '>Previous</button>';
-        
+
         for (let i = 1; i <= totalPages; i++) {
             const activeClass = i === currentCoursePage ? 'bg-blue-50 text-blue-600 font-bold border-blue-500 z-10' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50';
             html += '<button onclick="changeCoursePage(' + i + ')" class="px-3 py-1 border -ml-px text-xs ' + activeClass + '">' + i + '</button>';
@@ -803,7 +803,7 @@ window.renderCoursePagination = function () {
 
         const nextDisabled = currentCoursePage === totalPages ? 'disabled cursor-not-allowed opacity-50' : '';
         html += '<button onclick="changeCoursePage(' + (currentCoursePage + 1) + ')" class="px-3 py-1 border border-slate-200 -ml-px bg-white text-xs text-slate-600 rounded-r-md hover:bg-slate-50 ' + nextDisabled + '" ' + (currentCoursePage === totalPages ? 'disabled' : '') + '>Next</button>';
-        
+
         html += '</div></div></td></tr>';
         tfoot.innerHTML = html;
     } else {
@@ -1046,7 +1046,7 @@ window.loadTTCoursesAndTeachers = async function () {
         } else {
             coursesList.innerHTML = courses.map(c => `
                 <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-move hover:border-blue-300 hover:shadow-md transition-all group relative"
-                     draggable="true" ondragstart="handleTTDragStart(event)" 
+                     draggable="true" ondragstart="handleTTDragStart(event)"
                      data-type="course" data-id="${c.courseId}" data-name="${c.courseName}">
                     <div class="flex items-start gap-3">
                         <div class="w-10 h-10 bg-blue-50 text-[#00B0FF] rounded-xl flex items-center justify-center text-xs font-black shadow-inner">
@@ -1196,7 +1196,7 @@ window.openCourseAssignmentModal = function (courseId, courseName, existingColor
     const modal = document.getElementById('courseAssignmentModal');
     const content = document.getElementById('courseAssignmentModalContent');
     const subtitle = document.getElementById('assignCourseSubtitle');
-    
+
     if (subtitle) subtitle.textContent = `Assigning: ${courseName}`;
 
     // Default color setup or use pre-existing from an edited block
@@ -1208,7 +1208,7 @@ window.openCourseAssignmentModal = function (courseId, courseName, existingColor
     if (container && window.currentSpecialityTeachers && window.currentSpecialityCourses) {
         // Find the specific course
         const targetCourse = window.currentSpecialityCourses.find(c => String(c.courseId) === String(courseId));
-        
+
         let validTeacherIds = [];
         if (targetCourse && targetCourse.teacherIds) {
             validTeacherIds = targetCourse.teacherIds.map(id => String(id));
@@ -1259,7 +1259,7 @@ window.cancelCourseAssignment = function () {
 window.confirmCourseAssignment = function () {
     const colorInput = document.getElementById('selectedCourseColor');
     const container = document.getElementById('assignCourseTeachers');
-    
+
     const checkedBoxes = Array.from(container.querySelectorAll('input[type="checkbox"]:checked'));
     const selectedTeachers = checkedBoxes.map(cb => ({
         id: cb.value,
@@ -1271,7 +1271,7 @@ window.confirmCourseAssignment = function () {
         pendingCourseDropItem.teachers = selectedTeachers;
         renderCourseInCell(pendingCourseDropCell, pendingCourseDropItem);
     }
-    
+
     cancelCourseAssignment();
 };
 
@@ -1294,7 +1294,7 @@ window.editTTBlock = function(block) {
     const isEvent = block.getAttribute('data-is-event') === 'true';
     if (isEvent) {
          showNotification('Events cannot be edited yet.', 'info');
-         return; 
+         return;
     }
 
     const item = {
@@ -1320,7 +1320,7 @@ function renderCourseInCell(cell, item) {
     cell.innerHTML = `
         <div class="rounded-xl p-1 shadow-sm group/block tt-block text-white h-full min-h-[48px] cursor-pointer"
              draggable="true" ondragstart="handlePlacedTTDragStart(event)" onclick="if(event.target.closest('button')) return; editTTBlock(this)"
-             data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1" 
+             data-course-id="${item.id || ''}" data-color="${bgColor}" data-duration="1"
              data-is-event="${isEvent}" data-event-name="${item.name}"
              data-teachers='${JSON.stringify(encodedTeachers).replace(/'/g, "&#39;")}'
              style="background: linear-gradient(135deg, ${bgColor}, ${adjustColor(bgColor, -15)}); border-left-color: ${bgColor};">
@@ -1360,7 +1360,7 @@ function renderCourseInCell(cell, item) {
                 </div>
             </div>
 
-            
+
             <!-- Resize Handle -->
             <div class="tt-resize-handle absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize hover:bg-white/20 rounded-b-xl z-20 transition"></div>
         </div>
@@ -1983,12 +1983,12 @@ window.closeDetailModal = function() {
  */
 window.handleViewStudent = async function(studentId) {
     openDetailModal('Student Details', `Profile for student #${studentId}`);
-    
+
     try {
         const response = await fetch(`/api/pedagog/students/${studentId}`);
         if (!response.ok) throw new Error('Failed to fetch student details');
         const student = await response.json();
-        
+
         const bodyEl = document.getElementById('detailModalBody');
         bodyEl.innerHTML = `
             <div class="space-y-6 text-slate-700">
@@ -2001,7 +2001,7 @@ window.handleViewStudent = async function(studentId) {
                         <p class="text-slate-500">${escapeHtml(student.email || 'No email')}</p>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-6">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Matricule</p>
@@ -2012,7 +2012,7 @@ window.handleViewStudent = async function(studentId) {
                         <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">Active</span>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-6">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Speciality</p>
@@ -2054,12 +2054,12 @@ window.handleViewStudent = async function(studentId) {
  */
 window.handleViewCourse = async function(courseId) {
     openDetailModal('Course Details', `Information for course #${courseId}`);
-    
+
     try {
         const response = await fetch(`/api/pedagog/courses/${courseId}`);
         if (!response.ok) throw new Error('Failed to fetch course details');
         const course = await response.json();
-        
+
         const bodyEl = document.getElementById('detailModalBody');
         bodyEl.innerHTML = `
             <div class="space-y-6 text-slate-700">
@@ -2075,7 +2075,7 @@ window.handleViewCourse = async function(courseId) {
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="grid grid-cols-2 gap-6">
                     <div>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Target Speciality</p>
@@ -2093,7 +2093,7 @@ window.handleViewCourse = async function(courseId) {
                         <p class="font-bold text-slate-800">${course.totalHours || 0} hrs</p>
                     </div>
                 </div>
-                
+
                 <div>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Assigned Teachers</p>
                     <div class="space-y-2 mt-2">
@@ -2133,7 +2133,7 @@ window.handleViewCourse = async function(courseId) {
 window.filterTeachers = function(input) {
     const term = input.value.toLowerCase();
     const options = document.querySelectorAll('#cfTeacherOptions > div[onclick]');
-    
+
     options.forEach(opt => {
         const name = opt.textContent.trim().toLowerCase();
         if (name.includes(term)) {
@@ -2146,9 +2146,9 @@ window.filterTeachers = function(input) {
     // Check if any results
     const container = document.getElementById('cfTeacherOptions');
     const existingNoResults = container.querySelector('.no-results-msg');
-    
+
     const hasVisible = Array.from(options).some(opt => !opt.classList.contains('hidden'));
-    
+
     if (!hasVisible) {
         if (!existingNoResults) {
             const msg = document.createElement('div');
@@ -2182,7 +2182,7 @@ window.onPlanningFilterChange = async function() {
     const specId = document.getElementById('planningSpecId').value;
     const level = document.getElementById('planningLevel').value;
     const roomSelect = document.getElementById('planningClassroomId');
-    
+
     // Reset/Clear classroom select
     const ts = window.tsInstances['planningClassroomId'];
     if (ts) {
@@ -2191,17 +2191,17 @@ window.onPlanningFilterChange = async function() {
     } else {
         roomSelect.innerHTML = '<option value="">Select Classroom</option>';
     }
-    
+
     if (!specId || !level) {
         clearPlanningGrid();
         return;
     }
-    
+
     try {
         const resp = await fetch(`/admin/classrooms/by-speciality/${specId}`);
         if (resp.ok) {
             const rooms = await resp.json();
-            
+
             // Filter by level
             const filtered = rooms.filter(r => {
                 const roomLevelNum = String(r.level).replace(/\D/g, '');
@@ -2230,7 +2230,7 @@ window.onPlanningFilterChange = async function() {
                         roomSelect.appendChild(opt);
                     }
                 });
-                
+
                 if (filtered.length === 1) {
                     if (ts) {
                         ts.setValue(filtered[0].classId);
@@ -2240,7 +2240,7 @@ window.onPlanningFilterChange = async function() {
                     loadPlanning();
                 }
             }
-        } 
+        }
     } catch (e) {
         console.error("Error refreshing planning classrooms:", e);
     }
@@ -2254,7 +2254,7 @@ window.loadPlanning = async function() {
     const roomId = document.getElementById('planningClassroomId').value;
     const week = document.getElementById('planningWeek').value;
     const semester = 1; // Default
-    
+
     // Clear grid and update headers
     clearPlanningGrid();
     updatePlanningDates(week);
@@ -2265,7 +2265,7 @@ window.loadPlanning = async function() {
         // Direct fetch by classroomId
         const resp = await fetch(`/api/timetablecontent/search?classroomId=${roomId}&week=${week}&semester=${semester}`);
         if (!resp.ok) throw new Error("Timetable fetch failed");
-        
+
         const timetable = await resp.json();
         renderPlanningGrid(timetable.entries || []);
     } catch (error) {
@@ -2286,10 +2286,10 @@ function updatePlanningDates(week) {
     const today = new Date();
     const [currYear, currWeek] = getWeekNumber(today);
     const diff = week - currWeek;
-    
+
     const monday = new Date();
     monday.setDate(today.getDate() + (diff * 7) - (today.getDay() === 0 ? 6 : today.getDay() - 1));
-    
+
     const placeholders = document.querySelectorAll('#planning-date-placeholder');
     placeholders.forEach((p, i) => {
         const d = new Date(monday);
@@ -2325,11 +2325,11 @@ function renderPlanningGrid(entries) {
         const startParts = entry.startTime.split(':');
         const startH = parseInt(startParts[0]);
         const startM = parseInt(startParts[1]);
-        
+
         const endParts = entry.endTime.split(':');
         const endH = parseInt(endParts[0]);
         const endM = parseInt(endParts[1]);
-        
+
         const startOffsetMinutes = startM;
         const durationMinutes = ((endH * 60) + endM) - ((startH * 60) + startM);
 
@@ -2338,7 +2338,7 @@ function renderPlanningGrid(entries) {
             const st = STATUS_MAP[entry.status] || STATUS_MAP['SCHEDULED'];
             const block = document.createElement('div');
             block.className = `tt-block p-2 ${st.cls}`;
-            
+
             // Absolute positioning for precise minute alignment
             block.style.position = 'absolute';
             block.style.top = `calc((${startOffsetMinutes} / 60) * 100%)`;
@@ -2346,9 +2346,9 @@ function renderPlanningGrid(entries) {
             block.style.width = 'calc(100% - 8px)';
             block.style.left = '4px';
             block.style.zIndex = '10';
-            
+
             block.style.borderLeft = `4px solid ${entry.color || '#3b82f6'}`;
-            
+
             if (entry.status === 'COMPLETED' && entry.sessionId) {
                 block.setAttribute('onclick', `viewSessionPdf(${entry.sessionId})`);
                 block.setAttribute('title', 'Click to view attendance PDF');
@@ -2356,7 +2356,7 @@ function renderPlanningGrid(entries) {
 
             const name = entry.isEvent ? (entry.eventName || 'Event') : (entry.courseName || 'Course');
             const teacher = entry.teacherName ? `By ${entry.teacherName}` : '';
-            
+
             block.innerHTML = `
                 <div class="flex flex-col h-full overflow-hidden">
                     <div class="flex items-center justify-between mb-1">
@@ -2385,9 +2385,9 @@ function renderPlanningGrid(entries) {
 window.exportPlanningPdf = async function() {
     const roomId = document.getElementById('planningClassroomId').value;
     const week = document.getElementById('planningWeek').value;
-    
+
     if (!roomId || !week) return alert("Select a Classroom and Week first.");
-    
+
     window.open(`/api/timetablecontent/export/pdf?classroomId=${roomId}&week=${week}&semester=1`, '_blank');
 };
 // ==========================================
@@ -2398,7 +2398,7 @@ window.handleNotificationClick = async function(id, type) {
     try {
         await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
         loadNotifications(); // Refresh
-        
+
         if (type === 'ATTENDANCE_SUBMISSION') {
             const navItem = document.querySelector('[data-section="attendance"]');
             if (navItem) navItem.click();
@@ -2599,7 +2599,6 @@ function renderSessionRow(s) {
         IN_PROGRESS: { bg: '#eff6ff', color: '#1d4ed8', label: 'In Progress' },
         COMPLETED:   { bg: '#f8fafc', color: '#475569', label: 'Completed' },
         CANCELLED:   { bg: '#fff1f2', color: '#be123c', label: 'Cancelled' },
-        MISSED:      { bg: '#f1f5f9', color: '#64748b', label: 'Missed' },
     };
     const st = STATUS_STYLES[s.status] || { bg: '#f8fafc', color: '#64748b', label: s.status || '—' };
 
@@ -2609,19 +2608,14 @@ function renderSessionRow(s) {
     const timeStr = (s.startTime || '--').substring(0,5) + " – " + (s.endTime || '--').substring(0,5);
 
     // Attendance bar
-    const presentCount = s.presentCount || 0;
-    const totalCount = s.totalStudents || 0;
     const attBar = s.status === 'COMPLETED'
-        ? '<div style="display:flex;flex-direction:column;gap:4px">' +
-               '<div style="display:flex;align-items:center;gap:6px">' +
-                   '<div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
-                       '<div style="height:100%;background:#10b981;border-radius:4px;width:' + (s.attendanceRate || 0) + '%"></div>' +
-                   '</div>' +
-                   '<span style="font-size:11px;font-weight:700;color:#475569">' + (s.attendanceRate || 0) + '%</span>' +
+        ? '<div style="display:flex;align-items:center;gap:6px">' +
+               '<div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
+                   '<div style="height:100%;background:#10b981;border-radius:4px;width:' + (s.attendanceRate || 0) + '%"></div>' +
                '</div>' +
-               '<span style="font-size:10px;font-weight:600;color:var(--text-3)">' + presentCount + ' / ' + totalCount + ' Present</span>' +
+               '<span style="font-size:11px;font-weight:700;color:#475569">' + (s.attendanceRate || '?') + '%</span>' +
            '</div>'
-        : (s.status === 'MISSED' ? '<span style="font-size:11px;color:#be123c;font-weight:700">0% (Expired)</span>' : '<span style="font-size:11px;color:var(--text-3)">—</span>');
+        : '<span style="font-size:11px;color:var(--text-3)">—</span>';
 
      return '<tr style="border-top:1px solid #f1f5f9;transition:background .15s" onmouseover="this.style.background=\'#fafcff\'" onmouseout="this.style.background=\'\'">' +
             '<td style="padding:13px 16px">' +
@@ -2693,27 +2687,27 @@ window.viewSessionDetails = function(sessionId) {
         showNotification("Session data not found.", "error");
         return;
     }
-    
+
     document.getElementById('rsCourseName').textContent = session.courseName || 'â€”';
     document.getElementById('rsTeacherName').textContent = session.teacherName || 'â€”';
     document.getElementById('rsClassroomName').textContent = session.classroomName || 'â€”';
     document.getElementById('rsSessionId').value = session.sessionId;
-    
+
     document.getElementById('rsDate').value = session.date || '';
     document.getElementById('rsStartTime').value = session.startTime ? session.startTime.substring(0, 5) : '';
     document.getElementById('rsEndTime').value = session.endTime ? session.endTime.substring(0, 5) : '';
-    
+
     const isCancelled = (session.status === 'CANCELLED');
     document.getElementById('rsDate').disabled = isCancelled;
     document.getElementById('rsStartTime').disabled = isCancelled;
     document.getElementById('rsEndTime').disabled = isCancelled;
-    
+
     const cw = document.getElementById('rsCancelledMessage');
     if (cw) cw.classList.toggle('hidden', !isCancelled);
-        
+
     const fc = document.getElementById('rsFooterControls');
     if (fc) fc.classList.toggle('hidden', isCancelled);
-    
+
     const modal = document.getElementById('rescheduleModal');
     if(modal) {
         modal.classList.remove('hidden');
@@ -2730,7 +2724,7 @@ window.closeSessionModal = function() {
     if(modal) {
         modal.classList.add('opacity-0');
         modal.querySelector('.bg-white').classList.add('scale-95');
-        
+
         setTimeout(() => {
             modal.classList.add('hidden');
             modal.classList.remove('flex');
@@ -2743,12 +2737,12 @@ window.saveSessionReschedule = async function() {
     const date = document.getElementById('rsDate').value;
     const startTime = document.getElementById('rsStartTime').value;
     const endTime = document.getElementById('rsEndTime').value;
-    
+
     if (!date || !startTime || !endTime) {
         showNotification("Please fill in all fields.", "error");
         return;
     }
-    
+
     const payload = {
         date: date,
         startTime: startTime.length === 5 ? startTime + ':00' : startTime,
@@ -2805,7 +2799,7 @@ window.loadHubSessions = async function() {
     }
 
     filtered.sort((a,b) => (a.date||'').localeCompare(b.date||''));
-    
+
     filtered.forEach(s => {
         const dateStr = s.date ? new Date(s.date).toLocaleDateString('en-GB') : s.day;
         const opt = document.createElement('option');
@@ -2853,12 +2847,12 @@ function renderHubRoster(records) {
         const matricule = escapeHtml(r.matricule || '—');
         const attended = r.hoursAttended || 0;
         const total    = r.totalHours || 1;
-        
+
         let hourChecks = '';
         for (let i = 0; i < total; i++) {
             const slot = r.hourSlots ? r.hourSlots.find(h => h.hourIndex === i) : null;
             const isChecked = slot && slot.status === 'PRESENT';
-            
+
             hourChecks += '<div class="flex flex-col items-center gap-1 scale-90">' +
                 '<input type="checkbox" onchange="hubMarkHourStatus(' + sessionId + ',' + r.userId + ',' + i + ', this.checked)" ' +
                     (isChecked ? 'checked' : '') + ' ' +
@@ -2923,7 +2917,7 @@ window.hubMarkHourStatus = function(sessionId, userId, hourIndex, isChecked) {
 window.hubMarkAll = async function(status) {
     const sessionId = document.getElementById('hubSessionFilter').value;
     if (!sessionId) return;
-    
+
     const confirmed = await ModernConfirm({
         title: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}?`,
         message: `This will update the entire roster for this session to ${status.toLowerCase()}.`,
@@ -2983,7 +2977,7 @@ window.navigateTo = function(section) {
 
 window.initializeNotifications = function() {
     console.log("Initializing Real-Time Notifications...");
-    
+
     if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
         console.warn("WebSocket libraries not loaded yet. Retrying in 2s...");
         setTimeout(initializeNotifications, 2000);
@@ -2996,7 +2990,7 @@ window.initializeNotifications = function() {
 
     stompClient.connect({}, function (frame) {
         console.log('Connected to WebSocket');
-        
+
         // Subscribe to user-specific notifications
         stompClient.subscribe('/user/queue/notifications', function (msg) {
             const notification = JSON.parse(msg.body);
@@ -3011,18 +3005,18 @@ window.initializeNotifications = function() {
 
 function handleIncomingNotification(n) {
     console.log("New Notification:", n);
-    
+
     // Show Toast
     if (typeof showNotification === 'function') {
         showNotification(n.message, n.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
     }
-    
+
     // Update UI (e.g., refresh sessions if on that page)
     const currentSection = new URLSearchParams(window.location.search).get('section');
     if (currentSection === 'sessions' || document.getElementById('section-sessions')?.offsetParent !== null) {
         if (typeof loadSessionsMonitor === 'function') loadSessionsMonitor();
     }
-    
+
     // Update Badge (if any)
     const badge = document.querySelector('.notification-badge');
     if (badge) {
@@ -3047,7 +3041,7 @@ window.loadStatsWeeks = async function() {
                 const firstOption = filter.options[0];
                 filter.innerHTML = '';
                 filter.appendChild(firstOption);
-                
+
                 weeks.forEach(w => {
                     const opt = document.createElement('option');
                     opt.value = w;
@@ -3070,12 +3064,12 @@ window.isStatsDetailed = false;
 
 window.onStatsSpecChange = function() {
     const specId = document.getElementById('statsSpecFilter').value;
-    
+
     // Update Classroom Select
     const classSelect = document.getElementById('statsClassFilter');
     if (!classSelect) return;
     classSelect.innerHTML = '<option value="">All Classrooms</option>';
-    
+
     const sourceSelect = document.getElementById('emailClassSelect') || document.getElementById('ttClassSelect');
     if (sourceSelect) {
         Array.from(sourceSelect.options).forEach(opt => {
@@ -3096,7 +3090,7 @@ window.onStatsSpecChange = function() {
     const courseSelect = document.getElementById('statsCourseFilter');
     if (!courseSelect) return;
     courseSelect.innerHTML = '<option value="">All Courses</option>';
-    
+
     if (specId) {
         fetch(`/api/pedagog/courses/filter?specialityId=${specId}`)
             .then(res => res.json())
@@ -3118,16 +3112,16 @@ window.onStatsClassChange = function() {
     const classSelect = document.getElementById('statsClassFilter');
     const selectedOpt = classSelect.options[classSelect.selectedIndex];
     const level = selectedOpt ? selectedOpt.getAttribute('data-level') : null;
-    
+
     // Update Course Select based on LEVEL of selected classroom
     const courseSelect = document.getElementById('statsCourseFilter');
     if (!courseSelect) return;
     courseSelect.innerHTML = '<option value="">All Courses</option>';
-    
+
     if (specId) {
         let url = `/api/pedagog/courses/filter?specialityId=${specId}`;
         if (level && level !== "0") url += `&level=${level}`;
-        
+
         fetch(url)
             .then(res => res.json())
             .then(courses => {
@@ -3139,7 +3133,7 @@ window.onStatsClassChange = function() {
                 });
             });
     }
-    
+
     loadAttendanceStats();
 };
 
@@ -3148,11 +3142,11 @@ window.loadAttendanceStats = async function() {
     const roomId = document.getElementById('statsClassFilter')?.value;
     const courseId = document.getElementById('statsCourseFilter')?.value;
     const week = document.getElementById('statsWeekFilter')?.value;
-    
+
     const tableBody = document.getElementById('statsTableBody');
     const searchContainer = document.getElementById('statsSearchContainer');
     if (!tableBody) return;
-    
+
     tableBody.innerHTML = `
         <tr>
             <td colspan="3" class="px-8 py-12 text-center text-slate-400">
@@ -3164,7 +3158,7 @@ window.loadAttendanceStats = async function() {
 
     // Mode: Aggregated (per course) vs Detailed (per student)
     window.isStatsDetailed = (roomId && courseId);
-    
+
     // UI: Toggle Search Bar
     if (searchContainer) {
         if (window.isStatsDetailed) {
@@ -3177,7 +3171,7 @@ window.loadAttendanceStats = async function() {
     }
 
     let url = window.isStatsDetailed ? `/api/pedagog/stats/students?` : `/api/pedagog/stats/attendance?`;
-    
+
     if (specId && !window.isStatsDetailed) url += `specialityId=${specId}&`;
     if (roomId) url += `classroomId=${roomId}&`;
     if (courseId) url += `courseId=${courseId}&`;
@@ -3218,12 +3212,12 @@ window.onStatsSearch = function() {
 function renderStatsTable(stats, isDetailedMode) {
     const body = document.getElementById('statsTableBody');
     const headerOne = document.getElementById('statsHeaderOne');
-    
+
     if (!body) return;
     if (headerOne) {
         headerOne.textContent = isDetailedMode ? 'STUDENT' : 'TARGET CONTEXT';
     }
-    
+
     if (stats.length === 0) {
         body.innerHTML = '<tr><td colspan="3" class="px-8 py-16 text-center text-slate-400 font-bold">No attendance data found for the selected filters.</td></tr>';
         return;
@@ -3234,11 +3228,11 @@ function renderStatsTable(stats, isDetailedMode) {
         const gradient = pct < 60 ? 'from-rose-400 to-rose-600' : (pct < 80 ? 'from-amber-400 to-amber-600' : 'from-blue-400 to-blue-600');
 
         const title = isDetailedMode ? `${s.firstName} ${s.lastName}` : s.courseName;
-        const subTitle = isDetailedMode 
+        const subTitle = isDetailedMode
             ? `<span class="text-blue-500 font-black">${escapeHtml(s.matricule || 'NO MATRICULE')}</span>`
             : `<span class="text-blue-500">${escapeHtml(s.classroomName)}</span><span class="w-1 h-1 bg-slate-200 rounded-full mx-2"></span><span>${escapeHtml(s.specialityName)}</span>`;
-        
-        const avatarIcon = isDetailedMode 
+
+        const avatarIcon = isDetailedMode
             ? `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`
             : `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" /></svg>`;
 
@@ -3263,8 +3257,8 @@ function renderStatsTable(stats, isDetailedMode) {
                             <span class="text-slate-800">${pct}% <span class="text-slate-400 font-bold ml-1 tracking-tight">Yield</span></span>
                         </div>
                         <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200/50">
-                            <div class="h-full bg-gradient-to-r ${gradient} rounded-full transition-all duration-1000 ease-out shadow-lg" 
-                                 style="width: 0%;" 
+                            <div class="h-full bg-gradient-to-r ${gradient} rounded-full transition-all duration-1000 ease-out shadow-lg"
+                                 style="width: 0%;"
                                  data-width="${pct}%">
                             </div>
                         </div>
@@ -3305,7 +3299,7 @@ window.loadMigrationData = async function () {
         // Load Academic Years — use the pedagog-accessible endpoint
         const response = await fetch('/api/pedagog/academic-years');
         if (!response.ok) throw new Error("Failed to fetch academic years");
-        
+
         const years = await response.json();
         const yearSelect = document.getElementById('migrationAcademicYearSelect');
         if (yearSelect) {
@@ -3326,7 +3320,7 @@ window.loadMigrationData = async function () {
                 yearSelect.appendChild(opt);
             });
         }
-        
+
     } catch (e) {
         console.error("Error loading migration prerequisite data:", e);
         showMigrationNotification("Error loading academic years.", "error");
@@ -3338,20 +3332,20 @@ window.toggleAutoNextLevel = function () {
     const container = document.getElementById('targetClassroomContainer');
     const ts = window.tsInstances && window.tsInstances['migrationToClassSelect'];
     const select = document.getElementById('migrationToClassSelect');
-    
+
     // Toggle state
     const isAuto = btn.getAttribute('aria-checked') === 'true';
     const newState = !isAuto;
-    
+
     btn.setAttribute('aria-checked', newState.toString());
-    
+
     if (newState) {
         // Turn ON Auto
         btn.classList.remove('bg-slate-200');
         btn.classList.add('bg-emerald-600');
         btn.querySelector('span').classList.remove('translate-x-0');
         btn.querySelector('span').classList.add('translate-x-5');
-        
+
         container.style.opacity = '0.5';
         if (ts) { ts.disable(); ts.setValue(''); } else { select.disabled = true; select.value = ''; }
     } else {
@@ -3360,7 +3354,7 @@ window.toggleAutoNextLevel = function () {
         btn.classList.add('bg-slate-200');
         btn.querySelector('span').classList.remove('translate-x-5');
         btn.querySelector('span').classList.add('translate-x-0');
-        
+
         container.style.opacity = '1';
         // Re-trigger eligible targets for the currently selected source classroom
         const fromClassroomId = document.getElementById('migrationFromClassSelect')?.value;
@@ -3453,13 +3447,13 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
     const loader = document.getElementById('migrationTableLoader');
     const executeBtn = document.getElementById('executeMigrationBtn');
     const selectAllCbx = document.getElementById('selectAllMigrationStudents');
-    
+
     migrationStudentsData = []; // Clear current
     updateMigrationSelectionCount();
 
     // Always refresh eligible target classrooms when source changes
     loadEligibleTargetClassrooms(classroomId);
-    
+
     if (!classroomId) {
         emptyState.classList.remove('hidden');
         tableEl.style.display = 'none';
@@ -3470,18 +3464,18 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
 
     try {
         loader.classList.remove('hidden');
-        
+
         // Include the selected academic year so the backend can filter appropriately
         const academicYearId = document.getElementById('migrationAcademicYearSelect')?.value || '';
         const url = academicYearId
             ? `/api/migration/classroom/${classroomId}/students?academicYearId=${academicYearId}`
             : `/api/migration/classroom/${classroomId}/students`;
-        
+
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to load students");
-        
+
         migrationStudentsData = await response.json();
-        
+
         if (migrationStudentsData.length === 0) {
             emptyState.classList.remove('hidden');
             emptyState.innerHTML = `
@@ -3495,7 +3489,7 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
         } else {
             emptyState.classList.add('hidden');
             tableEl.style.display = 'table';
-            
+
             // Build Rows
             tableBody.innerHTML = migrationStudentsData.map(student => `
                 <tr class="hover:bg-slate-50 transition border-b border-slate-50 last:border-0 group">
@@ -3522,7 +3516,7 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
                         </span>
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <button onclick="viewStudentMigrationHistory(${student.studentId}, '${escapeHtml(student.fullName)}')" 
+                        <button onclick="viewStudentMigrationHistory(${student.studentId}, '${escapeHtml(student.fullName)}')"
                                 class="text-xs font-bold text-slate-400 hover:text-emerald-600 flex items-center justify-end gap-1 w-full transition-colors group-hover:text-emerald-500">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             History
@@ -3530,10 +3524,10 @@ window.loadClassroomStudentsForMigration = async function (classroomId) {
                     </td>
                 </tr>
             `).join('');
-            
+
             selectAllCbx.checked = false;
         }
-        
+
     } catch (e) {
         console.error("Error loading eligible students:", e);
         showMigrationNotification("Error loading eligible students.", "error");
@@ -3553,7 +3547,7 @@ window.updateMigrationSelectionCount = function () {
     const checkboxes = document.querySelectorAll('.migration-student-cbx:checked');
     const badge = document.getElementById('migrationSelectedCountBadge');
     const executeBtn = document.getElementById('executeMigrationBtn');
-    
+
     if (checkboxes.length > 0) {
         badge.textContent = `${checkboxes.length} Selected`;
         badge.classList.remove('hidden');
@@ -3564,7 +3558,7 @@ window.updateMigrationSelectionCount = function () {
         executeBtn.disabled = true;
         executeBtn.classList.add('cursor-not-allowed', 'opacity-50');
     }
-    
+
     // Check 'Select All' sync
     const allCbx = document.getElementById('selectAllMigrationStudents');
     if (document.querySelectorAll('.migration-student-cbx').length > 0) {
@@ -3578,7 +3572,7 @@ window.showMigrationConfirmModal = function(count) {
     return new Promise((resolve) => {
         migrationConfirmResolver = resolve;
         document.getElementById('migrationConfirmText').innerHTML = `You are about to migrate <b>${count}</b> student(s).<br>Are you strictly sure to proceed?`;
-        
+
         const modal = document.getElementById('migrationConfirmModal');
         const content = document.getElementById('migrationConfirmModalContent');
         modal.classList.remove('hidden');
@@ -3605,12 +3599,14 @@ window.closeMigrationConfirmModal = function(isConfirmed) {
     }, 300);
 };
 
-window.showMigrationResultModal = function(isSuccess, title, message) {
+window.showMigrationResultModal = function(isSuccess, title, message, results) {
     const modal = document.getElementById('migrationResultModal');
     const content = document.getElementById('migrationResultModalContent');
     const iconContainer = document.getElementById('migrationResultIcon');
     const titleEl = document.getElementById('migrationResultTitle');
     const textEl = document.getElementById('migrationResultText');
+    const recapContainer = document.getElementById('migrationRecapContainer');
+    const recapList = document.getElementById('migrationRecapList');
 
     titleEl.textContent = title;
     textEl.textContent = message;
@@ -3621,6 +3617,34 @@ window.showMigrationResultModal = function(isSuccess, title, message) {
     } else {
         iconContainer.className = 'w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-500';
         iconContainer.innerHTML = '<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+    }
+
+    // Render per-student recap — only the students involved in this migration
+    if (results && results.length > 0) {
+        recapList.innerHTML = '';
+        results.forEach(r => {
+            const row = document.createElement('div');
+            const statusColor = r.success
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                : 'bg-red-50 border-red-200 text-red-700';
+            const statusIcon = r.success
+                ? '<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>'
+                : '<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>';
+            row.className = `flex items-start gap-2 rounded-xl border px-3 py-2 text-xs font-medium ${statusColor}`;
+            row.innerHTML = `
+                ${statusIcon}
+                <div class="flex-1 min-w-0">
+                    <span class="font-bold truncate block">${r.studentName || 'Student #' + r.studentId}</span>
+                    ${r.success
+                        ? `<span class="text-slate-500">${r.fromClassroom} \u2192 ${r.toClassroom}</span>`
+                        : `<span class="opacity-75">${r.message}</span>`
+                    }
+                </div>`;
+            recapList.appendChild(row);
+        });
+        recapContainer.classList.remove('hidden');
+    } else {
+        recapContainer.classList.add('hidden');
     }
 
     modal.classList.remove('hidden');
@@ -3649,7 +3673,7 @@ window.executeMigration = async function () {
     const academicYearId = document.getElementById('migrationAcademicYearSelect').value;
     const reason = document.getElementById('migrationReason').value;
     const isAutoLevel = document.getElementById('toggleAutoNextLevelBtn').getAttribute('aria-checked') === 'true';
-    
+
     const selectedIds = Array.from(document.querySelectorAll('.migration-student-cbx:checked'))
                              .map(cbx => parseInt(cbx.value));
 
@@ -3695,16 +3719,18 @@ window.executeMigration = async function () {
         const failCount = results.length - successCount;
 
         if (failCount > 0) {
-            showMigrationResultModal(false, 'Partial Success', `${successCount} migrated successfully, ${failCount} failed. Check console for details.`);
+            // Show partial result with recap of every student (success + failures)
+            showMigrationResultModal(false, 'Partial Success', `${successCount} migrated successfully, ${failCount} failed.`, results);
             console.warn("Migration Failures:", results.filter(r => !r.success));
         } else {
-            showMigrationResultModal(true, 'Migration Successful', `Successfully migrated ${successCount} student(s)!`);
-            
+            // Show success recap listing only the students that were migrated
+            showMigrationResultModal(true, 'Migration Successful', `Successfully migrated ${successCount} student(s)!`, results);
+
             // Clean up UI state
             document.getElementById('migrationReason').value = "";
             document.getElementById('migrationToClassSelect').value = "";
             // Reload the source classroom roster since students moved out
-            loadClassroomStudentsForMigration(fromClassroomId); 
+            loadClassroomStudentsForMigration(fromClassroomId);
         }
 
     } catch (e) {
@@ -3729,10 +3755,10 @@ window.viewStudentMigrationHistory = async function (studentId, studentName) {
     const loader = document.getElementById('migrationHistoryLoader');
     const empty = document.getElementById('migrationHistoryEmpty');
     const nameLabel = document.getElementById('migrationHistoryStudentName');
-    
+
     nameLabel.textContent = `${studentName} - Transfer Logs`;
     timeline.innerHTML = '';
-    
+
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     setTimeout(() => {
@@ -3749,7 +3775,7 @@ window.viewStudentMigrationHistory = async function (studentId, studentName) {
         if (!response.ok) throw new Error("Failed to fetch history");
 
         const records = await response.json();
-        
+
         if (records.length === 0) {
             empty.classList.remove('hidden');
         } else {
@@ -3766,7 +3792,7 @@ window.viewStudentMigrationHistory = async function (studentId, studentName) {
                                 ${new Date(record.migratedAt).toLocaleDateString()}
                             </span>
                         </div>
-                        
+
                         <div class="flex items-center gap-3 mb-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
                             <div class="flex-1">
                                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">From</p>
@@ -3780,7 +3806,7 @@ window.viewStudentMigrationHistory = async function (studentId, studentName) {
                                 <p class="text-sm font-black text-emerald-700">${record.toClassroom}</p>
                             </div>
                         </div>
-                        
+
                         <div class="space-y-1">
                             <p class="text-xs text-slate-600 font-medium">
                                 <span class="text-slate-400 font-bold">Reason:</span> ${record.reason || 'No reason provided'}
