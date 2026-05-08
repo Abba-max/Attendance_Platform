@@ -4,13 +4,21 @@ import java.util.List;
 
 public class MigrateBulkStudentsRequest {
 
-    private List<Integer> studentIds;   // Selected students to migrate
-    private Integer fromClassroomId;    // The current classroom
-    private Integer toClassroomId;      // The target classroom (can be auto-resolved)
-    private boolean autoNextLevel;      // If true, system finds the next level automatically
-    private Long academicYearId;        // The academic year of the target classroom
-    private String reason;              // Optional reason/note
+    private List<Integer> studentIds;   // Étudiants sélectionnés
+    private Integer fromClassroomId;    // Classe source
+    private Integer toClassroomId;      // Classe cible (si non auto-résolu)
+    private boolean autoNextLevel;      // Si true, système cherche niveau suivant automatiquement
+    private Long academicYearId;        // Année académique cible
+    private String reason;              // Motif (optionnel)
     private Boolean useNextAcademicYear = false;
+
+    /**
+     * Type de migration :
+     *   LEVEL_PROMOTION   → même spécialité, niveau N → N+1
+     *   SPECIALITY_CHANGE → même niveau, spécialité différente (même année)
+     *   TRONC_COMMUN      → Tronc Commun niveau 2 → spécialité niveau 3
+     */
+    private MigrationTypedto migrationType = MigrationTypedto.LEVEL_PROMOTION;
 
     public MigrateBulkStudentsRequest() {}
 
@@ -31,4 +39,10 @@ public class MigrateBulkStudentsRequest {
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }
+
+    public Boolean getUseNextAcademicYear() { return useNextAcademicYear; }
+    public void setUseNextAcademicYear(Boolean useNextAcademicYear) { this.useNextAcademicYear = useNextAcademicYear; }
+
+    public MigrationTypedto getMigrationType() { return migrationType; }
+    public void setMigrationType(MigrationTypedto migrationType) { this.migrationType = migrationType; }
 }

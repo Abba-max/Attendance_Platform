@@ -1101,6 +1101,12 @@
                                                   d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                     </button>
+                                    <button onclick="showSection('migration')"
+                                            class="nav-btn flex items-center gap-2 px-4 py-2 rounded-lg
+           text-sm font-medium text-gray-600 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>🏫</span>
+                                        <span>Migration</span>
+                                    </button>
                                 </div>
                             </div>
 
@@ -1940,6 +1946,9 @@
                 <button type="button" onclick="closeMigrationConfirmModal(false)" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition">Cancel</button>
                 <button type="button" onclick="closeMigrationConfirmModal(true)" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition">Yes, Execute</button>
             </div>
+            <div id="section-migration" class="section-panel hidden">
+                <div id="migration-section"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -2157,6 +2166,8 @@
         </div>
     </div>
 </div>
+
+<script th:src="@{/js/pedagog/migration-module.js}"></script>
 
 </body>
 

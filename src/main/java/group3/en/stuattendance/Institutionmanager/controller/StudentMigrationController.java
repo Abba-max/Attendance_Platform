@@ -1,4 +1,4 @@
-package group3.en.stuattendance.Institutionmanager.Controller;
+package group3.en.stuattendance.Institutionmanager.controller;
 
 import group3.en.stuattendance.Institutionmanager.DTO.*;
 import group3.en.stuattendance.Institutionmanager.Service.StudentMigrationService;
