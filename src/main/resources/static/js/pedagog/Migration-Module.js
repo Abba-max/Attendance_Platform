@@ -1,129 +1,165 @@
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- *  MODULE MIGRATION ÉTUDIANTS — Dashboard Pédagogue
- *  À insérer dans pedagog-dashboard.js (ou inclure comme module séparé)
- *
- *  Fonctionnalités :
- *  - 3 boutons de type de migration avec logique adaptée
- *  - Vérification si le pédagogue gère un Tronc Commun (bouton visible/masqué)
- *  - Chargement dynamique des classes source/cible selon le type
- *  - Sélection des étudiants avec cases à cocher (tout sélectionner)
- *  - Migration unitaire et en masse
- *  - Affichage des résultats
- * ═══════════════════════════════════════════════════════════════════════════
- */
 
 const MigrationModule = (() => {
 
-    // ── État local ────────────────────────────────────────────────────────
     let state = {
-        migrationType: 'LEVEL_PROMOTION',   // Type actif
+        migrationType: 'LEVEL_PROMOTION',
         sourceClassroomId: null,
         targetClassroomId: null,
-        selectedStudents: new Set(),         // Set d'IDs sélectionnés
-        hasTroncCommun: false,              // Pédagogue gère-t-il un TC ?
-        managedClassrooms: [],              // Classes gérées par le pédagogue
+        selectedStudents: new Set(),
+        hasTroncCommun: false,
+        // Contexte années académiques
+        activeYearName: '—',
+        nextYearName: '—',
+        nextYearExists: false,
+        nextYearReadyForMigration: true,
+        migrationTargetYearForPromotion: '—',
+        migrationTargetYearForSpeciality: '—',
     };
 
-    // ── Labels & icônes pour les types ───────────────────────────────────
     const TYPE_CONFIG = {
         LEVEL_PROMOTION: {
             label: 'Passage de Niveau',
             icon: '⬆️',
-            description: 'Promouvoir des étudiants vers le niveau supérieur (même spécialité)',
             color: 'blue',
+            targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
+            yearBadgeColor: 'purple',
         },
         SPECIALITY_CHANGE: {
             label: 'Changement de Spécialité',
             icon: '🔀',
-            description: 'Transférer des étudiants vers une autre spécialité (même niveau, même année)',
-            color: 'purple',
+            color: 'orange',
+            targetYearKey: 'migrationTargetYearForSpeciality',  // → N
+            yearBadgeColor: 'green',
         },
         TRONC_COMMUN: {
             label: 'Tronc Commun → Spécialité',
             icon: '🎓',
-            description: 'Orienter les étudiants du Tronc Commun vers une spécialité (ISI, SRT, GE, GC)',
             color: 'emerald',
+            targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
+            yearBadgeColor: 'purple',
         },
     };
 
-    // ─────────────────────────────────────────────────────────────────────
-    // INITIALISATION — appelée au chargement du dashboard pédagogue
-    // ─────────────────────────────────────────────────────────────────────
     async function init() {
         try {
-            // Récupérer le contexte du pédagogue (gère-t-il un TC ?)
-            const ctx = await apiFetch('/api/migration/pedagog-context');
-            state.hasTroncCommun = ctx.hasTroncCommun;
-            state.managedClassrooms = ctx.managedClassrooms;
+            // Charger en parallèle : contexte pédagogue + contexte années
+            const [pedagCtx, yearCtx] = await Promise.all([
+                apiFetch('/api/migration/pedagog-context'),
+                apiFetch('/api/migration/academic-year-context'),
+            ]);
+
+            state.hasTroncCommun = pedagCtx.hasTroncCommun;
+            Object.assign(state, {
+                activeYearName:                   yearCtx.activeYearName,
+                nextYearName:                     yearCtx.nextYearName,
+                nextYearExists:                   yearCtx.nextYearExists,
+                nextYearReadyForMigration:        yearCtx.nextYearReadyForMigration,
+                migrationTargetYearForPromotion:  yearCtx.migrationTargetYearForPromotion,
+                migrationTargetYearForSpeciality: yearCtx.migrationTargetYearForSpeciality,
+            });
 
             renderMigrationSection();
             bindEvents();
-
-            // Charger les classes source par défaut
             await loadSourceClassrooms();
+
         } catch (err) {
-            console.error('[Migration] Erreur initialisation :', err);
-            showToast('Erreur lors du chargement du module migration.', 'error');
+            console.error('[Migration] Erreur init :', err);
+            const el = document.getElementById('migration-section');
+            if (el) el.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-xl p-6 text-red-700 text-sm">
+                    ⚠️ Erreur de chargement du module migration : ${err.message}
+                </div>`;
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // RENDU DU PANNEAU PRINCIPAL
-    // ─────────────────────────────────────────────────────────────────────
     function renderMigrationSection() {
-        const container = document.getElementById('migration-section');
-        if (!container) return;
+        const el = document.getElementById('migration-section');
+        if (!el) return;
 
-        container.innerHTML = `
+        // Alerte si N+1 n'est pas prête
+        let yearAlert = '';
+        if (!state.nextYearReadyForMigration) {
+            yearAlert = `
+            <div class="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-700 flex gap-2">
+                <span class="text-lg">🚫</span>
+                <div>
+                    <p class="font-semibold">Migrations de passage bloquées</p>
+                    <p>L'année <strong>${state.nextYearName}</strong> est déjà <strong>ACTIVE</strong>.
+                    Les migrations de Passage de Niveau et Tronc Commun ne peuvent cibler qu'une année
+                    <strong>PLANIFIÉE (N+1)</strong>. Contactez l'administrateur.</p>
+                </div>
+            </div>`;
+        } else if (!state.nextYearExists) {
+            yearAlert = `
+            <div class="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-700 flex gap-2">
+                <span class="text-lg">ℹ️</span>
+                <div>
+                    <p class="font-semibold">Année N+1 non encore créée</p>
+                    <p>L'année <strong>${state.nextYearName}</strong> sera automatiquement créée
+                    avec le statut <strong>PLANIFIÉE</strong> lors de la première migration de passage.</p>
+                </div>
+            </div>`;
+        }
+
+        el.innerHTML = `
         <div class="bg-white rounded-2xl shadow-md p-6 space-y-6">
 
             <!-- En-tête -->
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    <span>🏫</span> Migration des Étudiants
+                    🏫 Migration des Étudiants
                 </h2>
-                <span class="text-sm text-gray-500">
-                    Assistant pédagogique
+                <!-- Badges années N et N+1 -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        📅 Année en cours : <strong>${state.activeYearName}</strong>
+                    </span>
+                    <span class="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
+                        📅 Année N+1 : <strong>${state.nextYearName}</strong>
+                        ${!state.nextYearExists ? ' ✨ auto' : state.nextYearReadyForMigration ? ' ✅' : ' 🚫 ACTIVE'}
+                    </span>
                     ${state.hasTroncCommun
-                        ? '<span class="ml-2 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-xs font-semibold">Gère un Tronc Commun</span>'
+                        ? '<span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">🎓 Tronc Commun</span>'
                         : ''}
-                </span>
+                </div>
             </div>
 
-            <!-- ── Étape 1 : Choisir le type de migration ─────────────── -->
+            ${yearAlert}
+
+            <!-- Étape 1 : Type de migration -->
             <div>
                 <p class="text-sm font-semibold text-gray-600 mb-3">
-                    Étape 1 — Choisissez le type de migration
+                    Étape 1 — Type de migration
                 </p>
-                <div class="grid grid-cols-1 sm:grid-cols-${state.hasTroncCommun ? 3 : 2} gap-3" id="migration-type-buttons">
+                <div class="grid grid-cols-1 sm:grid-cols-${state.hasTroncCommun ? 3 : 2} gap-3">
                     ${renderTypeButton('LEVEL_PROMOTION')}
                     ${renderTypeButton('SPECIALITY_CHANGE')}
                     ${state.hasTroncCommun ? renderTypeButton('TRONC_COMMUN') : ''}
                 </div>
-                <!-- Description du type actif -->
-                <p class="mt-2 text-xs text-gray-500 italic" id="migration-type-desc">
-                    ${TYPE_CONFIG[state.migrationType].description}
-                </p>
+                <!-- Indicateur d'année cible pour le type actif -->
+                <div class="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                    <span>Année académique ciblée :</span>
+                    <span id="active-type-year-badge" class="font-semibold px-2 py-0.5 rounded-full
+                        ${getYearBadgeClass(state.migrationType)}">
+                        ${getTargetYearLabel(state.migrationType)}
+                    </span>
+                </div>
             </div>
 
-            <!-- ── Étape 2 : Classe source ────────────────────────────── -->
+            <!-- Étape 2 : Classe source -->
             <div>
-                <p class="text-sm font-semibold text-gray-600 mb-2">
-                    Étape 2 — Sélectionner la classe source
-                </p>
+                <p class="text-sm font-semibold text-gray-600 mb-2">Étape 2 — Classe source</p>
                 <select id="migration-source-select"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                           focus:outline-none focus:ring-2 focus:ring-blue-400">
                     <option value="">— Choisir une classe source —</option>
                 </select>
             </div>
 
-            <!-- ── Étape 3 : Sélection des étudiants ─────────────────── -->
+            <!-- Étape 3 : Étudiants -->
             <div id="migration-students-section" class="hidden">
                 <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-600">
-                        Étape 3 — Sélectionner les étudiants
-                    </p>
+                    <p class="text-sm font-semibold text-gray-600">Étape 3 — Sélectionner les étudiants</p>
                     <div class="flex items-center gap-2">
                         <label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
                             <input type="checkbox" id="select-all-students" class="rounded">
@@ -137,84 +173,100 @@ const MigrationModule = (() => {
                 </div>
                 <div id="students-list"
                     class="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
-                    <p class="text-center text-gray-400 py-6 text-sm">Chargement...</p>
                 </div>
             </div>
 
-            <!-- ── Étape 4 : Classe cible ─────────────────────────────── -->
+            <!-- Étape 4 : Classe cible -->
             <div id="migration-target-section" class="hidden">
-                <p class="text-sm font-semibold text-gray-600 mb-2">
-                    Étape 4 — Choisir la classe cible
-                </p>
-                <div id="target-classrooms-grid"
-                    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                    <!-- Rempli dynamiquement -->
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-sm font-semibold text-gray-600">Étape 4 — Classe cible</p>
+                    <span class="text-xs text-gray-400 italic">
+                        Vers l'année : <strong>${getTargetYearLabel(state.migrationType)}</strong>
+                    </span>
                 </div>
+                <div id="target-classrooms-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
             </div>
 
-            <!-- ── Étape 5 : Motif et confirmation ───────────────────── -->
+            <!-- Étape 5 : Confirmation -->
             <div id="migration-confirm-section" class="hidden space-y-3">
                 <div>
-                    <label class="text-sm font-semibold text-gray-600 block mb-1">
-                        Motif de migration (optionnel)
-                    </label>
+                    <label class="text-sm font-semibold text-gray-600 block mb-1">Motif (optionnel)</label>
                     <textarea id="migration-reason" rows="2"
-                        placeholder="Ex. : Résultats du concours de passage, orientation..."
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    </textarea>
+                        placeholder="Ex. : Résultats du concours de passage, orientation académique..."
+                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none
+                               focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
                 </div>
-
-                <!-- Résumé de la migration -->
-                <div id="migration-summary"
-                    class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
-                </div>
-
-                <!-- Bouton Migrer -->
+                <div id="migration-summary" class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800"></div>
                 <button id="btn-confirm-migration"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50">
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl
+                           transition flex items-center justify-center gap-2 disabled:opacity-50">
                     <span id="btn-migrate-icon">🚀</span>
                     <span id="btn-migrate-label">Lancer la migration</span>
                 </button>
             </div>
 
-            <!-- ── Résultats ──────────────────────────────────────────── -->
+            <!-- Résultats -->
             <div id="migration-results" class="hidden"></div>
-
         </div>`;
+    }
+
+    // ── Helpers visuels ───────────────────────────────────────────────────
+
+    function getTargetYearLabel(type) {
+        const key = TYPE_CONFIG[type]?.targetYearKey;
+        return state[key] || '—';
+    }
+
+    function getYearBadgeClass(type) {
+        const color = TYPE_CONFIG[type]?.yearBadgeColor || 'gray';
+        return {
+            purple: 'bg-purple-100 text-purple-700',
+            green:  'bg-green-100 text-green-700',
+        }[color] || 'bg-gray-100 text-gray-700';
     }
 
     function renderTypeButton(type) {
         const cfg = TYPE_CONFIG[type];
-        const isActive = state.migrationType === type;
-        const colors = {
-            blue:    { active: 'bg-blue-600 text-white border-blue-600', base: 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50' },
-            purple:  { active: 'bg-purple-600 text-white border-purple-600', base: 'bg-white text-gray-700 border-gray-300 hover:border-purple-400 hover:bg-purple-50' },
-            emerald: { active: 'bg-emerald-600 text-white border-emerald-600', base: 'bg-white text-gray-700 border-gray-300 hover:border-emerald-400 hover:bg-emerald-50' },
+        const active = state.migrationType === type;
+        const yearLabel = getTargetYearLabel(type);
+
+        // Désactiver LEVEL_PROMOTION et TRONC_COMMUN si N+1 n'est pas prête
+        const needsNextYear = (type === 'LEVEL_PROMOTION' || type === 'TRONC_COMMUN');
+        const disabled = needsNextYear && !state.nextYearReadyForMigration && state.nextYearExists;
+
+        const colorMap = {
+            blue:    { active: 'bg-blue-600 text-white border-blue-600',
+                       base:   'bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:bg-blue-50' },
+            orange:  { active: 'bg-orange-500 text-white border-orange-500',
+                       base:   'bg-white text-gray-700 border-gray-200 hover:border-orange-400 hover:bg-orange-50' },
+            emerald: { active: 'bg-emerald-600 text-white border-emerald-600',
+                       base:   'bg-white text-gray-700 border-gray-200 hover:border-emerald-400 hover:bg-emerald-50' },
         };
-        const cls = isActive ? colors[cfg.color].active : colors[cfg.color].base;
+        const cls = active ? colorMap[cfg.color].active : colorMap[cfg.color].base;
+
         return `
         <button data-migration-type="${type}"
-            class="migration-type-btn border-2 rounded-xl px-4 py-3 text-sm font-semibold
-                   transition-all flex flex-col items-center gap-1 ${cls}">
+            class="migration-type-btn border-2 rounded-xl px-3 py-3 text-sm font-semibold
+                   transition-all flex flex-col items-center gap-1 ${cls}
+                   ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}"
+            ${disabled ? 'disabled title="N+1 déjà active — migration impossible"' : ''}>
             <span class="text-2xl">${cfg.icon}</span>
             <span>${cfg.label}</span>
+            <!-- Badge année cible -->
+            <span class="text-xs mt-1 font-normal opacity-80">→ ${yearLabel}</span>
         </button>`;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // EVENTS
-    // ─────────────────────────────────────────────────────────────────────
     function bindEvents() {
         const section = document.getElementById('migration-section');
         if (!section) return;
 
-        // Clic sur un bouton de type
         section.addEventListener('click', async (e) => {
             const typeBtn = e.target.closest('[data-migration-type]');
-            if (typeBtn) {
-                const newType = typeBtn.dataset.migrationType;
-                if (newType !== state.migrationType) {
-                    state.migrationType = newType;
+            if (typeBtn && !typeBtn.disabled) {
+                const t = typeBtn.dataset.migrationType;
+                if (t !== state.migrationType) {
+                    state.migrationType = t;
                     state.sourceClassroomId = null;
                     state.targetClassroomId = null;
                     state.selectedStudents.clear();
@@ -225,107 +277,75 @@ const MigrationModule = (() => {
                 return;
             }
 
-            // Clic sur une carte de classe cible
             const targetCard = e.target.closest('[data-target-classroom]');
-            if (targetCard) {
-                selectTargetClassroom(
-                    parseInt(targetCard.dataset.targetClassroom),
-                    targetCard.dataset.targetName
-                );
+            if (targetCard && !targetCard.disabled) {
+                selectTargetClassroom(parseInt(targetCard.dataset.targetClassroom), targetCard.dataset.targetName);
                 return;
             }
 
-            // Bouton confirmer migration
             if (e.target.closest('#btn-confirm-migration')) {
                 await executeMigration();
             }
         });
 
-        // Changement de classe source
         section.addEventListener('change', async (e) => {
             if (e.target.id === 'migration-source-select') {
                 state.sourceClassroomId = e.target.value ? parseInt(e.target.value) : null;
                 state.targetClassroomId = null;
                 state.selectedStudents.clear();
-                if (state.sourceClassroomId) {
-                    await loadStudentsAndTargets();
-                } else {
-                    hide('migration-students-section');
-                    hide('migration-target-section');
-                    hide('migration-confirm-section');
-                }
+                if (state.sourceClassroomId) await loadStudentsAndTargets();
+                else { hide('migration-students-section'); hide('migration-target-section'); hide('migration-confirm-section'); }
             }
-            // Checkbox individuelle
             if (e.target.matches('.student-checkbox')) {
                 const id = parseInt(e.target.dataset.studentId);
                 e.target.checked ? state.selectedStudents.add(id) : state.selectedStudents.delete(id);
-                updateSelectedCount();
-                updateConfirmSection();
+                updateSelectedCount(); updateConfirmSection();
             }
-            // Tout sélectionner
             if (e.target.id === 'select-all-students') {
                 document.querySelectorAll('.student-checkbox').forEach(cb => {
                     cb.checked = e.target.checked;
                     const id = parseInt(cb.dataset.studentId);
                     e.target.checked ? state.selectedStudents.add(id) : state.selectedStudents.delete(id);
                 });
-                updateSelectedCount();
-                updateConfirmSection();
+                updateSelectedCount(); updateConfirmSection();
             }
         });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // CHARGEMENT CLASSES SOURCE
-    // ─────────────────────────────────────────────────────────────────────
     async function loadSourceClassrooms() {
-        try {
-            const data = await apiFetch(
-                `/api/migration/available-targets?type=${state.migrationType}`
-            );
-            const select = document.getElementById('migration-source-select');
-            if (!select) return;
-
-            select.innerHTML = '<option value="">— Choisir une classe source —</option>';
-            (data.sourceClassrooms || []).forEach(c => {
-                const tc = c.troncCommun ? ' [TC]' : '';
-                select.innerHTML += `
-                    <option value="${c.classId}">
-                        ${c.name} — Niv. ${c.level} (${c.specialityName}${tc})
-                        — ${c.availableSlots} place(s) libre(s)
-                    </option>`;
-            });
-        } catch (err) {
-            console.error('[Migration] Erreur chargement sources :', err);
-        }
+        const data = await apiFetch(`/api/migration/available-targets?type=${state.migrationType}`);
+        const select = document.getElementById('migration-source-select');
+        if (!select) return;
+        select.innerHTML = '<option value="">— Choisir une classe source —</option>';
+        (data.sourceClassrooms || []).forEach(c => {
+            select.innerHTML += `<option value="${c.classId}">
+                ${c.name} — Niv. ${c.level} (${c.specialityName}${c.troncCommun ? ' [TC]' : ''})
+                — ${c.availableSlots} place(s) libre(s)
+            </option>`;
+        });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // CHARGEMENT ÉTUDIANTS + CLASSES CIBLES (quand source choisie)
-    // ─────────────────────────────────────────────────────────────────────
     async function loadStudentsAndTargets() {
         show('migration-students-section');
         show('migration-target-section');
         hide('migration-confirm-section');
 
-        const [studentsData, targetsData] = await Promise.all([
+        const [students, targets] = await Promise.all([
             apiFetch(`/api/migration/classroom/${state.sourceClassroomId}/students`),
-            apiFetch(`/api/migration/available-targets?type=${state.migrationType}&sourceClassroomId=${state.sourceClassroomId}`)
+            apiFetch(`/api/migration/available-targets?type=${state.migrationType}&sourceClassroomId=${state.sourceClassroomId}`),
         ]);
 
-        renderStudentsList(studentsData);
-        renderTargetClassrooms(targetsData.targetClassrooms || []);
+        renderStudentsList(students);
+        renderTargetClassrooms(targets.targetClassrooms || []);
     }
 
     function renderStudentsList(students) {
         const list = document.getElementById('students-list');
         if (!list) return;
-
-        if (!students || students.length === 0) {
+        if (!students?.length) {
             list.innerHTML = '<p class="text-center text-gray-400 py-6 text-sm">Aucun étudiant dans cette classe.</p>';
             return;
         }
-
         list.innerHTML = students.map(s => `
         <label class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition">
             <input type="checkbox" class="student-checkbox rounded border-gray-300 text-blue-600"
@@ -340,19 +360,17 @@ const MigrationModule = (() => {
     function renderTargetClassrooms(targets) {
         const grid = document.getElementById('target-classrooms-grid');
         if (!grid) return;
-
-        if (!targets || targets.length === 0) {
+        if (!targets?.length) {
             grid.innerHTML = '<p class="col-span-full text-center text-gray-400 py-4 text-sm">Aucune classe cible disponible.</p>';
             return;
         }
-
         grid.innerHTML = targets.map(c => {
             const isFull = c.availableSlots === 0;
             const isSelected = state.targetClassroomId === c.classId;
             return `
             <button data-target-classroom="${c.classId}" data-target-name="${c.name}"
                 class="target-classroom-card border-2 rounded-xl p-3 text-left transition-all
-                    ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'}
+                    ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}
                     ${isFull ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
                 ${isFull ? 'disabled' : ''}>
                 <p class="font-semibold text-sm text-gray-800">${c.name}</p>
@@ -364,49 +382,43 @@ const MigrationModule = (() => {
         }).join('');
     }
 
-    function selectTargetClassroom(classId, name) {
-        state.targetClassroomId = classId;
-
-        // Mettre à jour les cartes visuellement
-        document.querySelectorAll('.target-classroom-card').forEach(card => {
-            const isThis = parseInt(card.dataset.targetClassroom) === classId;
-            card.classList.toggle('border-blue-500', isThis);
-            card.classList.toggle('bg-blue-50', isThis);
-            card.classList.toggle('border-gray-200', !isThis);
+    function selectTargetClassroom(id, name) {
+        state.targetClassroomId = id;
+        document.querySelectorAll('.target-classroom-card').forEach(c => {
+            const me = parseInt(c.dataset.targetClassroom) === id;
+            c.classList.toggle('border-blue-500', me);
+            c.classList.toggle('bg-blue-50', me);
+            c.classList.toggle('border-gray-200', !me);
         });
-
         updateConfirmSection();
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // SECTION CONFIRMATION
-    // ─────────────────────────────────────────────────────────────────────
     function updateConfirmSection() {
         const section = document.getElementById('migration-confirm-section');
         const summary = document.getElementById('migration-summary');
         if (!section || !summary) return;
-
-        const hasStudents = state.selectedStudents.size > 0;
-        const hasTarget   = state.targetClassroomId !== null;
-
-        if (!hasStudents || !hasTarget) {
-            section.classList.add('hidden');
-            return;
+        if (state.selectedStudents.size === 0 || !state.targetClassroomId) {
+            section.classList.add('hidden'); return;
         }
-
         section.classList.remove('hidden');
 
         const sourceEl = document.getElementById('migration-source-select');
-        const sourceName = sourceEl ? sourceEl.options[sourceEl.selectedIndex]?.text : '—';
+        const sourceName = sourceEl?.options[sourceEl.selectedIndex]?.text || '—';
         const targetCard = document.querySelector(`[data-target-classroom="${state.targetClassroomId}"]`);
-        const targetName = targetCard ? targetCard.dataset.targetName : '—';
+        const targetName = targetCard?.dataset.targetName || '—';
         const cfg = TYPE_CONFIG[state.migrationType];
+        const yearLabel = getTargetYearLabel(state.migrationType);
 
         summary.innerHTML = `
-        <div class="space-y-1">
+        <div class="space-y-1.5">
             <p><span class="font-semibold">Type :</span> ${cfg.icon} ${cfg.label}</p>
-            <p><span class="font-semibold">Source :</span> ${sourceName}</p>
-            <p><span class="font-semibold">Destination :</span> ${targetName}</p>
+            <p><span class="font-semibold">Année cible :</span>
+                <span class="bg-purple-100 text-purple-700 font-semibold px-2 py-0.5 rounded-full text-xs">
+                    📅 ${yearLabel}
+                </span>
+            </p>
+            <p><span class="font-semibold">De :</span> ${sourceName}</p>
+            <p><span class="font-semibold">Vers :</span> ${targetName}</p>
             <p><span class="font-semibold">Étudiants :</span>
                 <span class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold">
                     ${state.selectedStudents.size}
@@ -420,152 +432,90 @@ const MigrationModule = (() => {
         if (el) el.textContent = `${state.selectedStudents.size} sélectionné(s)`;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // EXÉCUTION DE LA MIGRATION
-    // ─────────────────────────────────────────────────────────────────────
     async function executeMigration() {
-        const btn = document.getElementById('btn-confirm-migration');
+        const btn   = document.getElementById('btn-confirm-migration');
         const label = document.getElementById('btn-migrate-label');
-        const icon = document.getElementById('btn-migrate-icon');
-        const reason = document.getElementById('migration-reason')?.value?.trim() || '';
+        const icon  = document.getElementById('btn-migrate-icon');
 
         if (!state.targetClassroomId || state.selectedStudents.size === 0) {
-            showToast('Veuillez sélectionner des étudiants et une classe cible.', 'warning');
-            return;
+            showToast('Sélectionnez des étudiants et une classe cible.', 'warning'); return;
         }
 
-        // État chargement
-        btn.disabled = true;
-        icon.textContent = '⏳';
-        label.textContent = 'Migration en cours...';
+        btn.disabled = true; icon.textContent = '⏳'; label.textContent = 'Migration en cours...';
 
         try {
-            const payload = {
-                studentIds: [...state.selectedStudents],
-                fromClassroomId: state.sourceClassroomId,
-                toClassroomId: state.targetClassroomId,
-                migrationType: state.migrationType,
-                autoNextLevel: false,
-                reason: reason,
-            };
-
             const results = await apiFetch('/api/migration/bulk', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
+                body: JSON.stringify({
+                    studentIds: [...state.selectedStudents],
+                    fromClassroomId: state.sourceClassroomId,
+                    toClassroomId: state.targetClassroomId,
+                    migrationType: state.migrationType,
+                    autoNextLevel: false,
+                    reason: document.getElementById('migration-reason')?.value?.trim() || '',
+                }),
             });
 
             renderResults(results);
-
-            // Réinitialiser la sélection
-            state.selectedStudents.clear();
-            state.targetClassroomId = null;
-            updateSelectedCount();
-            hide('migration-confirm-section');
-
-            // Recharger la liste des étudiants
+            state.selectedStudents.clear(); state.targetClassroomId = null;
+            updateSelectedCount(); hide('migration-confirm-section');
             if (state.sourceClassroomId) await loadStudentsAndTargets();
 
         } catch (err) {
-            console.error('[Migration] Erreur :', err);
-            showToast('Erreur lors de la migration : ' + (err.message || 'Inconnue'), 'error');
+            showToast('Erreur migration : ' + (err.message || 'Inconnue'), 'error');
         } finally {
-            btn.disabled = false;
-            icon.textContent = '🚀';
-            label.textContent = 'Lancer la migration';
+            btn.disabled = false; icon.textContent = '🚀'; label.textContent = 'Lancer la migration';
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // RENDU DES RÉSULTATS
-    // ─────────────────────────────────────────────────────────────────────
     function renderResults(results) {
-        const container = document.getElementById('migration-results');
-        if (!container) return;
-
-        container.classList.remove('hidden');
-
-        const success = results.filter(r => r.success);
-        const failures = results.filter(r => !r.success);
-
-        container.innerHTML = `
+        const el = document.getElementById('migration-results');
+        if (!el) return;
+        el.classList.remove('hidden');
+        const ok  = results.filter(r => r.success);
+        const err = results.filter(r => !r.success);
+        el.innerHTML = `
         <div class="border border-gray-200 rounded-xl overflow-hidden">
             <div class="flex items-center justify-between bg-gray-50 px-4 py-3 border-b">
-                <h3 class="font-semibold text-gray-700 text-sm">Résultats de la migration</h3>
+                <h3 class="font-semibold text-gray-700 text-sm">Résultats</h3>
                 <div class="flex gap-2">
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                        ✅ ${success.length} réussis
-                    </span>
-                    ${failures.length ? `
-                    <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                        ❌ ${failures.length} échoués
-                    </span>` : ''}
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">✅ ${ok.length}</span>
+                    ${err.length ? `<span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">❌ ${err.length}</span>` : ''}
                 </div>
             </div>
             <div class="divide-y max-h-60 overflow-y-auto">
                 ${results.map(r => `
-                <div class="flex items-center gap-3 px-4 py-2.5 ${r.success ? 'bg-white' : 'bg-red-50'}">
+                <div class="flex items-start gap-3 px-4 py-2.5 ${r.success ? 'bg-white' : 'bg-red-50'}">
                     <span>${r.success ? '✅' : '❌'}</span>
-                    <div class="flex-1 min-w-0">
+                    <div>
                         <p class="text-sm font-medium text-gray-800">${r.studentName || 'ID: ' + r.studentId}</p>
                         ${r.success
-                            ? `<p class="text-xs text-gray-500">${r.fromClassroom} → ${r.toClassroom}</p>`
-                            : `<p class="text-xs text-red-500">${r.message}</p>`
-                        }
+                            ? `<p class="text-xs text-gray-500">${r.fromClassroom} → ${r.toClassroom} · ${r.message}</p>`
+                            : `<p class="text-xs text-red-500">${r.message}</p>`}
                     </div>
                 </div>`).join('')}
             </div>
         </div>`;
-
-        container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // UTILITAIRES
-    // ─────────────────────────────────────────────────────────────────────
-    async function apiFetch(url, options = {}) {
-        const res = await fetch(url, {
-            ...options,
-            credentials: 'include',
-        });
-        if (!res.ok) {
-            const err = await res.text();
-            throw new Error(err || `HTTP ${res.status}`);
-        }
+    // ── Utilitaires ───────────────────────────────────────────────────────
+    async function apiFetch(url, opts = {}) {
+        const res = await fetch(url, { ...opts, credentials: 'include' });
+        if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
         return res.json();
     }
-
-    function show(id) {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('hidden');
+    const show = id => document.getElementById(id)?.classList.remove('hidden');
+    const hide = id => document.getElementById(id)?.classList.add('hidden');
+    function showToast(msg, type = 'info') {
+        if (typeof window.showToast === 'function') window.showToast(msg, type);
+        else console.warn('[Toast]', type, msg);
     }
 
-    function hide(id) {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    }
-
-    function showToast(message, type = 'info') {
-        // Utilise la fonction toast existante du dashboard, ou fallback
-        if (typeof window.showToast === 'function') {
-            window.showToast(message, type);
-        } else if (typeof window.toast === 'function') {
-            window.toast(message, type);
-        } else {
-            console.warn('[Migration Toast]', type, message);
-        }
-    }
-
-    // ── API publique ──────────────────────────────────────────────────────
     return { init };
-
 })();
 
-// ─────────────────────────────────────────────────────────────────────────
-// Appel automatique si un conteneur #migration-section existe dans la page
-// ─────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('migration-section')) {
-        MigrationModule.init();
-    }
+    if (document.getElementById('migration-section')) MigrationModule.init();
 });
