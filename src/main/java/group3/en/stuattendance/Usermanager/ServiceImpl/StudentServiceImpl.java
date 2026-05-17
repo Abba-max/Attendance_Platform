@@ -256,8 +256,12 @@ public class StudentServiceImpl implements StudentService {
         }
         
         long totalSessions = allRecords.size();
-        long presentCount = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
-        long totalAbsences = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.ABSENT).count();
+        long presentCount = allRecords.stream()
+                .filter(r -> r.getStatus() == AttendanceStatus.PRESENT || r.getStatus() == AttendanceStatus.LATE)
+                .count();
+        long unexcusedAbsences = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.ABSENT).count();
+        long excusedAbsences = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.EXCUSED).count();
+        long totalAbsences = unexcusedAbsences + excusedAbsences;
         
         long pendingJustifications = justificationRepository.findByUserUserIdAndStatus(
                 userId, JustificationStatus.PENDING, Pageable.unpaged()).getTotalElements();
@@ -266,6 +270,8 @@ public class StudentServiceImpl implements StudentService {
 
         return StudentDashboardStatsDto.builder()
                 .totalAbsences(totalAbsences)
+                .unexcusedAbsences(unexcusedAbsences)
+                .excusedAbsences(excusedAbsences)
                 .pendingJustifications(pendingJustifications)
                 .overallAttendanceRate(rate)
                 .build();

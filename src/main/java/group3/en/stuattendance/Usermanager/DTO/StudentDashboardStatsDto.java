@@ -8,6 +8,8 @@ import lombok.*;
 @Builder
 public class StudentDashboardStatsDto {
     private long totalAbsences;
+    private long unexcusedAbsences;
+    private long excusedAbsences;
     private long pendingJustifications;
     private double overallAttendanceRate;
 }
