@@ -28,11 +28,9 @@ function getISOWeek(date) {
 let currentScheduleWeek = getISOWeek(new Date());
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Dashboard
+    // Initialize Dashboard (Only load active view stats and sessions)
     loadDashboardStats();
     loadGridSessions();
-    loadCourseStats();
-    loadAttendanceHistory();
     if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 });
 

@@ -75,7 +75,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Load initial data
     // loadDashboardData(); // Disabled as DashboardController is removed
-    loadRoleAndPermissionData();
     loadAcademicYears();
 
     // Set up auto-refresh
