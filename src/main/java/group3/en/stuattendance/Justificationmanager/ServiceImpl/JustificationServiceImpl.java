@@ -133,8 +133,16 @@ public class JustificationServiceImpl implements JustificationService {
             Integer userId = justification.getUser().getUserId();
             
             if (justification.getHourIndex() != null) {
-                attendanceService.markHourStatus(sessionId, userId, justification.getHourIndex(), 
-                        group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+                final int targetIdx = justification.getHourIndex();
+                boolean isAbsent = record.getHourSlots().stream()
+                        .filter(h -> h.getHourIndex() == targetIdx)
+                        .findFirst()
+                        .map(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                        .orElse(true);
+                if (isAbsent) {
+                    attendanceService.markHourStatus(sessionId, userId, targetIdx, 
+                            group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+                }
             } else {
                 int totalHours = 1;
                 if (record.getSession().getStartTime() != null && record.getSession().getEndTime() != null) {
