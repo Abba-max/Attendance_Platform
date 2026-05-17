@@ -486,174 +486,84 @@ function searchCourses() {
 }
 
 /**
- * --- 4. MULTI-STEP CHECK-IN (QR -> PIN) ---
+ * --- 4. CHECK-IN : QR OU PIN (exclusif) ---
+ * L'étudiant choisit un seul moyen : scanner le QR ou saisir le PIN.
  */
-async function openScanner(sessionId) {
+let checkinMode = null; // 'qr' | 'pin'
+
+function openScanner(sessionId) {
     currentCheckinContext.sessionId = sessionId;
     currentCheckinContext.qrCode = null;
     currentCheckinContext.pin = null;
-    
-    const locModal = document.getElementById('location-modal');
-    const locContent = document.getElementById('location-modal-content');
-    if (!locModal || !locContent) return;
+    checkinMode = null;
 
-    // 1. Show Location Modal First
-    locModal.classList.remove('hidden');
-    locContent.innerHTML = `
-        <div class="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-500">
-            <div class="relative w-20 h-20 mb-2">
-                <div class="absolute inset-0 bg-blue-100 rounded-full animate-ping opacity-20"></div>
-                <div class="relative bg-white rounded-full p-5 shadow-sm border border-blue-50">
-                    <svg class="w-10 h-10 text-[#00B0FF] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                    </svg>
-                </div>
-            </div>
-            <div class="space-y-1">
-                <h3 class="text-lg font-black text-slate-800 tracking-tight">Perimeter Sync</h3>
-                <p class="text-xs text-slate-500 font-medium">Authenticating your presence on campus...</p>
-            </div>
-            <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden mt-2 relative">
-                <div class="bg-[#00B0FF] h-full absolute inset-0 animate-[shimmer_2s_infinite] w-full origin-left" style="background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent); background-size: 200% 100%;"></div>
-            </div>
-        </div>
-    `;
+    document.getElementById('scanner-overlay').classList.remove('hidden');
+    document.getElementById('pin-input').value = '';
 
-    try {
-        // --- Geofence Check with 60s Timeout ---
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Verification Timeout: The location check is taking too long. Please ensure GPS is active.")), 60000)
-        );
-
-        const geoCheck = await Promise.race([validateGeofence(), timeoutPromise]);
-        
-        if (!geoCheck.allowed) {
-            Swal.fire({
-                title: 'Access Denied',
-                text: geoCheck.message,
-                icon: 'error',
-                confirmButtonColor: '#00B0FF'
-            });
-            locModal.classList.add('hidden');
-            return;
-        }
-
-        // 2. Success Animation & Transition
-        locContent.innerHTML = `
-            <div class="flex flex-col items-center justify-center gap-4 animate-in fade-in zoom-in duration-300">
-                <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100">
-                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                </div>
-                <div class="space-y-1">
-                    <h3 class="text-lg font-black text-slate-800">Zone Verified</h3>
-                    <p class="text-xs text-slate-500 font-medium">Secure connection established.</p>
-                </div>
-            </div>
-        `;
-
-        setTimeout(() => {
-            locModal.classList.add('hidden');
-            // Now open the actual scanner modal
-            document.getElementById('scanner-overlay').classList.remove('hidden');
-            document.getElementById('pin-input').value = '';
-            
-            const btn = document.getElementById('btn-validate');
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = 'Validate Presence';
-                btn.classList.remove('bg-emerald-500', 'opacity-50');
-                btn.classList.add('bg-[#00B0FF]');
-            }
-            startQrCamera();
-        }, 1200);
-
-    } catch (err) {
-        Swal.fire({
-            title: 'Sync Failed',
-            text: err.message || 'Please enable GPS to check in.',
-            icon: 'warning',
-            confirmButtonColor: '#00B0FF'
-        });
-        locModal.classList.add('hidden');
+    // Reset button state
+    const btn = document.getElementById('btn-validate');
+    if (btn) {
+        btn.disabled = true; // disabled until a mode is chosen and filled
+        btn.innerHTML = 'Validate Presence';
+        btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
     }
+
+    // Show mode selector, hide both panels initially
+    _showCheckinModeSelector();
 }
 
-function startQrCamera() {
-    const readerEl = document.getElementById('qr-reader');
-    if (!readerEl) return;
+function _showCheckinModeSelector() {
+    const modePanel = document.getElementById('checkin-mode-selector');
+    const qrPanel   = document.getElementById('qr-panel');
+    const pinPanel  = document.getElementById('pin-panel');
+    if (modePanel) modePanel.classList.remove('hidden');
+    if (qrPanel)   qrPanel.classList.add('hidden');
+    if (pinPanel)  pinPanel.classList.add('hidden');
 
-    // Stop any previous scanner instance
+    // Stop any running scanner
     if (html5QrScanner) {
         html5QrScanner.stop().catch(() => {});
         html5QrScanner = null;
     }
+}
 
-    // Check if camera APIs are available at all
-    // On HTTP (non-localhost), mobile browsers block camera APIs
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-3">
-            <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-            <p class="text-[10px] text-rose-600 font-black text-center uppercase tracking-wide">Camera unavailable</p>
-            <p class="text-[9px] text-slate-400 text-center">Camera requires a secure (HTTPS) connection.<br>Enter the PIN manually if you have it.</p>
-        </div>`;
-        return;
+window.selectCheckinMode = function(mode) {
+    checkinMode = mode;
+    const modePanel = document.getElementById('checkin-mode-selector');
+    const qrPanel   = document.getElementById('qr-panel');
+    const pinPanel  = document.getElementById('pin-panel');
+    if (modePanel) modePanel.classList.add('hidden');
+
+    if (mode === 'qr') {
+        if (qrPanel) qrPanel.classList.remove('hidden');
+        if (pinPanel) pinPanel.classList.add('hidden');
+        // Start camera
+        try {
+            html5QrScanner = new Html5Qrcode("qr-reader");
+            html5QrScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess
+            ).catch(err => {
+                console.warn("Camera not available.", err);
+                html5QrScanner = null;
+            });
+        } catch (err) {
+            console.warn("Failed to init scanner", err);
+        }
+    } else {
+        if (pinPanel) pinPanel.classList.remove('hidden');
+        if (qrPanel)  qrPanel.classList.add('hidden');
+        // Enable validate button immediately when user types
+        const pinInput = document.getElementById('pin-input');
+        const btn = document.getElementById('btn-validate');
+        if (pinInput && btn) {
+            pinInput.oninput = () => {
+                btn.disabled = pinInput.value.trim().length < 4;
+            };
+        }
     }
-
-    // Show a loading indicator while requesting camera
-    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-4">
-        <svg class="w-8 h-8 text-[#00B0FF] animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-        <p class="text-xs text-slate-400 font-bold">Allow camera access...</p>
-    </div>`;
-
-    // Start Html5Qrcode directly — it handles getUserMedia and the OS permission dialog internally
-    // We do NOT use a probe stream; that probe was unreliable on HTTP and caused a double-permission flow
-    try {
-        html5QrScanner = new Html5Qrcode('qr-reader');
-        html5QrScanner.start(
-            { facingMode: 'environment' },
-            { fps: 10, qrbox: { width: 180, height: 180 } },
-            onScanSuccess
-        )
-        .then(() => {
-            // Scanner started — clear any placeholder content Html5Qrcode may have hidden
-        })
-        .catch(err => {
-            console.warn('Scanner start failed:', err);
-            const msg = (err && err.toString().toLowerCase().includes('permission'))
-                || (err && err.toString().toLowerCase().includes('denied'))
-                || (err && err.toString().toLowerCase().includes('notallowed'))
-                ? 'permission' : 'error';
-            if (msg === 'permission') {
-                showCameraPermissionDenied(readerEl);
-            } else {
-                showCameraError(readerEl);
-            }
-        });
-    } catch (err) {
-        console.warn('Html5Qrcode init failed:', err);
-        showCameraError(readerEl);
-    }
-}
-
-function showCameraError(readerEl) {
-    html5QrScanner = null;
-    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-2 p-3">
-        <svg class="w-8 h-8 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        <p class="text-xs text-rose-500 font-bold text-center">Camera failed to start</p>
-        <button onclick="startQrCamera()" class="mt-1 px-3 py-1 bg-[#00B0FF] text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Retry</button>
-    </div>`;
-}
-
-function showCameraPermissionDenied(readerEl) {
-    html5QrScanner = null;
-    readerEl.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-1 p-3">
-        <svg class="w-8 h-8 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.362a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
-        <p class="text-[10px] text-amber-600 font-black text-center uppercase tracking-wide">Camera Access Denied</p>
-        <p class="text-[9px] text-slate-400 text-center">Allow camera in your browser settings,<br>then tap Retry.</p>
-        <button onclick="startQrCamera()" class="mt-1 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Retry</button>
-    </div>`;
-}
+};
 
 function onScanSuccess(decodedText) {
     if (navigator.vibrate) navigator.vibrate(200);
@@ -666,30 +576,33 @@ function onScanSuccess(decodedText) {
 
     const btn = document.getElementById('btn-validate');
     if (btn) {
-        btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> QR Scanned. Now enter PIN...';
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> QR Scanné — Valider';
         btn.classList.replace('bg-[#00B0FF]', 'bg-emerald-500');
     }
 }
 
 async function submitFinalCheckin() {
-    const pin = document.getElementById('pin-input').value.trim();
-
-    // Enforce Logical AND — BOTH are required
-    if (!currentCheckinContext.qrCode) {
-        Swal.fire('Scan Required', 'Please scan the instructor\'s QR code first.', 'warning');
-        return;
-    }
-    if (!pin || pin.length < 4) {
-        Swal.fire('PIN Required', 'Please enter the 4-digit PIN provided by the instructor.', 'warning');
-        return;
-    }
-    
-    if (pin && pin.length === 4) {
-        currentCheckinContext.pin = pin;
-    }
-
     const btn = document.getElementById('btn-validate');
-    if (btn) { btn.disabled = true; btn.textContent = 'Verifying...'; }
+
+    if (checkinMode === 'qr') {
+        if (!currentCheckinContext.qrCode) {
+            Swal.fire('Scan Required', 'Veuillez scanner le QR code affiché par le professeur.', 'warning');
+            return;
+        }
+    } else if (checkinMode === 'pin') {
+        const pin = document.getElementById('pin-input').value.trim();
+        if (!pin || pin.length < 4) {
+            Swal.fire('PIN Required', 'Veuillez saisir le code PIN à 4 chiffres fourni par le professeur.', 'warning');
+            return;
+        }
+        currentCheckinContext.pin = pin;
+    } else {
+        Swal.fire('Selection Required', 'Veuillez choisir un mode de pointage (QR ou PIN).', 'warning');
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Vérification...'; }
 
     try {
         // --- Geofence Check ---
@@ -700,15 +613,14 @@ async function submitFinalCheckin() {
             return;
         }
 
-        const response = await fetch('/api/student/attendance/check-in', {
+        const response = await fetch('/api/attendance/student/check-in', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sessionId: currentCheckinContext.sessionId,
-                qrData:   currentCheckinContext.qrCode,
-                pinCode:  currentCheckinContext.pin,
-                latitude: geoCheck.lat,
-                longitude: geoCheck.lng
+                qrData:   currentCheckinContext.qrCode || null,
+                pinCode:  currentCheckinContext.pin    || null,
+                location:  geoCheck.allowed ? `${geoCheck.lat},${geoCheck.lng}` : null
             })
         });
 
@@ -720,23 +632,18 @@ async function submitFinalCheckin() {
             loadDashboardStats();
             loadCourseStats();
         } else {
-            Swal.fire('Check-In Failed', data.error || 'Invalid QR code or PIN. Please try again.', 'error');
-            document.getElementById('pin-input').value = '';
-            
-            // Re-render button state if failure
-            if (btn) { 
-                btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]'); 
-                btn.disabled = false; 
-                btn.textContent = 'Validate Presence'; 
-            }
-            // Reset QR so they can scan again if they want
+            Swal.fire('Check-In Failed', data.error || 'Code invalide. Veuillez réessayer.', 'error');
             currentCheckinContext.qrCode = null;
-            if (html5QrScanner && html5QrScanner.getState() !== 2) { // not scanning
-               // they may need to reopen or type pin.
+            currentCheckinContext.pin = null;
+            _showCheckinModeSelector();
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
+                btn.textContent = 'Validate Presence';
             }
         }
     } catch (err) {
-        Swal.fire('Network Error', 'Please check your connection and try again.', 'error');
+        Swal.fire('Network Error', 'Erreur réseau. Veuillez réessayer.', 'error');
         if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
     }
 }
@@ -777,11 +684,12 @@ function openJustifyModal(attendanceId, courseName, dateStr) {
 function toggleJustifyModal() {
     document.getElementById('justify-modal').classList.add('hidden');
 }
+}
 
 function previewFile(input) {
     const preview = document.getElementById('camera-preview');
     const img = document.getElementById('preview-img');
-    
+
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -806,8 +714,13 @@ document.getElementById('justification-form').addEventListener('submit', async (
         });
 
         if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
+<<<<<<< HEAD
         
         Swal.fire('Success', 'Justification successfully sent for review.', 'success');
+=======
+
+        alert("Justification successfully sent for review.");
+>>>>>>> dc4ad2a060b2fea692f49afe5796e85fe485f5b0
         toggleJustifyModal();
         loadAttendanceHistory();
     } catch (err) {
@@ -891,6 +804,7 @@ async function loadAttendanceHistory() {
     } catch (err) {
         container.innerHTML = '<p class="text-rose-500 text-sm text-center py-4">Failed to load history.</p>';
     }
+<<<<<<< HEAD
 }
 
 /**
@@ -1056,4 +970,3 @@ function getHaversineDistance(p1, p2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
-

@@ -16,12 +16,12 @@ let selectedMobileDay = 'MONDAY'; // For mobile day switcher
 function initDashboard() {
     if (window.dashboardInitialized) return;
     window.dashboardInitialized = true;
-    
-    loadSessions();
-    loadTeacherStats(); // Load stats dynamically
-    
-    setInterval(loadSessions, 300000); // 5m refresh
-    
+
+    loadSessions();       // Single initial load — do NOT call again on tab change
+    loadTeacherStats();
+
+    setInterval(loadSessions, 300000); // Background refresh every 5 min only
+
     // Initial Route
     const hash = window.location.hash.replace('#', '') || 'dashboard';
     navigateTo(hash);
@@ -193,7 +193,6 @@ window.applyFilters = function() {
 };
 
 function calculateGridPosition(startTime, endTime) {
-    if (!startTime || !endTime) return null;
     const startParts = startTime.split(':');
     const startH = parseInt(startParts[0]);
     const startM = parseInt(startParts[1]);
@@ -202,12 +201,9 @@ function calculateGridPosition(startTime, endTime) {
     const endH = parseInt(endParts[0]);
     const endM = parseInt(endParts[1]);
 
-    // 8am to 5pm (17:00) -> 9 hours -> 540 minutes
-    // Row 2 is 8:00 (Row 1 is header)
-    // 1 minute = 1 row
     const startRow = ((startH - 8) * 60) + startM + 2;
     const endRow = ((endH - 8) * 60) + endM + 2;
-    
+
     return { start: startRow, end: endRow };
 }
 
@@ -326,6 +322,11 @@ function updateOverview() {
             .reduce((sum, s) => sum + (s.totalHours || 0), 0);
         overallHoursEl.textContent = String(overallHours);
     }
+
+    // Sync Pending count (unfinalized sessions across all time)
+    const pendingCount = allSessions.filter(s => s.status === 'IN_PROGRESS' || (s.status === 'COMPLETED' && !s.isValidated)).length;
+    const pendingEl = document.getElementById('pending-attendance-count');
+    if (pendingEl) pendingEl.textContent = String(pendingCount);
     
     // Calculate Next Session
     const nextSessionEl = document.getElementById('overview-upcoming-session');
@@ -371,7 +372,7 @@ function renderSessionCard(s, isGrid = false) {
     const isDone = s.status === 'COMPLETED';
     const isMissed = s.status === 'MISSED';
     const isValid = s.isValidated === true;
-    
+
     let statusClasses = 'bg-slate-100 text-slate-500 border border-slate-200';
     if (isActive) statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
     else if (isDone) statusClasses = isValid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white';
@@ -477,10 +478,10 @@ window.handleSessionAction = async function (sessionId) {
                 throw new Error(err.message || 'Failed to start session.');
             }
             const updated = await res.json();
-            
+
             const idx = allSessions.findIndex(s => s.sessionId === sessionId);
             if (idx !== -1) allSessions[idx] = { ...allSessions[idx], ...updated };
-            
+
             renderGrid();
             openRollCall(sessionId);
         } catch (e) {
@@ -498,13 +499,13 @@ window.handleSessionAction = async function (sessionId) {
 function openRollCall(sessionId) {
     activeSessionId = sessionId;
     activeSession = allSessions.find(s => s.sessionId === sessionId);
-    
+
     document.getElementById('att-course-name').textContent = activeSession.courseName || 'Course';
     document.getElementById('att-details').textContent = `${activeSession.classroomName} • ${activeSession.startTime?.substring(0,5)} – ${activeSession.endTime?.substring(0,5)}`;
 
     const btnSub = document.getElementById('btn-submit-rollcall');
     const btnCon = document.getElementById('btn-confirm-export');
-    
+
     if (activeSession.status === 'COMPLETED') {
         btnSub?.classList.add('hidden');
         btnCon?.classList.remove('hidden');
@@ -532,7 +533,7 @@ window.closeAttendance = function() {
 async function loadRollCall(sessionId) {
     const tbody = document.getElementById('att-table-body');
     tbody.innerHTML = '<tr><td colspan="10" class="py-10 text-center text-slate-500 text-sm">Loading roster...</td></tr>';
-    
+
     try {
         const res = await fetch(`/api/attendance/session/${sessionId}/students`);
         if (!res.ok) throw new Error();
@@ -556,7 +557,7 @@ function connectWebSocket(sessionId) {
     const socket = new window.SockJS('/ws');
     stompClient = window.Stomp.over(socket);
     stompClient.debug = null; // disable noisy console logs
-    
+
     stompClient.connect({}, function (frame) {
         console.log('Connected to WebSocket');
         // Real-time attendance updates from student check-ins
@@ -881,7 +882,7 @@ window.submitRollCall = async () => {
 
     try {
         const res = await fetch(`/api/teacher/sessions/${activeSessionId}/end`, { method: 'POST' });
-        
+
         if (!res.ok) {
             // Surface the real error from the server
             let errMsg = 'Failed to finalize session.';
@@ -919,9 +920,9 @@ window.confirmAndExportAttendance = async () => {
     try {
         await fetch(`/api/teacher/sessions/${activeSessionId}/confirm-attendance`, { method: 'POST' });
         showNotification('Attendance confirmed.', 'success');
-        
+
         downloadAttendancePdf(activeSessionId);
-        
+
         closeAttendance();
         loadSessions();
     } catch {}
@@ -947,7 +948,7 @@ async function loadTeacherStats() {
 window.loadStatsForDetailedView = async function() {
     const val = document.getElementById('stats-course-selector').value;
     const tbody = document.getElementById('stats-table-body');
-    
+
     if (!val) {
         tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">Select a course to view its attendance yields.</td></tr>';
         return;
@@ -955,11 +956,11 @@ window.loadStatsForDetailedView = async function() {
 
     const [classId, courseId] = val.split('-');
     tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">Calculating yields...</td></tr>';
-    
+
     try {
         const res = await fetch(`/api/teacher/stats/classes/${classId}/courses/${courseId}`);
         const stats = await res.json();
-        
+
         if (stats.length === 0) {
             tbody.innerHTML = '<tr><td colspan="2" class="px-4 py-8 text-center text-slate-500">No students found.</td></tr>';
             return;
@@ -1004,13 +1005,12 @@ function showNotification(msg, type='info') {
 
     const toast = document.createElement('div');
     toast.id = 'tt-toast';
-    
+
     // Color logic
     const bgColor = type === 'error' ? 'bg-rose-600 shadow-rose-500/30' : type === 'success' ? 'bg-emerald-500 shadow-emerald-500/20' : 'bg-[#00B0FF] shadow-blue-500/20';
-    
     toast.className = `fixed top-4 right-4 z-[300] ${bgColor} text-white px-5 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all transform translate-y-2 opacity-0 flex items-center gap-3 active:scale-95 cursor-pointer shadow-xl`;
-    
-    const icon = type === 'error' 
+
+    const icon = type === 'error'
         ? `<svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`
         : `<svg class="w-5 h-5 text-white/90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
 
@@ -1019,9 +1019,9 @@ function showNotification(msg, type='info') {
 
     document.body.appendChild(toast);
     setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
-    setTimeout(() => { 
-        toast.classList.add('opacity-0'); 
-        setTimeout(() => toast.remove(), 300); 
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
     }, type === 'error' ? 5000 : 3000); // Errors stay longer
 }
 
@@ -1056,7 +1056,7 @@ function startQrTimer() {
     stopQrTimer();
     qrTimer = 30;
     updateQrUI();
-    
+
     qrInterval = setInterval(() => {
         qrTimer--;
         if (qrTimer <= 0) {
@@ -1083,7 +1083,7 @@ async function generateQr() {
     try {
         const res = await fetch('/api/attendance/session-token', { method: 'POST', body: JSON.stringify({sessionId:activeSessionId, type:'QR'}), headers:{'Content-Type':'application/json'} });
         const data = await res.json();
-        
+
         qrTimer = 30;
         updateQrUI();
 
