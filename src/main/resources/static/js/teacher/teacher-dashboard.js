@@ -18,7 +18,6 @@ function initDashboard() {
     window.dashboardInitialized = true;
 
     loadSessions();       // Single initial load — do NOT call again on tab change
-    loadTeacherStats();
     if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 
     setInterval(loadSessions, 300000); // Background refresh every 5 min only
@@ -64,6 +63,9 @@ window.navigateTo = function(section) {
 
     if (section === 'students') {
         fetchMyStudents();
+    }
+    if (section === 'stats') {
+        loadTeacherStats();
     }
 };
 
