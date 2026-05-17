@@ -37,6 +37,7 @@ public class JustificationServiceImpl implements JustificationService {
     private final JustificationMapper justificationMapper;
     private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -47,13 +48,15 @@ public class JustificationServiceImpl implements JustificationService {
             AttendanceRecordRepository attendanceRecordRepository,
             JustificationMapper justificationMapper,
             group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService,
-            group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService) {
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService,
+            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
         this.justificationRepository = justificationRepository;
         this.userRepository = userRepository;
         this.attendanceRecordRepository = attendanceRecordRepository;
         this.justificationMapper = justificationMapper;
         this.notificationService = notificationService;
         this.attendanceService = attendanceService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Override
@@ -242,7 +245,7 @@ public class JustificationServiceImpl implements JustificationService {
 
         Justification saved = justificationRepository.save(justification);
 
-        return group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto.builder()
+        group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto responseDto = group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto.builder()
                 .justificationId(saved.getJustificationId())
                 .attendanceId(attendanceId)
                 .courseName(record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A")
@@ -252,6 +255,10 @@ public class JustificationServiceImpl implements JustificationService {
                 .status(saved.getStatus())
                 .createdAt(saved.getCreatedAt())
                 .build();
+
+        messagingTemplate.convertAndSend("/topic/justifications", responseDto);
+
+        return responseDto;
     }
 
     @Override

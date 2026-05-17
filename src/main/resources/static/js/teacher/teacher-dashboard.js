@@ -19,6 +19,7 @@ function initDashboard() {
 
     loadSessions();       // Single initial load — do NOT call again on tab change
     loadTeacherStats();
+    if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 
     setInterval(loadSessions, 300000); // Background refresh every 5 min only
 
@@ -543,6 +544,35 @@ async function loadRollCall(sessionId) {
         tbody.innerHTML = '<tr><td colspan="10" class="py-10 text-center text-red-600 text-sm">Failed to load roster.</td></tr>';
     }
 }
+
+window.initializeGlobalWebSockets = function() {
+    if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
+    
+    const socket = new window.SockJS('/ws');
+    const globalStompClient = window.Stomp.over(socket);
+    globalStompClient.debug = null;
+
+    globalStompClient.connect({}, function (frame) {
+        console.log('Connected to Global WebSocket');
+        
+        // Subscribe to user-specific notifications
+        globalStompClient.subscribe('/user/queue/notifications', function (msg) {
+            const notification = JSON.parse(msg.body);
+            if (typeof showNotification === 'function') {
+                showNotification(notification.message, notification.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
+            }
+        });
+
+        // Subscribe to session updates
+        globalStompClient.subscribe('/topic/sessions', function (msg) {
+            console.log('Session update received via WebSocket');
+            if (typeof loadSessions === 'function') loadSessions();
+        });
+    }, function (error) {
+        console.error('Global WebSocket error:', error);
+        setTimeout(initializeGlobalWebSockets, 5000);
+    });
+};
 
 // ── Real-time Socket Engine ─────────────────────────────────────────────
 function connectWebSocket(sessionId) {

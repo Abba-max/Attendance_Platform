@@ -108,6 +108,9 @@ function initializeNavigation() {
             if (sectionId === 'sessions') {
                 if (typeof loadSessionsMonitor === 'function') loadSessionsMonitor();
             }
+            if (sectionId === 'justifications') {
+                if (typeof loadJustifications === 'function') loadJustifications();
+            }
             if (sectionId === 'attendance') {
                 const clsFilter = document.getElementById('hubClassFilter');
                 if (clsFilter && clsFilter.options.length <= 1) {
@@ -2959,22 +2962,33 @@ window.exportHubAttendance = function() {
 // JUSTIFICATION REVIEW QUEUE
 // ==========================================
 
-window.loadPendingJustifications = async function () {
+window.loadJustifications = async function () {
     const container = document.getElementById('justificationQueueList');
     if (!container) return;
 
+    const statusFilter = document.getElementById('justifStatusFilter')?.value || 'PENDING';
+    
     container.innerHTML = `
         <div class="md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center py-14 bg-white rounded-2xl border border-slate-100 text-slate-400">
             <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
-            <p class="text-sm font-bold">Loading pending justifications...</p>
+            <p class="text-sm font-bold">Loading justifications...</p>
         </div>`;
 
     try {
-        const res = await fetch('/api/pedagog/justifications/pending?size=50');
+        let url = '/api/justifications';
+        if (statusFilter !== 'ALL') {
+            url = `/api/justifications/status/${statusFilter}`;
+        }
+        url += '?size=50';
+
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to load justifications');
         const page = await res.json();
-        // API returns a paginated Page<JustificationDto>, extract content
-        renderJustificationQueue(page.content || page);
+        
+        // Save raw list for frontend filtering
+        window.rawJustifications = page.content || page;
+        
+        applyJustifFilters();
     } catch (e) {
         console.error('Justification queue error:', e);
         container.innerHTML = `
@@ -2984,6 +2998,30 @@ window.loadPendingJustifications = async function () {
             </div>`;
     }
 };
+
+window.applyJustifFilters = function() {
+    const searchText = document.getElementById('justifSearch')?.value.toLowerCase() || '';
+    const specFilter = document.getElementById('justifSpecFilter')?.value || '';
+    const classFilter = document.getElementById('justifClassFilter')?.value || '';
+    
+    const list = window.rawJustifications || [];
+    
+    const filtered = list.filter(item => {
+        const studentName = (item.studentName || '').toLowerCase();
+        const matricule = (item.studentMatricule || '').toLowerCase();
+        const className = item.className || '';
+        const specialityName = item.specialityName || '';
+        
+        const matchSearch = !searchText || studentName.includes(searchText) || matricule.includes(searchText);
+        const matchSpec = !specFilter || specialityName === specFilter;
+        const matchClass = !classFilter || className === classFilter;
+        
+        return matchSearch && matchSpec && matchClass;
+    });
+    
+    renderJustificationQueue(filtered);
+};
+
 
 function renderJustificationQueue(list) {
     const container = document.getElementById('justificationQueueList');
@@ -3144,6 +3182,24 @@ window.initializeNotifications = function() {
         stompClient.subscribe('/user/queue/notifications', function (msg) {
             const notification = JSON.parse(msg.body);
             handleIncomingNotification(notification);
+        });
+
+        // Subscribe to justifications
+        stompClient.subscribe('/topic/justifications', function (msg) {
+            console.log('New Justification received via WebSocket');
+            const currentSection = new URLSearchParams(window.location.search).get('section');
+            if (currentSection === 'justifications' || document.getElementById('section-justifications')?.offsetParent !== null) {
+                loadJustifications();
+            }
+        });
+
+        // Subscribe to sessions
+        stompClient.subscribe('/topic/sessions', function (msg) {
+            console.log('Session update received via WebSocket');
+            const currentSection = new URLSearchParams(window.location.search).get('section');
+            if (currentSection === 'sessions' || document.getElementById('section-sessions')?.offsetParent !== null) {
+                if (typeof loadSessionsMonitor === 'function') loadSessionsMonitor();
+            }
         });
     }, function (error) {
         console.error('WebSocket connection error:', error);

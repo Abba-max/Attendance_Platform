@@ -33,7 +33,43 @@ document.addEventListener('DOMContentLoaded', () => {
     loadGridSessions();
     loadCourseStats();
     loadAttendanceHistory();
+    if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 });
+
+window.initializeGlobalWebSockets = function() {
+    if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
+    
+    const socket = new window.SockJS('/ws');
+    const globalStompClient = window.Stomp.over(socket);
+    globalStompClient.debug = null;
+
+    globalStompClient.connect({}, function (frame) {
+        console.log('Connected to Global WebSocket');
+        
+        // Subscribe to user-specific notifications
+        globalStompClient.subscribe('/user/queue/notifications', function (msg) {
+            const notification = JSON.parse(msg.body);
+            Swal.fire({
+                title: 'Notification',
+                text: notification.message,
+                icon: 'info',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000
+            });
+        });
+
+        // Subscribe to session updates
+        globalStompClient.subscribe('/topic/sessions', function (msg) {
+            console.log('Session update received via WebSocket');
+            if (typeof loadGridSessions === 'function') loadGridSessions();
+        });
+    }, function (error) {
+        console.error('Global WebSocket error:', error);
+        setTimeout(initializeGlobalWebSockets, 5000);
+    });
+};
 
 /**
  * --- TAB NAVIGATION ---

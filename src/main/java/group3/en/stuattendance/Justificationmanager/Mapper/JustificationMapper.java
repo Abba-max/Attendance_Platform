@@ -15,6 +15,11 @@ public class JustificationMapper {
                 .studentName(justification.getUser() != null ?
                         justification.getUser().getFirstName() + " " + justification.getUser().getLastName() : null)
                 .studentMatricule(justification.getUser() != null ? justification.getUser().getMatricule() : null)
+                .className(justification.getUser() != null && justification.getUser().getClassroom() != null ? 
+                        justification.getUser().getClassroom().getName() : null)
+                .specialityName(justification.getUser() != null && justification.getUser().getClassroom() != null && 
+                        justification.getUser().getClassroom().getSpeciality() != null ? 
+                        justification.getUser().getClassroom().getSpeciality().getName() : null)
                 .attendanceId(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getAttendanceId() : null)
                 .attendanceDate(justification.getAttendanceRecord() != null ? justification.getAttendanceRecord().getTimestamp() : null)
                 .courseName(justification.getAttendanceRecord() != null &&

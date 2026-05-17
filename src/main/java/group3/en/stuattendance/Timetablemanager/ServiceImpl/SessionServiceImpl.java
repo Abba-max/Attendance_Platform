@@ -36,6 +36,7 @@ public class SessionServiceImpl implements SessionService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
     private final SessionMapper sessionMapper;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -64,7 +65,28 @@ public class SessionServiceImpl implements SessionService {
         session.setActualStartTime(LocalDateTime.now());
 
         Session saved = sessionRepository.save(session);
-        return sessionMapper.toDto(saved);
+        
+        // Notify students of session start
+        if (saved.getClassroom() != null) {
+            List<User> classroomStudents = userRepository.findByClassroomClassIdAndRolesName(
+                    saved.getClassroom().getClassId(), "STUDENT");
+            
+            String courseName = saved.getCourse() != null ? saved.getCourse().getCourseName() : "a session";
+            String teacherName = saved.getTeacher() != null ? saved.getTeacher().getFirstName() + " " + saved.getTeacher().getLastName() : "Your teacher";
+
+            for (User student : classroomStudents) {
+                try {
+                    notificationService.sendNotification(student.getUserId(), "SESSION_STARTED",
+                            teacherName + " has started the session for " + courseName + ".");
+                } catch (Exception e) {
+                    System.err.println("Failed to send notification to student " + student.getUserId() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        SessionDto responseDto = sessionMapper.toDto(saved);
+        messagingTemplate.convertAndSend("/topic/sessions", responseDto);
+        return responseDto;
     }
 
     @Override
@@ -126,7 +148,9 @@ public class SessionServiceImpl implements SessionService {
         }
 
         Session saved = sessionRepository.save(session);
-        return sessionMapper.toDto(saved);
+        SessionDto responseDto = sessionMapper.toDto(saved);
+        messagingTemplate.convertAndSend("/topic/sessions", responseDto);
+        return responseDto;
     }
 
     @Override
@@ -147,7 +171,7 @@ public class SessionServiceImpl implements SessionService {
 
         session.setIsValidated(true);
         Session saved = sessionRepository.save(session);
-
+        
         // Notify Pedagogic Assistants of that specialty
         if (saved.getCourse() != null && saved.getCourse().getSpeciality() != null) {
             String courseName = saved.getCourse().getCourseName();
@@ -158,7 +182,9 @@ public class SessionServiceImpl implements SessionService {
                     teacherName + " has finalized the attendance for " + courseName + ".");
         }
 
-        return sessionMapper.toDto(saved);
+        SessionDto responseDto = sessionMapper.toDto(saved);
+        messagingTemplate.convertAndSend("/topic/sessions", responseDto);
+        return responseDto;
     }
 
     @Override
@@ -170,7 +196,21 @@ public class SessionServiceImpl implements SessionService {
         session.setStatus(SessionStatus.CANCELLED);
 
         Session saved = sessionRepository.save(session);
-        return sessionMapper.toDto(saved);
+        
+        // Notify Teacher of session cancellation
+        if (saved.getTeacher() != null) {
+            try {
+                String courseName = saved.getCourse() != null ? saved.getCourse().getCourseName() : "a session";
+                notificationService.sendNotification(saved.getTeacher().getUserId(), "SESSION_CANCELLED",
+                        "The pedagogic assistant has CANCELLED the session for " + courseName + " on " + saved.getDate() + ".");
+            } catch (Exception e) {
+                System.err.println("Failed to send notification to teacher " + saved.getTeacher().getUserId() + ": " + e.getMessage());
+            }
+        }
+
+        SessionDto responseDto = sessionMapper.toDto(saved);
+        messagingTemplate.convertAndSend("/topic/sessions", responseDto);
+        return responseDto;
     }
 
     @Override
@@ -242,6 +282,18 @@ public class SessionServiceImpl implements SessionService {
         }
 
         Session updated = sessionRepository.save(existing);
+        
+        // Notify Teacher of session update
+        if (updated.getTeacher() != null) {
+            try {
+                String courseName = updated.getCourse() != null ? updated.getCourse().getCourseName() : "a session";
+                notificationService.sendNotification(updated.getTeacher().getUserId(), "SESSION_UPDATED",
+                        "The pedagogic assistant has updated the session for " + courseName + " scheduled on " + updated.getDate() + ".");
+            } catch (Exception e) {
+                System.err.println("Failed to send notification to teacher " + updated.getTeacher().getUserId() + ": " + e.getMessage());
+            }
+        }
+        
         return sessionMapper.toDto(updated);
     }
 
