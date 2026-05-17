@@ -507,29 +507,49 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- QR + PIN Scanner Modal -->
+<!-- Scanner Modal — QR OU PIN (exclusif) -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="scanner-overlay" class="fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-md hidden flex items-center justify-center p-4">
     <div class="w-full max-w-[92vw] sm:max-w-[400px] bg-white rounded-3xl shadow-2xl relative p-6 pt-10 text-center">
         <button onclick="closeScanner()" class="absolute top-4 right-4 p-2 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-colors z-[210]">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </button>
-        <h3 class="text-xl font-bold text-slate-900 mb-1">Check In to Class</h3>
-        <p class="text-slate-500 text-sm mb-6">Scan the instructor's QR code <span class="font-bold text-slate-900">AND</span> enter the PIN.</p>
-        <div class="w-full max-w-[200px] mx-auto aspect-square bg-slate-50 rounded-2xl border-4 border-slate-100 relative overflow-hidden mb-6">
-            <div id="qr-reader" class="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full flex items-center justify-center"></div>
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                <div class="w-2/3 h-2/3 border-2 border-[#00B0FF]/50 rounded-xl"></div>
+        <h3 class="text-xl font-bold text-slate-900 mb-1">Pointer ma présence</h3>
+        <p class="text-slate-500 text-sm mb-6">Choisissez <span class="font-bold text-slate-900">un seul</span> moyen de pointage.</p>
+
+        <!-- Mode Selector -->
+        <div id="checkin-mode-selector" class="flex gap-3 mb-2">
+            <button onclick="selectCheckinMode('qr')" class="flex-1 py-5 rounded-2xl border-2 border-[#00B0FF] bg-blue-50 hover:bg-blue-100 transition-all flex flex-col items-center gap-2">
+                <svg class="w-8 h-8 text-[#00B0FF]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 14h2v2h-2zM18 14h2v2h-2zM14 18h2v2h-2zM18 18h2v2h-2z"/></svg>
+                <span class="text-xs font-black text-[#00B0FF] uppercase tracking-widest">Scanner QR</span>
+            </button>
+            <button onclick="selectCheckinMode('pin')" class="flex-1 py-5 rounded-2xl border-2 border-slate-200 bg-slate-50 hover:bg-slate-100 transition-all flex flex-col items-center gap-2">
+                <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM6 11c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM6 17c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM12 17c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/></svg>
+                <span class="text-xs font-black text-slate-500 uppercase tracking-widest">Entrer PIN</span>
+            </button>
+        </div>
+
+        <!-- QR Panel -->
+        <div id="qr-panel" class="hidden">
+            <div class="w-full max-w-[200px] mx-auto aspect-square bg-slate-50 rounded-2xl border-4 border-slate-100 relative overflow-hidden mb-4">
+                <div id="qr-reader" class="w-full h-full [&>video]:object-cover [&>video]:w-full [&>video]:h-full flex items-center justify-center"></div>
+                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+                    <div class="w-2/3 h-2/3 border-2 border-[#00B0FF]/50 rounded-xl"></div>
+                </div>
             </div>
+            <p class="text-xs text-slate-400 mb-4">Pointez la caméra vers le QR code du professeur.</p>
         </div>
-        <div class="flex items-center gap-4 w-full mb-6">
-            <hr class="flex-1 border-slate-200">
-            <span class="text-xs font-black text-[#00B0FF] uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded-md">AND</span>
-            <hr class="flex-1 border-slate-200">
+
+        <!-- PIN Panel -->
+        <div id="pin-panel" class="hidden">
+            <p class="text-sm text-slate-500 mb-3">Saisissez le code PIN affiché par le professeur.</p>
+            <input type="number" pattern="\d*" id="pin-input" maxlength="4" placeholder="----"
+                   class="w-full text-center text-3xl font-bold tracking-[0.5em] text-slate-900 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:border-[#00B0FF] focus:ring-2 focus:ring-[#00B0FF]/20 outline-none transition-all mb-4 shadow-inner">
         </div>
-        <input type="number" pattern="\d*" id="pin-input" maxlength="4" placeholder="----" class="w-full text-center text-3xl font-bold tracking-[0.5em] text-slate-900 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:border-[#00B0FF] focus:ring-2 focus:ring-[#00B0FF]/20 outline-none transition-all mb-4 shadow-inner">
-        <button id="btn-validate" onclick="submitFinalCheckin()" class="w-full py-4 bg-[#00B0FF] hover:bg-blue-600 shadow-lg shadow-blue-500/20 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95">
-            Validate Presence
+
+        <button id="btn-validate" onclick="submitFinalCheckin()" disabled
+                class="w-full py-4 bg-[#00B0FF] hover:bg-blue-600 shadow-lg shadow-blue-500/20 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
+            Valider ma présence
         </button>
     </div>
 </div>

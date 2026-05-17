@@ -49,7 +49,7 @@ public class SessionServiceImpl implements SessionService {
 
         session.setStatus(SessionStatus.IN_PROGRESS);
         session.setActualStartTime(LocalDateTime.now());
-        
+
         Session saved = sessionRepository.save(session);
         return sessionMapper.toDto(saved);
     }
@@ -60,13 +60,16 @@ public class SessionServiceImpl implements SessionService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
 
-        // Idempotency: if already COMPLETED or VALIDATED, return as-is — don't crash
-        if (session.getStatus() == SessionStatus.COMPLETED || session.getIsValidated() != null && session.getIsValidated()) {
+        // Idempotency: if already COMPLETED or VALIDATED, return as-is — never throw on double-call
+        if (session.getStatus() == SessionStatus.COMPLETED
+                || (session.getIsValidated() != null && session.getIsValidated())) {
             return sessionMapper.toDto(session);
         }
 
+        // Guard: only IN_PROGRESS sessions can be ended
         if (session.getStatus() != SessionStatus.IN_PROGRESS) {
-            throw new IllegalStateException("Session must be IN_PROGRESS to finalize. Current status: " + session.getStatus());
+            // Treat SCHEDULED as a no-op instead of crashing (edge-case: teacher clicks End before Start)
+            return sessionMapper.toDto(session);
         }
 
         session.setStatus(SessionStatus.COMPLETED);
@@ -91,15 +94,15 @@ public class SessionServiceImpl implements SessionService {
                             .pinValidated(false)
                             .build();
                     attendanceRecordRepository.save(autoAbsent);
-                    
+
                     // Notify student of absence
                     try {
                         String courseName = "this course";
                         if (session.getCourse() != null && session.getCourse().getCourseName() != null) {
                             courseName = session.getCourse().getCourseName();
                         }
-                        
-                        notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT", 
+
+                        notificationService.sendNotification(student.getUserId(), "ABSENCE_ALERT",
                                 "You were marked ABSENT for " + courseName + " on " + session.getDate());
                     } catch (Exception e) {
                         // Senior Dev: Non-critical notification failure should not rollback the critical session end transaction
@@ -131,15 +134,15 @@ public class SessionServiceImpl implements SessionService {
 
         session.setIsValidated(true);
         Session saved = sessionRepository.save(session);
-        
+
         // Notify Pedagogic Assistants of that specialty
         if (saved.getCourse() != null && saved.getCourse().getSpeciality() != null) {
             String courseName = saved.getCourse().getCourseName();
             String teacherName = saved.getTeacher() != null ? saved.getTeacher().getFirstName() + " " + saved.getTeacher().getLastName() : "A teacher";
-            notificationService.notifyRoleBySpeciality("PEDAGOG", 
-                saved.getCourse().getSpeciality().getSpecialityId(),
-                "ATTENDANCE_SUBMITTED",
-                teacherName + " has finalized the attendance for " + courseName + ".");
+            notificationService.notifyRoleBySpeciality("PEDAGOG",
+                    saved.getCourse().getSpeciality().getSpecialityId(),
+                    "ATTENDANCE_SUBMITTED",
+                    teacherName + " has finalized the attendance for " + courseName + ".");
         }
 
         return sessionMapper.toDto(saved);
@@ -152,7 +155,7 @@ public class SessionServiceImpl implements SessionService {
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
 
         session.setStatus(SessionStatus.CANCELLED);
-        
+
         Session saved = sessionRepository.save(session);
         return sessionMapper.toDto(saved);
     }

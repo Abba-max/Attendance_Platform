@@ -431,38 +431,85 @@ function searchCourses() {
 }
 
 /**
- * --- 4. MULTI-STEP CHECK-IN (QR -> PIN) ---
+ * --- 4. CHECK-IN : QR OU PIN (exclusif) ---
+ * L'étudiant choisit un seul moyen : scanner le QR ou saisir le PIN.
  */
+let checkinMode = null; // 'qr' | 'pin'
+
 function openScanner(sessionId) {
     currentCheckinContext.sessionId = sessionId;
     currentCheckinContext.qrCode = null;
     currentCheckinContext.pin = null;
-    
-    // Reset Modal State
+    checkinMode = null;
+
     document.getElementById('scanner-overlay').classList.remove('hidden');
     document.getElementById('pin-input').value = '';
-    
+
+    // Reset button state
     const btn = document.getElementById('btn-validate');
     if (btn) {
-        btn.disabled = false;
+        btn.disabled = true; // disabled until a mode is chosen and filled
         btn.innerHTML = 'Validate Presence';
         btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
     }
 
-    try {
-        html5QrScanner = new Html5Qrcode("qr-reader");
-        html5QrScanner.start(
-            { facingMode: "environment" }, 
-            { fps: 10, qrbox: { width: 250, height: 250 } },
-            onScanSuccess
-        ).catch(err => {
-            console.warn("Camera fallback or unsupported.", err);
-            html5QrScanner = null;
-        });
-    } catch (err) {
-        console.warn("Failed to init scanner", err);
+    // Show mode selector, hide both panels initially
+    _showCheckinModeSelector();
+}
+
+function _showCheckinModeSelector() {
+    // Mode selection buttons should exist in the HTML (see below)
+    const modePanel = document.getElementById('checkin-mode-selector');
+    const qrPanel   = document.getElementById('qr-panel');
+    const pinPanel  = document.getElementById('pin-panel');
+    if (modePanel) modePanel.classList.remove('hidden');
+    if (qrPanel)   qrPanel.classList.add('hidden');
+    if (pinPanel)  pinPanel.classList.add('hidden');
+
+    // Stop any running scanner
+    if (html5QrScanner) {
+        html5QrScanner.stop().catch(() => {});
+        html5QrScanner = null;
     }
 }
+
+window.selectCheckinMode = function(mode) {
+    checkinMode = mode;
+    const modePanel = document.getElementById('checkin-mode-selector');
+    const qrPanel   = document.getElementById('qr-panel');
+    const pinPanel  = document.getElementById('pin-panel');
+    if (modePanel) modePanel.classList.add('hidden');
+
+    if (mode === 'qr') {
+        if (qrPanel) qrPanel.classList.remove('hidden');
+        if (pinPanel) pinPanel.classList.add('hidden');
+        // Start camera
+        try {
+            html5QrScanner = new Html5Qrcode("qr-reader");
+            html5QrScanner.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess
+            ).catch(err => {
+                console.warn("Camera not available.", err);
+                html5QrScanner = null;
+            });
+        } catch (err) {
+            console.warn("Failed to init scanner", err);
+        }
+    } else {
+        if (pinPanel) pinPanel.classList.remove('hidden');
+        if (qrPanel)  qrPanel.classList.add('hidden');
+        // Enable validate button immediately when user types
+        const pinInput = document.getElementById('pin-input');
+        const btn = document.getElementById('btn-validate');
+        if (pinInput && btn) {
+            pinInput.oninput = () => {
+                btn.disabled = pinInput.value.trim().length < 4;
+            };
+        }
+    }
+};
 
 function onScanSuccess(decodedText) {
     if (navigator.vibrate) navigator.vibrate(200);
@@ -475,30 +522,33 @@ function onScanSuccess(decodedText) {
 
     const btn = document.getElementById('btn-validate');
     if (btn) {
-        btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> QR Scanned. Now enter PIN...';
+        btn.disabled = false;
+        btn.innerHTML = '<svg class="w-4 h-4 inline-block mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg> QR Scanné — Valider';
         btn.classList.replace('bg-[#00B0FF]', 'bg-emerald-500');
     }
 }
 
 async function submitFinalCheckin() {
-    const pin = document.getElementById('pin-input').value.trim();
-
-    // Enforce Logical AND — BOTH are required
-    if (!currentCheckinContext.qrCode) {
-        alert('Please scan the instructor\'s QR code first.');
-        return;
-    }
-    if (!pin || pin.length < 4) {
-        alert('Please enter the 4-digit PIN provided by the instructor.');
-        return;
-    }
-    
-    if (pin && pin.length === 4) {
-        currentCheckinContext.pin = pin;
-    }
-
     const btn = document.getElementById('btn-validate');
-    if (btn) { btn.disabled = true; btn.textContent = 'Verifying...'; }
+
+    if (checkinMode === 'qr') {
+        if (!currentCheckinContext.qrCode) {
+            alert('Veuillez scanner le QR code affiché par le professeur.');
+            return;
+        }
+    } else if (checkinMode === 'pin') {
+        const pin = document.getElementById('pin-input').value.trim();
+        if (!pin || pin.length < 4) {
+            alert('Veuillez saisir le code PIN à 4 chiffres fourni par le professeur.');
+            return;
+        }
+        currentCheckinContext.pin = pin;
+    } else {
+        alert('Veuillez choisir un mode de pointage (QR ou PIN).');
+        return;
+    }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Vérification...'; }
 
     try {
         const response = await fetch('/api/student/attendance/check-in', {
@@ -506,8 +556,8 @@ async function submitFinalCheckin() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 sessionId: currentCheckinContext.sessionId,
-                qrData:   currentCheckinContext.qrCode,
-                pinCode:  currentCheckinContext.pin
+                qrData:   currentCheckinContext.qrCode || null,
+                pinCode:  currentCheckinContext.pin    || null
             })
         });
 
@@ -519,23 +569,19 @@ async function submitFinalCheckin() {
             loadDashboardStats();
             loadCourseStats();
         } else {
-            alert(data.error || 'Invalid QR code or PIN. Please try again.');
-            document.getElementById('pin-input').value = '';
-            
-            // Re-render button state if failure
-            if (btn) { 
-                btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]'); 
-                btn.disabled = false; 
-                btn.textContent = 'Validate Presence'; 
-            }
-            // Reset QR so they can scan again if they want
+            alert(data.error || 'Code invalide. Veuillez réessayer.');
+            // Reset for retry
             currentCheckinContext.qrCode = null;
-            if (html5QrScanner && html5QrScanner.getState() !== 2) { // not scanning
-               // they may need to reopen or type pin.
+            currentCheckinContext.pin = null;
+            _showCheckinModeSelector();
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.replace('bg-emerald-500', 'bg-[#00B0FF]');
+                btn.textContent = 'Validate Presence';
             }
         }
     } catch (err) {
-        alert('Network error. Please try again.');
+        alert('Erreur réseau. Veuillez réessayer.');
         if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
     }
 }
@@ -574,8 +620,8 @@ async function populateAbsentSessions() {
         const response = await fetch('/api/student/attendance/history?status=ABSENT');
         const data = await response.json();
         const sessions = data.content || [];
-        
-        select.innerHTML = sessions.length > 0 
+
+        select.innerHTML = sessions.length > 0
             ? sessions.map(s => `<option value="${s.attendanceId}">${s.courseName} (${s.date})</option>`).join('')
             : '<option disabled selected>No recordable absences found</option>';
     } catch (err) {
@@ -586,7 +632,7 @@ async function populateAbsentSessions() {
 function previewFile(input) {
     const preview = document.getElementById('camera-preview');
     const img = document.getElementById('preview-img');
-    
+
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -611,7 +657,7 @@ document.getElementById('justification-form').addEventListener('submit', async (
         });
 
         if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
-        
+
         alert("Justification successfully sent for review.");
         toggleJustifyModal();
         loadJustifications();
@@ -625,8 +671,8 @@ async function loadJustifications() {
     try {
         const response = await fetch('/api/student/justifications');
         const justifications = await response.json();
-        
-        list.innerHTML = justifications.length > 0 
+
+        list.innerHTML = justifications.length > 0
             ? justifications.map(j => `
                 <div class="p-4 bg-white border border-slate-100 rounded-2xl flex items-center justify-between shadow-sm hover:shadow-md transition-all group">
                     <div>
