@@ -80,133 +80,163 @@ const MigrationModule = (() => {
         let yearAlert = '';
         if (!state.nextYearReadyForMigration) {
             yearAlert = `
-            <div class="bg-red-50 border border-red-300 rounded-xl px-4 py-3 text-sm text-red-700 flex gap-2">
-                <span class="text-lg">🚫</span>
+            <div class="bg-red-50 border border-red-300 rounded-2xl p-4 text-sm text-red-700 flex gap-3">
+                <span class="text-xl">🚫</span>
                 <div>
-                    <p class="font-semibold">Migrations de passage bloquées</p>
-                    <p>L'année <strong>${state.nextYearName}</strong> est déjà <strong>ACTIVE</strong>.
+                    <p class="font-bold">Migrations de passage bloquées</p>
+                    <p class="mt-1">L'année <strong>${state.nextYearName}</strong> est déjà <strong>ACTIVE</strong>.
                     Les migrations de Passage de Niveau et Tronc Commun ne peuvent cibler qu'une année
                     <strong>PLANIFIÉE (N+1)</strong>. Contactez l'administrateur.</p>
                 </div>
             </div>`;
         } else if (!state.nextYearExists) {
             yearAlert = `
-            <div class="bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 text-sm text-amber-700 flex gap-2">
-                <span class="text-lg">ℹ️</span>
+            <div class="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-sm text-amber-700 flex gap-3">
+                <span class="text-xl">ℹ️</span>
                 <div>
-                    <p class="font-semibold">Année N+1 non encore créée</p>
-                    <p>L'année <strong>${state.nextYearName}</strong> sera automatiquement créée
-                    avec le statut <strong>PLANIFIÉE</strong> lors de la première migration de passage.</p>
+                    <p class="font-bold">Nouvelle année académique requise</p>
+                    <p class="mt-1">L'année cible <strong>${state.nextYearName}</strong> sera automatiquement initialisée
+                    avec le statut <strong>PLANIFIÉE</strong> lors de la validation finale de votre première migration.</p>
                 </div>
             </div>`;
         }
 
         el.innerHTML = `
-        <div class="bg-white rounded-2xl shadow-md p-6 space-y-6">
+        <!-- Main Two-Column Layout Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- Left Column: Parameters Selection (lg:col-span-7) -->
+            <div class="lg:col-span-7 space-y-6">
+                <!-- En-tête & General Settings Card -->
+                <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-50 pb-4">
+                        <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                            <span class="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl text-xl">🏫</span>
+                            Migration des Étudiants
+                        </h2>
+                        <!-- Badges -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-emerald-100/50">
+                                Active : <strong>${state.activeYearName}</strong>
+                            </span>
+                            <span class="bg-indigo-50 text-indigo-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-indigo-100/50">
+                                Cible N+1 : <strong>${state.nextYearName}</strong>
+                                ${!state.nextYearExists ? ' (auto)' : state.nextYearReadyForMigration ? ' ✅' : ' 🚫 active'}
+                            </span>
+                        </div>
+                    </div>
 
-            <!-- En-tête -->
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                    🏫 Migration des Étudiants
-                </h2>
-                <!-- Badges années N et N+1 -->
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="bg-green-100 text-green-700 text-xs font-semibold px-3 py-1 rounded-full">
-                        📅 Année en cours : <strong>${state.activeYearName}</strong>
-                    </span>
-                    <span class="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
-                        📅 Année N+1 : <strong>${state.nextYearName}</strong>
-                        ${!state.nextYearExists ? ' ✨ auto' : state.nextYearReadyForMigration ? ' ✅' : ' 🚫 ACTIVE'}
-                    </span>
-                    ${state.hasTroncCommun
-                        ? '<span class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full">🎓 Tronc Commun</span>'
-                        : ''}
-                </div>
-            </div>
+                    ${yearAlert}
 
-            ${yearAlert}
-
-            <!-- Étape 1 : Type de migration -->
-            <div>
-                <p class="text-sm font-semibold text-gray-600 mb-3">
-                    Étape 1 — Type de migration
-                </p>
-                <div class="grid grid-cols-1 sm:grid-cols-${state.hasTroncCommun ? 3 : 2} gap-3">
-                    ${renderTypeButton('LEVEL_PROMOTION')}
-                    ${renderTypeButton('SPECIALITY_CHANGE')}
-                    ${state.hasTroncCommun ? renderTypeButton('TRONC_COMMUN') : ''}
-                </div>
-                <!-- Indicateur d'année cible pour le type actif -->
-                <div class="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                    <span>Année académique ciblée :</span>
-                    <span id="active-type-year-badge" class="font-semibold px-2 py-0.5 rounded-full
-                        ${getYearBadgeClass(state.migrationType)}">
-                        ${getTargetYearLabel(state.migrationType)}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Étape 2 : Classe source -->
-            <div>
-                <p class="text-sm font-semibold text-gray-600 mb-2">Étape 2 — Classe source</p>
-                <select id="migration-source-select"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-400">
-                    <option value="">— Choisir une classe source —</option>
-                </select>
-            </div>
-
-            <!-- Étape 3 : Étudiants -->
-            <div id="migration-students-section" class="hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-600">Étape 3 — Sélectionner les étudiants</p>
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
-                            <input type="checkbox" id="select-all-students" class="rounded">
-                            Tout sélectionner
+                    <!-- Étape 1 : Type de migration -->
+                    <div class="space-y-3">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
+                            Étape 1 — Type de migration
                         </label>
-                        <span id="selected-count"
-                            class="bg-blue-100 text-blue-700 text-xs font-semibold px-2 py-0.5 rounded-full">
-                            0 sélectionné(s)
-                        </span>
+                        <div class="grid grid-cols-1 sm:grid-cols-${state.hasTroncCommun ? 3 : 2} gap-3">
+                            ${renderTypeButton('LEVEL_PROMOTION')}
+                            ${renderTypeButton('SPECIALITY_CHANGE')}
+                            ${state.hasTroncCommun ? renderTypeButton('TRONC_COMMUN') : ''}
+                        </div>
+                        <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+                            <span>Année cible pour ce type :</span>
+                            <span id="active-type-year-badge" class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase
+                                ${getYearBadgeClass(state.migrationType)}">
+                                ${getTargetYearLabel(state.migrationType)}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Étape 2 : Classe source -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
+                            Étape 2 — Classe source
+                        </label>
+                        <div class="relative">
+                            <select id="migration-source-select"
+                                class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700
+                                       focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer">
+                                <option value="">— Choisir une classe source —</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
+                                🔍
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div id="students-list"
-                    class="border border-gray-200 rounded-lg divide-y max-h-64 overflow-y-auto">
+
+                <!-- Étape 4 : Classe cible -->
+                <div id="migration-target-section" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-50 pb-3">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider">
+                            Étape 4 — Classe cible
+                        </label>
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
+                            Cible : ${getTargetYearLabel(state.migrationType)}
+                        </span>
+                    </div>
+                    <div id="target-classrooms-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
+
+                <!-- Étape 5 : Confirmation -->
+                <div id="migration-confirm-section" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+                    <div class="space-y-2">
+                        <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
+                            Étape 5 — Motif & Confirmation
+                        </label>
+                        <textarea id="migration-reason" rows="2"
+                            placeholder="Ex. : Résultats du concours de passage, orientation académique..."
+                            class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 resize-none
+                                   focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all"></textarea>
+                    </div>
+                    <div id="migration-summary" class="bg-indigo-50/50 border border-indigo-100/80 rounded-2xl p-4 text-xs font-medium text-indigo-900 space-y-1"></div>
+                    <button id="btn-confirm-migration"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-4 rounded-2xl
+                               shadow-md shadow-indigo-100 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-0">
+                        <span id="btn-migrate-icon" class="text-lg">🚀</span>
+                        <span id="btn-migrate-label">Lancer la migration</span>
+                    </button>
+                </div>
+
+                <!-- Résultats -->
+                <div id="migration-results" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6"></div>
             </div>
 
-            <!-- Étape 4 : Classe cible -->
-            <div id="migration-target-section" class="hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-semibold text-gray-600">Étape 4 — Classe cible</p>
-                    <span class="text-xs text-gray-400 italic">
-                        Vers l'année : <strong>${getTargetYearLabel(state.migrationType)}</strong>
-                    </span>
-                </div>
-                <div id="target-classrooms-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
-            </div>
+            <!-- Right Column: Student Listing (lg:col-span-5) -->
+            <div class="lg:col-span-5">
+                <!-- Card Container for Student List -->
+                <div id="migration-students-section" class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4 min-h-[400px] flex flex-col">
+                    
+                    <!-- Header with Checkbox & Count -->
+                    <div class="flex items-center justify-between border-b border-slate-50 pb-4">
+                        <div>
+                            <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
+                                Étape 3 — Sélectionner les étudiants
+                            </label>
+                            <span id="selected-count"
+                                class="inline-block mt-1 bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
+                                0 sélectionné(s)
+                            </span>
+                        </div>
+                        <label id="select-all-wrapper" class="hidden flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 transition-all select-none">
+                            <input type="checkbox" id="select-all-students" class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                            <span>Tout</span>
+                        </label>
+                    </div>
 
-            <!-- Étape 5 : Confirmation -->
-            <div id="migration-confirm-section" class="hidden space-y-3">
-                <div>
-                    <label class="text-sm font-semibold text-gray-600 block mb-1">Motif (optionnel)</label>
-                    <textarea id="migration-reason" rows="2"
-                        placeholder="Ex. : Résultats du concours de passage, orientation académique..."
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none
-                               focus:outline-none focus:ring-2 focus:ring-blue-400"></textarea>
+                    <!-- Scrollable List -->
+                    <div id="students-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[550px] pr-1">
+                        <!-- Placeholder State when no classroom is selected -->
+                        <div id="students-placeholder" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 mt-12 text-slate-400">
+                            <div class="text-4xl">👥</div>
+                            <div>
+                                <p class="font-bold text-slate-700 text-sm">Aucune classe sélectionnée</p>
+                                <p class="text-slate-400 text-xs mt-1">Choisissez une classe source dans l'Étape 2 pour charger sa liste d'étudiants.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="migration-summary" class="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800"></div>
-                <button id="btn-confirm-migration"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl
-                           transition flex items-center justify-center gap-2 disabled:opacity-50">
-                    <span id="btn-migrate-icon">🚀</span>
-                    <span id="btn-migrate-label">Lancer la migration</span>
-                </button>
             </div>
-
-            <!-- Résultats -->
-            <div id="migration-results" class="hidden"></div>
         </div>`;
     }
 
@@ -235,25 +265,24 @@ const MigrationModule = (() => {
         const disabled = needsNextYear && !state.nextYearReadyForMigration && state.nextYearExists;
 
         const colorMap = {
-            blue:    { active: 'bg-blue-600 text-white border-blue-600',
-                       base:   'bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:bg-blue-50' },
-            orange:  { active: 'bg-orange-500 text-white border-orange-500',
-                       base:   'bg-white text-gray-700 border-gray-200 hover:border-orange-400 hover:bg-orange-50' },
-            emerald: { active: 'bg-emerald-600 text-white border-emerald-600',
-                       base:   'bg-white text-gray-700 border-gray-200 hover:border-emerald-400 hover:bg-emerald-50' },
+            blue:    { active: 'border-indigo-600 bg-indigo-50/70 text-indigo-700 shadow-sm shadow-indigo-100/50',
+                       base:   'border-slate-100 bg-slate-50/30 text-slate-600 hover:border-indigo-200 hover:bg-indigo-50/20' },
+            orange:  { active: 'border-orange-500 bg-orange-50/70 text-orange-700 shadow-sm shadow-orange-100/50',
+                       base:   'border-slate-100 bg-slate-50/30 text-slate-600 hover:border-orange-200 hover:bg-orange-50/20' },
+            emerald: { active: 'border-emerald-600 bg-emerald-50/70 text-emerald-700 shadow-sm shadow-emerald-100/50',
+                       base:   'border-slate-100 bg-slate-50/30 text-slate-600 hover:border-emerald-200 hover:bg-emerald-50/20' },
         };
         const cls = active ? colorMap[cfg.color].active : colorMap[cfg.color].base;
 
         return `
         <button data-migration-type="${type}"
-            class="migration-type-btn border-2 rounded-xl px-3 py-3 text-sm font-semibold
-                   transition-all flex flex-col items-center gap-1 ${cls}
-                   ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}"
+            class="migration-type-btn border rounded-2xl px-4 py-4 text-sm font-bold
+                   transition-all flex flex-col items-center gap-1.5 ${cls}
+                   ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-95'}"
             ${disabled ? 'disabled title="N+1 déjà active — migration impossible"' : ''}>
             <span class="text-2xl">${cfg.icon}</span>
-            <span>${cfg.label}</span>
-            <!-- Badge année cible -->
-            <span class="text-xs mt-1 font-normal opacity-80">→ ${yearLabel}</span>
+            <span class="tracking-tight text-center leading-tight">${cfg.label}</span>
+            <span class="text-[10px] font-black uppercase px-2 py-0.5 bg-white/80 rounded-md border border-slate-100 mt-1">Cible : ${yearLabel}</span>
         </button>`;
     }
 
@@ -294,7 +323,23 @@ const MigrationModule = (() => {
                 state.targetClassroomId = null;
                 state.selectedStudents.clear();
                 if (state.sourceClassroomId) await loadStudentsAndTargets();
-                else { hide('migration-students-section'); hide('migration-target-section'); hide('migration-confirm-section'); }
+                else {
+                    const list = document.getElementById('students-list');
+                    if (list) {
+                        list.innerHTML = `
+                        <div id="students-placeholder" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 mt-12 text-slate-400">
+                            <div class="text-4xl">👥</div>
+                            <div>
+                                <p class="font-bold text-slate-700 text-sm">Aucune classe sélectionnée</p>
+                                <p class="text-slate-400 text-xs mt-1">Choisissez une classe source dans l'Étape 2 pour charger sa liste d'étudiants.</p>
+                            </div>
+                        </div>`;
+                    }
+                    hide('select-all-wrapper');
+                    hide('migration-target-section');
+                    hide('migration-confirm-section');
+                    updateSelectedCount();
+                }
             }
             if (e.target.matches('.student-checkbox')) {
                 const id = parseInt(e.target.dataset.studentId);
@@ -326,7 +371,6 @@ const MigrationModule = (() => {
     }
 
     async function loadStudentsAndTargets() {
-        show('migration-students-section');
         show('migration-target-section');
         hide('migration-confirm-section');
 
@@ -334,6 +378,12 @@ const MigrationModule = (() => {
             apiFetch(`/api/migration/classroom/${state.sourceClassroomId}/students`),
             apiFetch(`/api/migration/available-targets?type=${state.migrationType}&sourceClassroomId=${state.sourceClassroomId}`),
         ]);
+
+        if (students && students.length > 0) {
+            show('select-all-wrapper');
+        } else {
+            hide('select-all-wrapper');
+        }
 
         renderStudentsList(students);
         renderTargetClassrooms(targets.targetClassrooms || []);
@@ -343,16 +393,21 @@ const MigrationModule = (() => {
         const list = document.getElementById('students-list');
         if (!list) return;
         if (!students?.length) {
-            list.innerHTML = '<p class="text-center text-gray-400 py-6 text-sm">Aucun étudiant dans cette classe.</p>';
+            list.innerHTML = `
+            <div class="flex flex-col items-center justify-center text-center p-6 space-y-2 mt-12 text-slate-400">
+                <span class="text-3xl">⚠️</span>
+                <p class="text-sm font-bold">Aucun étudiant</p>
+                <p class="text-xs">Cette classe ne contient aucun étudiant actif.</p>
+            </div>`;
             return;
         }
         list.innerHTML = students.map(s => `
-        <label class="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer transition">
-            <input type="checkbox" class="student-checkbox rounded border-gray-300 text-blue-600"
+        <label class="flex items-center gap-3 px-4 py-3 bg-slate-50/50 hover:bg-slate-50 border border-slate-100 hover:border-slate-200 rounded-2xl cursor-pointer transition-all select-none">
+            <input type="checkbox" class="student-checkbox w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
                 data-student-id="${s.studentId}">
             <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate">${s.fullName}</p>
-                <p class="text-xs text-gray-500">${s.matricule || ''} ${s.email ? '· ' + s.email : ''}</p>
+                <p class="text-sm font-bold text-slate-800 truncate">${s.fullName}</p>
+                <p class="text-xs font-semibold text-slate-400 truncate">${s.matricule || 'Sans matricule'} ${s.email ? '· ' + s.email : ''}</p>
             </div>
         </label>`).join('');
     }
@@ -361,7 +416,7 @@ const MigrationModule = (() => {
         const grid = document.getElementById('target-classrooms-grid');
         if (!grid) return;
         if (!targets?.length) {
-            grid.innerHTML = '<p class="col-span-full text-center text-gray-400 py-4 text-sm">Aucune classe cible disponible.</p>';
+            grid.innerHTML = '<p class="col-span-full text-center text-slate-400 py-6 text-sm font-semibold">Aucune classe cible disponible.</p>';
             return;
         }
         grid.innerHTML = targets.map(c => {
@@ -369,15 +424,24 @@ const MigrationModule = (() => {
             const isSelected = state.targetClassroomId === c.classId;
             return `
             <button data-target-classroom="${c.classId}" data-target-name="${c.name}"
-                class="target-classroom-card border-2 rounded-xl p-3 text-left transition-all
-                    ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}
-                    ${isFull ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}"
+                class="target-classroom-card border p-4 rounded-2xl text-left transition-all select-none
+                    ${isSelected 
+                        ? 'border-indigo-600 bg-indigo-50/50 shadow-sm' 
+                        : 'border-slate-100 bg-slate-50/30 hover:border-indigo-300 hover:bg-indigo-50/10'}
+                    ${isFull ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98]'}"
                 ${isFull ? 'disabled' : ''}>
-                <p class="font-semibold text-sm text-gray-800">${c.name}</p>
-                <p class="text-xs text-gray-500 mt-0.5">Niv. ${c.level} — ${c.specialityName}</p>
-                <p class="text-xs mt-1 font-medium ${isFull ? 'text-red-500' : 'text-emerald-600'}">
-                    ${isFull ? '🔴 Complet' : `🟢 ${c.availableSlots} place(s)`}
-                </p>
+                <div class="flex items-center justify-between">
+                    <p class="font-bold text-sm text-slate-800 truncate">${c.name}</p>
+                    <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase">Niv. ${c.level}</span>
+                </div>
+                <p class="text-xs font-semibold text-slate-400 mt-1 truncate">${c.specialityName}</p>
+                <div class="mt-2.5 flex items-center justify-between border-t border-slate-100/50 pt-2">
+                    <span class="text-[10px] font-bold text-slate-400">Places :</span>
+                    <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md
+                        ${isFull ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}">
+                        ${isFull ? '🔴 Complet' : `🟢 ${c.availableSlots} libre(s)`}
+                    </span>
+                </div>
             </button>`;
         }).join('');
     }
@@ -386,9 +450,11 @@ const MigrationModule = (() => {
         state.targetClassroomId = id;
         document.querySelectorAll('.target-classroom-card').forEach(c => {
             const me = parseInt(c.dataset.targetClassroom) === id;
-            c.classList.toggle('border-blue-500', me);
-            c.classList.toggle('bg-blue-50', me);
-            c.classList.toggle('border-gray-200', !me);
+            c.classList.toggle('border-indigo-600', me);
+            c.classList.toggle('bg-indigo-50/50', me);
+            c.classList.toggle('shadow-sm', me);
+            c.classList.toggle('border-slate-100', !me);
+            c.classList.toggle('bg-slate-50/30', !me);
         });
         updateConfirmSection();
     }
@@ -411,17 +477,17 @@ const MigrationModule = (() => {
 
         summary.innerHTML = `
         <div class="space-y-1.5">
-            <p><span class="font-semibold">Type :</span> ${cfg.icon} ${cfg.label}</p>
-            <p><span class="font-semibold">Année cible :</span>
-                <span class="bg-purple-100 text-purple-700 font-semibold px-2 py-0.5 rounded-full text-xs">
+            <p><span class="font-bold">Type :</span> ${cfg.icon} ${cfg.label}</p>
+            <p><span class="font-bold">Année cible :</span>
+                <span class="bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full text-xs">
                     📅 ${yearLabel}
                 </span>
             </p>
-            <p><span class="font-semibold">De :</span> ${sourceName}</p>
-            <p><span class="font-semibold">Vers :</span> ${targetName}</p>
-            <p><span class="font-semibold">Étudiants :</span>
-                <span class="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs font-bold">
-                    ${state.selectedStudents.size}
+            <p><span class="font-bold">De :</span> ${sourceName}</p>
+            <p><span class="font-bold">Vers :</span> ${targetName}</p>
+            <p><span class="font-bold">Étudiants :</span>
+                <span class="bg-indigo-200 text-indigo-800 px-2.5 py-0.5 rounded-full text-xs font-bold">
+                    ${state.selectedStudents.size} sélectionné(s)
                 </span>
             </p>
         </div>`;
@@ -476,23 +542,23 @@ const MigrationModule = (() => {
         const ok  = results.filter(r => r.success);
         const err = results.filter(r => !r.success);
         el.innerHTML = `
-        <div class="border border-gray-200 rounded-xl overflow-hidden">
-            <div class="flex items-center justify-between bg-gray-50 px-4 py-3 border-b">
-                <h3 class="font-semibold text-gray-700 text-sm">Résultats</h3>
-                <div class="flex gap-2">
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">✅ ${ok.length}</span>
-                    ${err.length ? `<span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">❌ ${err.length}</span>` : ''}
+        <div class="border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
+            <div class="flex items-center justify-between bg-slate-50 px-4 py-3.5 border-b border-slate-100">
+                <h3 class="font-bold text-slate-700 text-sm">Résultats de la Migration</h3>
+                <div class="flex gap-1.5">
+                    <span class="bg-emerald-50 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg">✅ Réussis : ${ok.length}</span>
+                    ${err.length ? `<span class="bg-red-50 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-lg">❌ Échecs : ${err.length}</span>` : ''}
                 </div>
             </div>
-            <div class="divide-y max-h-60 overflow-y-auto">
+            <div class="divide-y divide-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
                 ${results.map(r => `
-                <div class="flex items-start gap-3 px-4 py-2.5 ${r.success ? 'bg-white' : 'bg-red-50'}">
-                    <span>${r.success ? '✅' : '❌'}</span>
-                    <div>
-                        <p class="text-sm font-medium text-gray-800">${r.studentName || 'ID: ' + r.studentId}</p>
+                <div class="flex items-start gap-3 px-4 py-3 ${r.success ? 'bg-white' : 'bg-red-50/30'}">
+                    <span class="text-base">${r.success ? '✅' : '❌'}</span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-800 truncate">${r.studentName || 'Étudiant ID: ' + r.studentId}</p>
                         ${r.success
-                            ? `<p class="text-xs text-gray-500">${r.fromClassroom} → ${r.toClassroom} · ${r.message}</p>`
-                            : `<p class="text-xs text-red-500">${r.message}</p>`}
+                            ? `<p class="text-xs font-semibold text-slate-500 mt-0.5">${r.fromClassroom} ➔ ${r.toClassroom} · ${r.message}</p>`
+                            : `<p class="text-xs font-bold text-red-500 mt-0.5">${r.message}</p>`}
                     </div>
                 </div>`).join('')}
             </div>

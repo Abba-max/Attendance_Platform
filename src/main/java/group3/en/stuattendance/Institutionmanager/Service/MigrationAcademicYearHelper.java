@@ -1,7 +1,5 @@
 package group3.en.stuattendance.Institutionmanager.Service;
 
-
-
 import group3.en.stuattendance.Institutionmanager.DTO.MigrationAcademicYearContextdto;
 import group3.en.stuattendance.Institutionmanager.DTO.MigrationTypedto;
 import group3.en.stuattendance.Institutionmanager.Model.AcademicYear;
@@ -18,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
  * correcte à utiliser pour chaque type de migration.
  *
  * Règles métier :
- *  ┌────────────────────────────────────────────────────────────┐
- *  │  LEVEL_PROMOTION   → Année N+1  (statut PLANNED)           │
- *  │  TRONC_COMMUN      → Année N+1  (statut PLANNED)           │
- *  │  SPECIALITY_CHANGE → Année N    (statut ACTIVE)            │
- *  └────────────────────────────────────────────────────────────┘
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ LEVEL_PROMOTION → Année N+1 (statut PLANNED) │
+ * │ TRONC_COMMUN → Année N+1 (statut PLANNED) │
+ * │ SPECIALITY_CHANGE → Année N (statut ACTIVE) │
+ * └────────────────────────────────────────────────────────────┘
  *
  * L'année N+1 ne doit JAMAIS être ACTIVE lors des migrations.
  * Si elle n'existe pas encore → elle est créée automatiquement (PLANNED).
@@ -50,9 +48,9 @@ public class MigrationAcademicYearHelper {
      * @throws IllegalStateException si N+1 existe mais a déjà été activée
      */
     @Transactional
-    public AcademicYear resolveForMigration(MigrationTypeDto type) {
+    public AcademicYear resolveForMigration(MigrationTypedto type) {
 
-        if (type == MigrationTypeDto.SPECIALITY_CHANGE) {
+        if (type == MigrationTypedto.SPECIALITY_CHANGE) {
             // Changement de spécialité → même année active
             return getActiveYear();
         }
@@ -69,7 +67,7 @@ public class MigrationAcademicYearHelper {
      * Retourne le contexte complet des années académiques pour l'interface
      * de migration du pédagogue.
      */
-    public MigrationAcademicYearContextDto buildContext() {
+    public MigrationAcademicYearContextdto buildContext() {
 
         AcademicYear active = getActiveYear();
         // Cherche N+1 sans la créer (juste pour l'affichage)
@@ -77,7 +75,7 @@ public class MigrationAcademicYearHelper {
 
         String expectedNextName = generateNextYearName(active.getAcademicYear());
 
-        MigrationAcademicYearContextDto ctx = new MigrationAcademicYearContextDto();
+        MigrationAcademicYearContextdto ctx = new MigrationAcademicYearContextdto();
 
         // Année N
         ctx.setActiveYearId(active.getId());
@@ -170,7 +168,8 @@ public class MigrationAcademicYearHelper {
 
         // Double vérification par nom (au cas où elle existe avec un autre statut)
         if (academicYearRepository.existsByAcademicYear(nextName)) {
-            // Elle existe avec un statut non-PLANNED (ex: CLOSED) — lever une erreur explicite
+            // Elle existe avec un statut non-PLANNED (ex: CLOSED) — lever une erreur
+            // explicite
             AcademicYear existing = academicYearRepository.findByAcademicYear(nextName)
                     .orElseThrow();
             throw new IllegalStateException(
@@ -183,7 +182,7 @@ public class MigrationAcademicYearHelper {
         created.setAcademicYear(nextName);
         created.setStartDate(active.getEndDate().plusDays(1));
         created.setEndDate(active.getEndDate().plusYears(1));
-        created.setStatus(AcademicYearStatus.PLANNED);   // ← JAMAIS ACTIVE
+        created.setStatus(AcademicYearStatus.PLANNED); // ← JAMAIS ACTIVE
 
         AcademicYear saved = academicYearRepository.save(created);
 
@@ -197,15 +196,29 @@ public class MigrationAcademicYearHelper {
     /**
      * Génère le nom de l'année suivante.
      * "2024/2025" → "2025/2026"
+     * "2025-2026" → "2026-2027"
      */
     private String generateNextYearName(String current) {
-        String[] parts = current.split("/");
+        if (current == null) {
+            throw new IllegalArgumentException("L'année académique courante ne peut pas être null.");
+        }
+        String separator = "/";
+        if (current.contains("-")) {
+            separator = "-";
+        }
+        String[] parts = current.split(separator);
         if (parts.length != 2) {
             throw new IllegalArgumentException(
                     "Format d'année académique invalide : " + current +
-                            " (attendu : YYYY/YYYY)");
+                            " (attendu : YYYY/YYYY ou YYYY-YYYY)");
         }
-        int start = Integer.parseInt(parts[0].trim());
-        return (start + 1) + "/" + (start + 2);
+        try {
+            int start = Integer.parseInt(parts[0].trim());
+            return (start + 1) + separator + (start + 2);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Format d'année académique invalide : " + current +
+                            " (les années doivent être des entiers)");
+        }
     }
 }

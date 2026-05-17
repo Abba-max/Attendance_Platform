@@ -1274,133 +1274,11 @@
 
             <!-- Student Migration Section -->
             <section id="section-migration" class="content-section hidden">
-                <div class="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                        <h2 class="text-3xl font-black text-slate-800 tracking-tight">Student Migration</h2>
-                        <p class="text-slate-500 mt-1 font-medium">Manage end-of-year promotions and individual classroom transfers</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Configuration Panel -->
-                    <div class="lg:col-span-1 border border-slate-200 bg-white rounded-3xl p-6 shadow-sm flex flex-col gap-6">
-
-                        <div>
-                            <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Migration Settings
-                            </h3>
-
-                            <div class="space-y-4">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Source Classroom <span class="text-red-500">*</span></label>
-                                    <select id="migrationFromClassSelect" onchange="loadClassroomStudentsForMigration(this.value)"
-                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer">
-                                        <option value="">Select current classroom...</option>
-                                        <option th:each="classroom : ${classrooms}" th:value="${classroom.classId}" th:text="${classroom.name}"></option>
-                                    </select>
-                                </div>
-
-                                <div class="border-t border-slate-100 pt-4">
-                                    <div class="flex items-center justify-between mb-3 border border-emerald-100 bg-emerald-50/50 p-3 rounded-xl cursor-pointer" onclick="toggleAutoNextLevel()">
-                                        <div class="flex flex-col">
-                                            <span class="text-sm font-bold text-emerald-800">Auto-Next Level Strategy</span>
-                                            <span class="text-[10px] font-medium text-emerald-600 uppercase tracking-wider">End of year promotion</span>
-                                        </div>
-                                        <!-- Toggle Switch -->
-                                        <button id="toggleAutoNextLevelBtn" type="button" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 bg-slate-200" role="switch" aria-checked="false">
-                                            <span aria-hidden="true" class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
-                                        </button>
-                                    </div>
-
-                                    <div id="targetClassroomContainer">
-                                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Target Classroom <span class="text-red-500">*</span></label>
-                                        <select id="migrationToClassSelect"
-                                                class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer" disabled>
-                                            <option value="">— Select a source classroom first —</option>
-                                            <!-- Dynamically populated by JS: same speciality, next level only -->
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Academic Year <span class="text-red-500">*</span></label>
-                                    <select id="migrationAcademicYearSelect"
-                                            onchange="loadClassroomStudentsForMigration(document.getElementById('migrationFromClassSelect').value)"
-                                            class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 transition cursor-pointer">
-                                        <option value="">Loading years...</option>
-                                        <!-- Populated by JS -->
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Reason / Note <span class="text-red-500">*</span></label>
-                                    <input type="text" id="migrationReason" placeholder="e.g. End of year promotion 2024/2025"
-                                           class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-emerald-400 transition">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-auto pt-4 border-t border-slate-100">
-                            <button onclick="executeMigration()"
-                                    class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 uppercase tracking-wide cursor-not-allowed opacity-50"
-                                    id="executeMigrationBtn" disabled>
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                                </svg>
-                                <span>Execute Migration</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Data Table Panel -->
-                    <div class="lg:col-span-2 border border-slate-200 bg-white rounded-3xl overflow-hidden shadow-sm flex flex-col h-[700px]">
-                        <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                            <div>
-                                <h3 class="text-lg font-bold text-slate-700">Eligible Students</h3>
-                                <p class="text-xs text-slate-500 font-medium">Select a source classroom and academic year to view students</p>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <span id="migrationSelectedCountBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full hidden">0 Selected</span>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 overflow-y-auto custom-scrollbar relative bg-white">
-                            <!-- Loading State -->
-                            <div id="migrationTableLoader" class="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center hidden">
-                                <div class="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mb-3"></div>
-                                <span class="text-emerald-800 font-bold text-sm">Loading Roster...</span>
-                            </div>
-
-                            <!-- Empty State -->
-                            <div id="migrationEmptyState" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-                                <div class="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                                    <svg class="w-10 h-10 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                                    </svg>
-                                </div>
-                                <h4 class="text-lg font-bold text-slate-600 mb-1">No Classroom Selected</h4>
-                                <p class="text-sm font-medium">Select a source classroom from the configuration panel to load the student roster.</p>
-                            </div>
-
-                            <table class="w-full text-left border-collapse" id="migrationStudentsTable" style="display:none;">
-                                <thead class="sticky top-0 bg-slate-50 backdrop-blur-sm z-[5] shadow-sm">
-                                <tr>
-                                    <th class="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-200">
-                                        <div class="flex items-center">
-                                            <input type="checkbox" id="selectAllMigrationStudents" onchange="toggleAllMigrationStudents()"
-                                                   class="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500 border-slate-300 cursor-pointer">
-                                        </div>
-                                    </th>
-                                    <th class="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-200">Student Info</th>
-                                    <th class="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-200">Matricule</th>
-                                    <th class="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-slate-400 border-b border-slate-200 text-right">Actions</th>
-                                </tr>
-                                </thead>
-                                <tbody id="migrationStudentsTableBody" class="divide-y divide-slate-100">
-                                <!-- Rendered by JS -->
-                                </tbody>
-                            </table>
+                <div id="migration-section" class="space-y-4">
+                    <div class="flex items-center justify-center py-16">
+                        <div class="text-center space-y-3">
+                            <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <p class="text-slate-500 text-sm font-semibold">Chargement du module migration...</p>
                         </div>
                     </div>
                 </div>
@@ -1945,9 +1823,6 @@
             <div class="flex gap-3">
                 <button type="button" onclick="closeMigrationConfirmModal(false)" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition">Cancel</button>
                 <button type="button" onclick="closeMigrationConfirmModal(true)" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition">Yes, Execute</button>
-            </div>
-            <div id="section-migration" class="section-panel hidden">
-                <div id="migration-section"></div>
             </div>
         </div>
     </div>

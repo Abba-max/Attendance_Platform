@@ -119,7 +119,11 @@ function initializeNavigation() {
                 loadAttendanceStats();
             }
             if (sectionId === 'migration') {
-                if (typeof loadMigrationData === 'function') loadMigrationData();
+                if (typeof MigrationModule !== 'undefined' && typeof MigrationModule.init === 'function') {
+                    MigrationModule.init();
+                } else if (typeof loadMigrationData === 'function') {
+                    loadMigrationData();
+                }
             }
 
 

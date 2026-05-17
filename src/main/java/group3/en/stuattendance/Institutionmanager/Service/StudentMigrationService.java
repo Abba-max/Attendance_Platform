@@ -28,17 +28,18 @@ public class StudentMigrationService {
     private final AcademicYearRepository academicYearRepository;
 
     /**
-     * Helper dédié à la résolution de l'année académique selon le type de migration.
-     *  - LEVEL_PROMOTION / TRONC_COMMUN  → année N+1 (PLANNED)
-     *  - SPECIALITY_CHANGE               → année N   (ACTIVE)
+     * Helper dédié à la résolution de l'année académique selon le type de
+     * migration.
+     * - LEVEL_PROMOTION / TRONC_COMMUN → année N+1 (PLANNED)
+     * - SPECIALITY_CHANGE → année N (ACTIVE)
      */
     private final MigrationAcademicYearHelper yearHelper;
 
     public StudentMigrationService(UserRepository userRepository,
-                                   ClassroomRepository classroomRepository,
-                                   StudentClassHistoryRepository historyRepository,
-                                   AcademicYearRepository academicYearRepository,
-                                   MigrationAcademicYearHelper yearHelper) {
+            ClassroomRepository classroomRepository,
+            StudentClassHistoryRepository historyRepository,
+            AcademicYearRepository academicYearRepository,
+            MigrationAcademicYearHelper yearHelper) {
         this.userRepository = userRepository;
         this.classroomRepository = classroomRepository;
         this.historyRepository = historyRepository;
@@ -51,7 +52,7 @@ public class StudentMigrationService {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Retourne le contexte N / N+1 pour affichage dans le dashboard pédagogue. */
-    public MigrationAcademicYearContextDto getAcademicYearContext() {
+    public MigrationAcademicYearContextdto getAcademicYearContext() {
         return yearHelper.buildContext();
     }
 
@@ -65,7 +66,8 @@ public class StudentMigrationService {
     }
 
     public static boolean isTroncCommunClassroom(Classroom c) {
-        if (c.getSpeciality() == null) return false;
+        if (c.getSpeciality() == null)
+            return false;
         String n = c.getSpeciality().getName().toLowerCase();
         return n.contains("tronc") || n.contains("commun");
     }
@@ -74,26 +76,26 @@ public class StudentMigrationService {
     // 3. Classes source/cible disponibles selon le type de migration
     // ═══════════════════════════════════════════════════════════════════════
 
-    public AvailableMigrationTargetsDto getAvailableMigrationTargets(
-            MigrationTypeDto migrationType, Integer sourceClassroomId) {
+    public AvailableMigrationTargetsdto getAvailableMigrationTargets(
+            MigrationTypedto migrationType, Integer sourceClassroomId) {
 
         User pedagog = getCurrentUser();
         boolean hasTronc = pedagHasTroncCommun(pedagog);
 
-        if (migrationType == MigrationTypeDto.TRONC_COMMUN && !hasTronc) {
+        if (migrationType == MigrationTypedto.TRONC_COMMUN && !hasTronc) {
             throw new AccessDeniedException(
                     "Vous ne gérez pas de classe Tronc Commun.");
         }
 
         List<Classroom> managed = classroomRepository.findByStaffUserId(pedagog.getUserId());
 
-        List<Classroom> sourceList = (migrationType == MigrationTypeDto.TRONC_COMMUN)
+        List<Classroom> sourceList = (migrationType == MigrationTypedto.TRONC_COMMUN)
                 ? managed.stream().filter(StudentMigrationService::isTroncCommunClassroom).collect(Collectors.toList())
                 : managed;
 
         List<Classroom> targetList = resolveTargetClassrooms(migrationType, sourceClassroomId, pedagog);
 
-        AvailableMigrationTargetsDto dto = new AvailableMigrationTargetsDto();
+        AvailableMigrationTargetsdto dto = new AvailableMigrationTargetsdto();
         dto.setMigrationType(migrationType);
         dto.setPedagHasTroncCommun(hasTronc);
         dto.setSourceClassrooms(toSummaryList(sourceList));
@@ -102,9 +104,10 @@ public class StudentMigrationService {
     }
 
     private List<Classroom> resolveTargetClassrooms(
-            MigrationTypeDto type, Integer sourceId, User pedagog) {
+            MigrationTypedto type, Integer sourceId, User pedagog) {
 
-        if (sourceId == null) return List.of();
+        if (sourceId == null)
+            return List.of();
 
         Classroom source = classroomRepository.findById(sourceId)
                 .orElseThrow(() -> new RuntimeException("Classe source introuvable : " + sourceId));
@@ -112,7 +115,7 @@ public class StudentMigrationService {
         boolean manages = pedagog.getStaffClassrooms().stream()
                 .anyMatch(c -> c.getClassId().equals(source.getClassId()));
 
-        if (type == MigrationTypeDto.TRONC_COMMUN) {
+        if (type == MigrationTypedto.TRONC_COMMUN) {
             if (!isTroncCommunClassroom(source))
                 throw new AccessDeniedException("La classe source n'est pas un Tronc Commun.");
             int targetLevel = source.getLevel() != null ? source.getLevel() + 1 : 3;
@@ -124,12 +127,14 @@ public class StudentMigrationService {
 
         return switch (type) {
             case LEVEL_PROMOTION -> {
-                if (source.getSpeciality() == null || source.getLevel() == null) yield List.of();
+                if (source.getSpeciality() == null || source.getLevel() == null)
+                    yield List.of();
                 yield classroomRepository.findBySpeciality_SpecialityIdAndLevel(
                         source.getSpeciality().getSpecialityId(), source.getLevel() + 1);
             }
             case SPECIALITY_CHANGE -> {
-                if (source.getSpeciality() == null || source.getLevel() == null) yield List.of();
+                if (source.getSpeciality() == null || source.getLevel() == null)
+                    yield List.of();
                 yield classroomRepository
                         .findByLevelAndSpecialityNot(source.getLevel(),
                                 source.getSpeciality().getSpecialityId())
@@ -152,20 +157,28 @@ public class StudentMigrationService {
     }
 
     public List<StudentSelectionDto> getStudentsInClassroom(Integer classroomId, Long academicYearId) {
-        if (academicYearId == null) return getStudentsInClassroom(classroomId);
+        if (academicYearId == null)
+            return getStudentsInClassroom(classroomId);
 
         classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new RuntimeException("Classe introuvable : " + classroomId));
         AcademicYear year = academicYearRepository.findById(academicYearId)
                 .orElseThrow(() -> new RuntimeException("Année introuvable : " + academicYearId));
 
-        if (year.isActive()) return getStudentsInClassroom(classroomId);
+        if (year.isActive())
+            return getStudentsInClassroom(classroomId);
 
         java.util.Map<Integer, User> unique = new java.util.LinkedHashMap<>();
         historyRepository.findByFromClassroom_ClassIdAndAcademicYear_Id(classroomId, academicYearId)
-                .forEach(h -> { if (h.getStudent() != null) unique.put(h.getStudent().getUserId(), h.getStudent()); });
+                .forEach(h -> {
+                    if (h.getStudent() != null)
+                        unique.put(h.getStudent().getUserId(), h.getStudent());
+                });
         historyRepository.findByToClassroom_ClassIdAndAcademicYear_Id(classroomId, academicYearId)
-                .forEach(h -> { if (h.getStudent() != null) unique.put(h.getStudent().getUserId(), h.getStudent()); });
+                .forEach(h -> {
+                    if (h.getStudent() != null)
+                        unique.put(h.getStudent().getUserId(), h.getStudent());
+                });
 
         return unique.values().stream()
                 .map(s -> toSelectionDto(s, classroomId)).collect(Collectors.toList());
@@ -185,13 +198,14 @@ public class StudentMigrationService {
                 .orElseThrow(() -> new RuntimeException("Classe cible introuvable : " + request.getToClassroomId()));
 
         // Résolution de l'année académique selon le type de migration
-        MigrationTypeDto type = request.getMigrationType() != null
+        MigrationTypedto type = request.getMigrationType() != null
                 ? request.getMigrationType()
-                : MigrationTypeDto.LEVEL_PROMOTION;
+                : MigrationTypedto.LEVEL_PROMOTION;
         AcademicYear academicYear = yearHelper.resolveForMigration(type);
 
         Classroom from = student.getClassroom();
-        if (from == null) throw new RuntimeException("L'étudiant n'a aucune classe assignée.");
+        if (from == null)
+            throw new RuntimeException("L'étudiant n'a aucune classe assignée.");
         if (from.getClassId().equals(toClassroom.getClassId()))
             throw new RuntimeException("L'étudiant est déjà dans la classe cible.");
         if (toClassroom.isAtCapacity())
@@ -218,13 +232,13 @@ public class StudentMigrationService {
         User pedagog = getCurrentUser();
         List<MigrationResponse> responses = new ArrayList<>();
 
-        MigrationTypeDto type = request.getMigrationType() != null
+        MigrationTypedto type = request.getMigrationType() != null
                 ? request.getMigrationType()
-                : MigrationTypeDto.LEVEL_PROMOTION;
+                : MigrationTypedto.LEVEL_PROMOTION;
 
         // ── Résolution de l'année académique ─────────────────────────────
         // LEVEL_PROMOTION + TRONC_COMMUN → N+1 (PLANNED, jamais ACTIVE)
-        // SPECIALITY_CHANGE              → N   (ACTIVE)
+        // SPECIALITY_CHANGE → N (ACTIVE)
         AcademicYear academicYear = yearHelper.resolveForMigration(type);
 
         // ── Résolution de la classe cible ─────────────────────────────────
@@ -238,13 +252,16 @@ public class StudentMigrationService {
 
                 Classroom from = student.getClassroom();
                 if (from == null) {
-                    responses.add(fail(studentId, student, null, toClassroom, "Aucune classe assignée.")); continue;
+                    responses.add(fail(studentId, student, null, toClassroom, "Aucune classe assignée."));
+                    continue;
                 }
                 if (from.getClassId().equals(toClassroom.getClassId())) {
-                    responses.add(fail(studentId, student, from, toClassroom, "Déjà dans la classe cible.")); continue;
+                    responses.add(fail(studentId, student, from, toClassroom, "Déjà dans la classe cible."));
+                    continue;
                 }
                 if (toClassroom.isAtCapacity()) {
-                    responses.add(fail(studentId, student, from, toClassroom, "Classe cible à pleine capacité.")); continue;
+                    responses.add(fail(studentId, student, from, toClassroom, "Classe cible à pleine capacité."));
+                    continue;
                 }
 
                 saveHistory(student, from, toClassroom, academicYear, pedagog, request.getReason());
@@ -264,9 +281,9 @@ public class StudentMigrationService {
     }
 
     private Classroom resolveToClassroomForBulk(
-            MigrateBulkStudentsRequest request, MigrationTypeDto type, User pedagog) {
+            MigrateBulkStudentsRequest request, MigrationTypedto type, User pedagog) {
 
-        if (type == MigrationTypeDto.LEVEL_PROMOTION && request.isAutoNextLevel()) {
+        if (type == MigrationTypedto.LEVEL_PROMOTION && request.isAutoNextLevel()) {
             Classroom from = classroomRepository.findById(request.getFromClassroomId())
                     .orElseThrow(() -> new RuntimeException("Classe source introuvable."));
             return classroomRepository
@@ -276,7 +293,7 @@ public class StudentMigrationService {
                             "Aucune classe de niveau " + (from.getLevel() + 1) + " trouvée."));
         }
 
-        if (type == MigrationTypeDto.TRONC_COMMUN && !pedagHasTroncCommun(pedagog)) {
+        if (type == MigrationTypedto.TRONC_COMMUN && !pedagHasTroncCommun(pedagog)) {
             throw new AccessDeniedException("Vous ne gérez pas de Tronc Commun.");
         }
 
@@ -311,12 +328,12 @@ public class StudentMigrationService {
     // Helpers privés
     // ═══════════════════════════════════════════════════════════════════════
 
-    private List<AvailableMigrationTargetsDto.ClassroomSummaryDto> toSummaryList(List<Classroom> list) {
+    private List<AvailableMigrationTargetsdto.ClassroomSummaryDto> toSummaryList(List<Classroom> list) {
         return list.stream().map(c -> {
             int occ = c.getStudents() != null ? c.getStudents().size() : 0;
             int slots = c.getCapacity() != null ? Math.max(c.getCapacity() - occ, 0) : 0;
             String spec = c.getSpeciality() != null ? c.getSpeciality().getName() : "—";
-            return new AvailableMigrationTargetsDto.ClassroomSummaryDto(
+            return new AvailableMigrationTargetsdto.ClassroomSummaryDto(
                     c.getClassId(), c.getName(), c.getLevel(), spec, slots,
                     isTroncCommunClassroom(c));
         }).collect(Collectors.toList());
@@ -333,7 +350,7 @@ public class StudentMigrationService {
     }
 
     private void saveHistory(User student, Classroom from, Classroom to,
-                             AcademicYear year, User by, String reason) {
+            AcademicYear year, User by, String reason) {
         StudentClassHistory h = new StudentClassHistory();
         h.setStudent(student);
         h.setFromClassroom(from);
