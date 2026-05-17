@@ -106,7 +106,14 @@ public class AttendanceServiceImpl implements AttendanceService {
         }
         final int finalTotalHours = totalHours;
 
-        return session.getClassroom().getStudents().stream()
+        java.util.Set<User> allStudents = new java.util.HashSet<>(session.getClassroom().getStudents());
+        recordMap.values().forEach(r -> {
+            if (r.getUser() != null) {
+                allStudents.add(r.getUser());
+            }
+        });
+
+        return allStudents.stream()
                 .map(student -> {
                     AttendanceRecord record = recordMap.get(student.getUserId());
 

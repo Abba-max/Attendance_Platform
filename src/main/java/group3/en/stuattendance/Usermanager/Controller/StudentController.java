@@ -55,8 +55,9 @@ public class StudentController {
     public ResponseEntity<Page<StudentAttendanceHistoryDto>> getAttendanceHistory(
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) AttendanceStatus status,
+            @RequestParam(required = false) Integer classId,
             Pageable pageable) {
-        return ResponseEntity.ok(studentService.getAttendanceHistory(userDetails.getUserId(), status, pageable));
+        return ResponseEntity.ok(studentService.getAttendanceHistory(userDetails.getUserId(), status, classId, pageable));
     }
 
     @GetMapping("/dashboard/stats")

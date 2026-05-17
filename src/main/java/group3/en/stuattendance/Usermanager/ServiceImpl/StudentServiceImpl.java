@@ -135,12 +135,28 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public Page<StudentAttendanceHistoryDto> getAttendanceHistory(Integer userId, AttendanceStatus status, Pageable pageable) {
+    public Page<StudentAttendanceHistoryDto> getAttendanceHistory(Integer userId, AttendanceStatus status, Integer classId, Pageable pageable) {
+        Integer targetClassId = classId;
+        if (targetClassId == null) {
+            User student = userRepository.findById(userId).orElse(null);
+            if (student != null && student.getClassroom() != null) {
+                targetClassId = student.getClassroom().getClassId();
+            }
+        }
+
         Page<AttendanceRecord> records;
-        if (status != null) {
-            records = attendanceRecordRepository.findByUserUserIdAndStatus(userId, status, pageable);
+        if (targetClassId != null) {
+            if (status != null) {
+                records = attendanceRecordRepository.findByUserUserIdAndStatusAndSessionClassroomClassId(userId, status, targetClassId, pageable);
+            } else {
+                records = attendanceRecordRepository.findByUserUserIdAndSessionClassroomClassId(userId, targetClassId, pageable);
+            }
         } else {
-            records = attendanceRecordRepository.findByUserUserId(userId, pageable);
+            if (status != null) {
+                records = attendanceRecordRepository.findByUserUserIdAndStatus(userId, status, pageable);
+            } else {
+                records = attendanceRecordRepository.findByUserUserId(userId, pageable);
+            }
         }
 
         return records.map(record -> {
@@ -182,7 +198,10 @@ public class StudentServiceImpl implements StudentService {
                 student.getClassroom().getSpeciality().getSpecialityId(), 
                 student.getClassroom().getLevel());
 
-        List<AttendanceRecord> allRecords = attendanceRecordRepository.findByUserUserId(userId);
+        List<AttendanceRecord> allRecords = attendanceRecordRepository.findByUserUserId(userId).stream()
+                .filter(r -> r.getSession() != null && r.getSession().getClassroom() != null 
+                        && r.getSession().getClassroom().getClassId().equals(student.getClassroom().getClassId()))
+                .collect(Collectors.toList());
         
         Map<Integer, List<AttendanceRecord>> recordsByCourse = allRecords.stream()
                 .filter(r -> r.getSession() != null && r.getSession().getCourse() != null)
@@ -226,7 +245,16 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public StudentDashboardStatsDto getDashboardStats(Integer userId) {
+        User student = userRepository.findById(userId).orElse(null);
+        
         List<AttendanceRecord> allRecords = attendanceRecordRepository.findByUserUserId(userId);
+        if (student != null && student.getClassroom() != null) {
+            allRecords = allRecords.stream()
+                    .filter(r -> r.getSession() != null && r.getSession().getClassroom() != null 
+                            && r.getSession().getClassroom().getClassId().equals(student.getClassroom().getClassId()))
+                    .collect(Collectors.toList());
+        }
+        
         long totalSessions = allRecords.size();
         long presentCount = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.PRESENT).count();
         long totalAbsences = allRecords.stream().filter(r -> r.getStatus() == AttendanceStatus.ABSENT).count();

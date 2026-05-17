@@ -21,4 +21,8 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     org.springframework.data.domain.Page<AttendanceRecord> findByUserUserId(Integer userId, org.springframework.data.domain.Pageable pageable);
 
     List<AttendanceRecord> findByUserUserId(Integer userId);
+
+    org.springframework.data.domain.Page<AttendanceRecord> findByUserUserIdAndSessionClassroomClassId(Integer userId, Integer classId, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<AttendanceRecord> findByUserUserIdAndStatusAndSessionClassroomClassId(Integer userId, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status, Integer classId, org.springframework.data.domain.Pageable pageable);
 }

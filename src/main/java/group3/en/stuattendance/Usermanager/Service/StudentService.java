@@ -13,7 +13,7 @@ public interface StudentService {
 
     List<StudentScheduleDto> getSessionsForGrid(Integer userId, Integer week);
 
-    Page<StudentAttendanceHistoryDto> getAttendanceHistory(Integer userId, AttendanceStatus status, Pageable pageable);
+    Page<StudentAttendanceHistoryDto> getAttendanceHistory(Integer userId, AttendanceStatus status, Integer classId, Pageable pageable);
 
     List<StudentAttendanceStatsDto> getCourseAttendanceStats(Integer userId);
 
