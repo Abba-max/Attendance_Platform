@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,6 +41,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional
+    @Auditable(action = "SESSION_START", category = "SESSION_MANAGEMENT", severity = "INFO")
     public SessionDto startSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -91,6 +93,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional
+    @Auditable(action = "SESSION_END", category = "SESSION_MANAGEMENT", severity = "INFO")
     public SessionDto endSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -155,6 +158,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional
+    @Auditable(action = "SESSION_CONFIRM", category = "SESSION_MANAGEMENT", severity = "INFO")
     public SessionDto confirmAttendance(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -189,6 +193,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional
+    @Auditable(action = "SESSION_CANCEL", category = "SESSION_MANAGEMENT", severity = "WARNING")
     public SessionDto cancelSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -225,6 +230,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Auditable(action = "SESSION_CREATE", category = "SESSION_MANAGEMENT", severity = "INFO")
     public SessionDto createSession(SessionDto sessionDto) {
         Session session = sessionMapper.toEntity(sessionDto);
 
@@ -251,6 +257,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Auditable(action = "SESSION_UPDATE", category = "SESSION_MANAGEMENT", severity = "INFO")
     public SessionDto updateSession(Integer id, SessionDto sessionDto) {
         Session existing = sessionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + id));
@@ -298,6 +305,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Auditable(action = "SESSION_DELETE", category = "SESSION_MANAGEMENT", severity = "WARNING")
     public void deleteSession(Integer id) {
         if (!sessionRepository.existsById(id)) {
             throw new EntityNotFoundException("Session not found with id: " + id);

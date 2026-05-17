@@ -41,6 +41,7 @@ public class AuditlogController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getLogs(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String category,
             @RequestParam(required = false) String severity,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
@@ -49,18 +50,26 @@ public class AuditlogController {
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        Page<AuditlogDto> result = auditlogService.getLogs(keyword, severity, start, end, page, size);
+        try {
+            Page<AuditlogDto> result = auditlogService.getLogs(keyword, category, severity, start, end, page, size);
 
-        // Response structure expected by audit.js:
-        // { logs, currentPage, totalPages, totalElements, pageSize }
-        Map<String, Object> response = new HashMap<>();
-        response.put("logs",          result.getContent());
-        response.put("currentPage",   result.getNumber());
-        response.put("totalPages",    result.getTotalPages());
-        response.put("totalElements", result.getTotalElements());
-        response.put("pageSize",      result.getSize());
+            // Response structure expected by audit.js:
+            // { logs, currentPage, totalPages, totalElements, pageSize }
+            Map<String, Object> response = new HashMap<>();
+            response.put("logs",          result.getContent());
+            response.put("currentPage",   result.getNumber());
+            response.put("totalPages",    result.getTotalPages());
+            response.put("totalElements", result.getTotalElements());
+            response.put("pageSize",      result.getSize());
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Failed to fetch audit logs: {}", e.getMessage(), e);
+            Map<String, Object> errResponse = new HashMap<>();
+            errResponse.put("error", "Internal server error retrieving logs");
+            errResponse.put("message", e.getMessage());
+            return ResponseEntity.internalServerError().body(errResponse);
+        }
     }
 
     // ── GET /api/audit-logs/export ────────────────────────────────────────────

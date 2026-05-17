@@ -13,6 +13,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,6 +29,7 @@ public class CourseServiceImpl implements CourseService {
     private final group3.en.stuattendance.Usermanager.Mapper.UserMapper userMapper;
 
     @Override
+    @Auditable(action = "COURSE_CREATE", category = "COURSE_MANAGEMENT", severity = "INFO")
     public CourseDto createCourse(CourseDto courseDto) {
         Course course = courseMapper.toEntity(courseDto);
         
@@ -47,6 +49,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Auditable(action = "COURSE_UPDATE", category = "COURSE_MANAGEMENT", severity = "INFO")
     public CourseDto updateCourse(Integer id, CourseDto courseDto) {
         Course existing = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + id));
@@ -75,6 +78,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Auditable(action = "COURSE_DELETE", category = "COURSE_MANAGEMENT", severity = "WARNING")
     public void deleteCourse(Integer id) {
         if (!courseRepository.existsById(id)) {
             throw new EntityNotFoundException("Course not found with id: " + id);
@@ -133,6 +137,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Auditable(action = "COURSE_ASSIGN_SPECIALITY", category = "COURSE_MANAGEMENT", severity = "INFO")
     public CourseDto assignCourseToSpeciality(Integer courseId, Integer specialityId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
@@ -146,6 +151,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Auditable(action = "COURSE_ASSIGN_TEACHER", category = "COURSE_MANAGEMENT", severity = "INFO")
     public CourseDto assignTeacherToCourse(Integer courseId, Integer teacherId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
@@ -166,6 +172,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Auditable(action = "COURSE_REMOVE_TEACHER", category = "COURSE_MANAGEMENT", severity = "WARNING")
     public CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
@@ -194,6 +201,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @org.springframework.transaction.annotation.Transactional
+    @Auditable(action = "COURSE_BULK_IMPORT", category = "COURSE_MANAGEMENT", severity = "INFO")
     public group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportCourses(org.springframework.web.multipart.MultipartFile file, boolean dryRun, Integer specialityIdFromModal, Integer levelFromModal) {
         group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto result = new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto();
         

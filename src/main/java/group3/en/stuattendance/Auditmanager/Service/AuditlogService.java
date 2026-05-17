@@ -19,6 +19,7 @@ public interface AuditlogService {
      * @return        Page of AuditlogDto ready for the frontend table
      */
     Page<AuditlogDto> getLogs(String keyword,
+                              String category,
                               String severity,
                               LocalDateTime start,
                               LocalDateTime end,

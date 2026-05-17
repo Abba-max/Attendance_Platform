@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -60,6 +61,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
+    @Auditable(action = "JUSTIFICATION_CREATE", category = "JUSTIFICATION", severity = "INFO")
     public JustificationDto createJustification(JustificationDto justificationDto, MultipartFile document) {
         Justification justification = justificationMapper.toEntity(justificationDto);
 
@@ -121,6 +123,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
+    @Auditable(action = "JUSTIFICATION_APPROVE", category = "JUSTIFICATION", severity = "INFO")
     public JustificationDto approveJustification(Integer id) {
         Justification justification = justificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Justification not found with id: " + id));
@@ -175,6 +178,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
+    @Auditable(action = "JUSTIFICATION_REJECT", category = "JUSTIFICATION", severity = "WARNING")
     public JustificationDto rejectJustification(Integer id, String reasonForRejection) {
         Justification justification = justificationRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Justification not found with id: " + id));
@@ -189,6 +193,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
+    @Auditable(action = "JUSTIFICATION_DELETE", category = "JUSTIFICATION", severity = "WARNING")
     public void deleteJustification(Integer id) {
         if (!justificationRepository.existsById(id)) {
             throw new EntityNotFoundException("Justification not found with id: " + id);
@@ -207,6 +212,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
+    @Auditable(action = "JUSTIFICATION_SUBMIT", category = "JUSTIFICATION", severity = "INFO")
     public group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, MultipartFile file, String reason, Integer hourIndex) {
         AttendanceRecord record = attendanceRecordRepository.findById(attendanceId)
                 .orElseThrow(() -> new EntityNotFoundException("Attendance record not found with id: " + attendanceId));

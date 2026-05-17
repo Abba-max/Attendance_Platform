@@ -1390,6 +1390,16 @@
                                 </svg>
                             </div>
                             <div class="flex gap-2">
+                                <select id="auditCategoryFilter"
+                                    class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium text-gray-600">
+                                    <option value="">All Categories</option>
+                                    <option value="USER_MANAGEMENT">User Management</option>
+                                    <option value="INSTITUTION_MANAGEMENT">Institution Management</option>
+                                    <option value="ATTENDANCE">Attendance</option>
+                                    <option value="SESSION_MANAGEMENT">Session Management</option>
+                                    <option value="JUSTIFICATION">Justification Management</option>
+                                    <option value="SECURITY">Security</option>
+                                </select>
                                 <select id="auditSeverityFilter"
                                     class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium text-gray-600">
                                     <option value="">All Severities</option>
@@ -2242,8 +2252,6 @@
     <!-- Geofence Modal -->
     <div th:replace="~{fragments/ui :: geofenceModal}"></div>
 
-    <script th:src="@{/js/admin/admin-dashboard.js}"></script>
-    <script th:src="@{/js/admin/audit.js}"></script>
     <script>
         // Inline setup for dynamic role injection in modal if needed before main JScutes
     </script>

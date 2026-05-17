@@ -25,16 +25,22 @@ public class AuditAspect {
 
     @AfterReturning(pointcut = "@annotation(auditable)", returning = "result")
     public void auditAction(JoinPoint joinPoint, Auditable auditable, Object result) {
-        String username = getCurrentUsername();
-        String userRole = getCurrentUserRole();
-        String ipAddress = getClientIp();
+        try {
+            String username = getCurrentUsername();
+            String userRole = getCurrentUserRole();
+            String ipAddress = getClientIp();
 
-        String action = auditable.action();
-        String category = auditable.category();
-        String severity = auditable.severity();
-        String target = extractTarget(joinPoint);
+            String action = auditable.action();
+            String category = auditable.category();
+            String severity = auditable.severity();
+            String target = extractTarget(joinPoint);
 
-        auditlogService.log(username, action, target, category, severity, userRole, ipAddress);
+            auditlogService.log(username, action, target, category, severity, userRole, ipAddress);
+        } catch (Exception e) {
+            // Gracefully catch logging errors so the user's transaction isn't broken
+            System.err.println("AuditAspect exception captured: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     private String getCurrentUsername() {

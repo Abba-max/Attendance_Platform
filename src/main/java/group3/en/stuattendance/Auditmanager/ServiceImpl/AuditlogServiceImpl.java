@@ -40,6 +40,7 @@ public class AuditlogServiceImpl implements AuditlogService {
     @Override
     @Transactional(readOnly = true)
     public Page<AuditlogDto> getLogs(String keyword,
+                                     String category,
                                      String severity,
                                      LocalDateTime start,
                                      LocalDateTime end,
@@ -48,12 +49,13 @@ public class AuditlogServiceImpl implements AuditlogService {
 
         // Normalize blank strings to null so JPQL IS NULL checks work correctly
         String kw = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        String cat = (category != null && !category.isBlank()) ? category.trim() : null;
         String sev = (severity != null && !severity.isBlank()) ? severity.trim() : null;
 
         Pageable pageable = PageRequest.of(page, size);
 
         return auditlogRepository
-                .searchWithFilters(kw, sev, start, end, pageable)
+                .searchWithFilters(kw, cat, sev, start, end, pageable)
                 .map(auditlogMapper::toDto);
     }
 

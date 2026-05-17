@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +22,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     private final ClassroomMapper classroomMapper;
 
     @Override
+    @Auditable(action = "CLASSROOM_SAVE", category = "INSTITUTION_MANAGEMENT", severity = "INFO")
     public Classroom save(Classroom classroom) {
         return classroomRepository.save(classroom);
     }
@@ -47,6 +49,7 @@ public class ClassroomServiceImpl implements ClassroomService {
     }
 
     @Override
+    @Auditable(action = "CLASSROOM_DELETE", category = "INSTITUTION_MANAGEMENT", severity = "WARNING")
     public void deleteById(Integer id) {
         classroomRepository.deleteById(id);
     }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Auditable(action = "ATTENDANCE_MARK", category = "ATTENDANCE", severity = "INFO")
     public AttendanceRecordDto markAttendance(AttendanceRecordDto dto) {
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + dto.getUserId()));
@@ -220,6 +222,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Auditable(action = "STUDENT_CHECK_IN", category = "ATTENDANCE", severity = "INFO")
     public AttendanceRecordDto studentCheckIn(Integer sessionId, Integer userId, String qrCode, String pin, String location) {
         User student = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
@@ -351,6 +354,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Auditable(action = "TEACHER_VERIFY", category = "ATTENDANCE", severity = "INFO")
     public AttendanceRecordDto teacherVerify(Integer sessionId, Integer userId, Integer hourIndex) {
         User student = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
@@ -465,6 +469,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Auditable(action = "MARK_HOUR_STATUS", category = "ATTENDANCE", severity = "INFO")
     public void markHourStatus(Integer sessionId, Integer userId, Integer hourIndex, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
         User student = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("Student not found: " + userId));
@@ -481,6 +486,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     }
 
     @Override
+    @Auditable(action = "MARK_SESSION_STATUS", category = "ATTENDANCE", severity = "INFO")
     public void markAllSessionStatus(Integer sessionId, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus status) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
