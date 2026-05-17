@@ -209,6 +209,7 @@ public class PdfExportServiceImpl implements PdfExportService {
             long present = records.stream().filter(r -> "PRESENT".equals(String.valueOf(r.getStatus()))).count();
             long absent = records.stream().filter(r -> "ABSENT".equals(String.valueOf(r.getStatus()))).count();
             long late = records.stream().filter(r -> "LATE".equals(String.valueOf(r.getStatus()))).count();
+            long excused = records.stream().filter(r -> "EXCUSED".equals(String.valueOf(r.getStatus()))).count();
 
             PdfPCell rightCell = new PdfPCell();
             rightCell.setBorder(Rectangle.BOX);
@@ -217,19 +218,42 @@ public class PdfExportServiceImpl implements PdfExportService {
             Paragraph stats = new Paragraph("SUMMARY\n", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, java.awt.Color.decode("#475569")));
             stats.add(new Chunk("PRESENT: " + present + "\n", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#10B981"))));
             stats.add(new Chunk("LATE: " + late + "\n", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#F59E0B"))));
+            stats.add(new Chunk("EXCUSED: " + excused + "\n", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#6366F1"))));
             stats.add(new Chunk("ABSENT: " + absent, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#EF4444"))));
             rightCell.addElement(stats);
             summary.addCell(rightCell);
             
             document.add(summary);
 
-            // Table
-            PdfPTable table = new PdfPTable(4);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{1.5f, 3.5f, 1.5f, 3.5f});
+            // Calculate total hours scheduled for the course/session
+            int totalHours = 1;
+            if (session.getStartTime() != null && session.getEndTime() != null) {
+                totalHours = Math.max(1, (int) java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours());
+            }
 
-            String[] headers = {"MATRICULE", "STUDENT NAME", "STATUS", "REMARKS"};
-            for (String h : headers) {
+            int numColumns = 3 + totalHours;
+            PdfPTable table = new PdfPTable(numColumns);
+            table.setWidthPercentage(100);
+            
+            float[] widths = new float[numColumns];
+            widths[0] = 1.5f; // MATRICULE
+            widths[1] = 3.5f; // STUDENT NAME
+            for (int i = 0; i < totalHours; i++) {
+                widths[2 + i] = 0.8f; // H1, H2, etc.
+            }
+            widths[numColumns - 1] = 2.5f; // REMARKS
+            table.setWidths(widths);
+
+            // Set up dynamic headers
+            java.util.List<String> headerList = new java.util.ArrayList<>();
+            headerList.add("MATRICULE");
+            headerList.add("STUDENT NAME");
+            for (int i = 1; i <= totalHours; i++) {
+                headerList.add("H" + i);
+            }
+            headerList.add("REMARKS");
+
+            for (String h : headerList) {
                 PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.WHITE)));
                 cell.setBackgroundColor(java.awt.Color.decode("#0F172A")); // Slate 900
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -243,12 +267,26 @@ public class PdfExportServiceImpl implements PdfExportService {
                 table.addCell(createStyledCell(r.getStudentMatricule(), cellFont, false));
                 table.addCell(createStyledCell(r.getStudentFirstName() + " " + r.getStudentLastName(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9), false));
                 
-                String status = String.valueOf(r.getStatus());
-                PdfPCell statusCell = createStyledCell(status, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8), true);
-                if ("ABSENT".equals(status)) statusCell.setBackgroundColor(java.awt.Color.decode("#FEE2E2"));
-                else if ("LATE".equals(status)) statusCell.setBackgroundColor(java.awt.Color.decode("#FEF3C7"));
-                else if ("PRESENT".equals(status)) statusCell.setBackgroundColor(java.awt.Color.decode("#D1FAE5"));
-                table.addCell(statusCell);
+                for (int i = 0; i < totalHours; i++) {
+                    String status = getHourSlotStatus(r.getHourSlots(), i, r.getStatus());
+                    PdfPCell statusCell;
+                    if ("PRESENT".equals(status)) {
+                        statusCell = createStyledCell("✓", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#065F46")), true);
+                        statusCell.setBackgroundColor(java.awt.Color.decode("#D1FAE5")); // Light Green
+                    } else if ("EXCUSED".equals(status)) {
+                        statusCell = createStyledCell("E", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#92400E")), true);
+                        statusCell.setBackgroundColor(java.awt.Color.decode("#FEF3C7")); // Yellow
+                    } else if ("ABSENT".equals(status)) {
+                        statusCell = createStyledCell("✗", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#991B1B")), true);
+                        statusCell.setBackgroundColor(java.awt.Color.decode("#FEE2E2")); // Light Red
+                    } else if ("LATE".equals(status)) {
+                        statusCell = createStyledCell("L", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, java.awt.Color.decode("#92400E")), true);
+                        statusCell.setBackgroundColor(java.awt.Color.decode("#FFEDD5")); // Light Orange
+                    } else {
+                        statusCell = createStyledCell("-", cellFont, true);
+                    }
+                    table.addCell(statusCell);
+                }
                 
                 table.addCell(createStyledCell(r.getComments() != null ? r.getComments() : "", cellFont, false));
             }
@@ -275,6 +313,17 @@ public class PdfExportServiceImpl implements PdfExportService {
         }
 
         return new ByteArrayInputStream(out.toByteArray());
+    }
+
+    private String getHourSlotStatus(java.util.List<group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto> hourSlots, int index, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus defaultStatus) {
+        if (hourSlots != null) {
+            for (group3.en.stuattendance.Attendancemanager.DTO.AttendanceHourDto h : hourSlots) {
+                if (h.getHourIndex() != null && h.getHourIndex() == index) {
+                    return h.getStatus() != null ? h.getStatus().name() : "ABSENT";
+                }
+            }
+        }
+        return defaultStatus != null ? defaultStatus.name() : "ABSENT";
     }
 
     private void addDocumentHeader(Document document, String mainTitle, String subTitle) throws Exception {
