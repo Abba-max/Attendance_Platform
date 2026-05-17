@@ -44,6 +44,9 @@ public class Justification {
     @Column(length = 1000)
     private String reason;
 
+    @Column(name = "hour_index")
+    private Integer hourIndex;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private JustificationStatus status = JustificationStatus.PENDING;

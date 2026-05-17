@@ -13,6 +13,10 @@ let currentCheckinContext = {
     lng: null
 };
 
+let currentCourses = [];
+let currentHistory = [];
+let currentJustifications = [];
+
 function getISOWeek(date) {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
@@ -34,41 +38,53 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * --- TAB NAVIGATION ---
  */
+const TAB_MAP = {
+    status:        { view: 'view-status',        desk: 'nav-desk-status',        mob: 'nav-mob-status' },
+    calendar:      { view: 'view-calendar',      desk: 'nav-desk-calendar',      mob: 'nav-mob-calendar' },
+    justification: { view: 'view-justification', desk: 'nav-desk-justification', mob: 'nav-mob-justification' },
+    courses:       { view: 'view-courses',       desk: 'nav-desk-courses',        mob: 'nav-mob-courses' },
+    stats:         { view: 'view-stats',         desk: 'nav-desk-stats',          mob: null },
+    settings:      { view: 'view-settings',      desk: 'nav-desk-settings',       mob: 'nav-mob-settings' },
+};
+
 function switchTab(tabId) {
+    // Reset scroll position to top
+    const scrollingContent = document.getElementById('main-scrolling-content');
+    if (scrollingContent) scrollingContent.scrollTop = 0;
+
     // Hide all views
-    document.querySelectorAll('.content-section, #view-status, #view-checkin, #view-justification, #view-courses, #view-calendar').forEach(el => el.classList.add('hidden'));
-    
-    // Show selected
-    const target = document.getElementById('view-' + tabId);
-    if (target) target.classList.remove('hidden');
-    
-    // Update Tab Styles
-    const tabs = ['status', 'checkin', 'justification', 'courses', 'calendar'];
-    tabs.forEach(t => {
-        // Desktop
-        const deskEl = document.getElementById('nav-desk-' + t);
-        if (deskEl) {
-            if (t === tabId) {
-                deskEl.classList.add('active');
-                deskEl.classList.remove('text-slate-500');
-            } else {
-                deskEl.classList.remove('active');
-                deskEl.classList.add('text-slate-500');
-            }
-        }
-        
-        // Mobile
-        const mobEl = document.getElementById('nav-mob-' + t);
-        if (mobEl) {
-            if (t === tabId) {
-                mobEl.classList.add('active');
-            } else {
-                mobEl.classList.remove('active');
-            }
-        }
+    Object.values(TAB_MAP).forEach(t => {
+        const el = document.getElementById(t.view);
+        if (el) el.classList.add('hidden');
     });
 
-    // Specific triggers
+    // Remove active from all nav items
+    document.querySelectorAll('.nav-desktop, .nav-mobile').forEach(el => {
+        el.classList.remove('active');
+        if (el.classList.contains('nav-desktop')) el.classList.add('text-slate-500');
+    });
+
+    const t = TAB_MAP[tabId];
+    if (!t) return;
+
+    // Show target view
+    const view = document.getElementById(t.view);
+    if (view) view.classList.remove('hidden');
+
+    // Activate nav items
+    if (t.desk) {
+        const d = document.getElementById(t.desk);
+        if (d) {
+            d.classList.add('active');
+            d.classList.remove('text-slate-500');
+        }
+    }
+    if (t.mob) {
+        const m = document.getElementById(t.mob);
+        if (m) m.classList.add('active');
+    }
+
+    // Load data based on tab
     if (tabId === 'checkin' || tabId === 'calendar') loadGridSessions();
     if (tabId === 'courses') loadCourseStats();
     if (tabId === 'justification') loadAttendanceHistory();
@@ -405,64 +421,18 @@ async function loadCourseStats() {
         const response = await fetch('/api/student/attendance/stats');
         const stats = await response.json();
         
-        if (stats.length === 0) {
-            container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm col-span-full">No courses enrolled.</div>`;
-            return;
-        }
+        // Populate summary cards
+        const totalCourses = stats.length;
+        const totalAttended = stats.reduce((acc, c) => acc + (c.studentAttendedHours || 0), 0);
+        const totalObjective = stats.reduce((acc, c) => acc + (c.courseTotalHours || 0), 0);
+        const overallRate = totalObjective > 0 ? Math.round((totalAttended / totalObjective) * 100) : 0;
 
-        const html = stats.map(c => {
-            const pct = Math.round(c.attendanceRate);
-            let colorClass = 'text-[#00B0FF] bg-blue-50 border-blue-100';
-            let barClass = 'from-blue-500 to-[#00B0FF]';
-            
-            if (pct < 75) {
-                colorClass = 'text-red-600 bg-red-50 border-red-100';
-                barClass = 'from-red-500 to-rose-600';
-            } else if (pct < 90) {
-                colorClass = 'text-amber-600 bg-amber-50 border-amber-100';
-                barClass = 'from-amber-400 to-amber-600';
-            }
-
-            return `
-            <div class="bg-white p-5 rounded-2xl border border-slate-200 hover:border-[#00B0FF]/30 hover:shadow-lg shadow-sm transition-all flex flex-col justify-between group relative overflow-hidden">
-                <div class="relative z-10">
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="space-y-0.5">
-                            <h4 class="text-base font-bold text-slate-900 leading-tight">${c.courseName}</h4>
-                            <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Academic Insight</p>
-                        </div>
-                        <div class="w-8 h-8 bg-blue-50 rounded-xl flex items-center justify-center border border-blue-100 text-[#00B0FF]">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative z-10 pt-3 border-t border-slate-100 mt-2">
-                    <div class="flex items-center justify-between mb-2 text-xs">
-                         <div class="flex items-center gap-1.5 text-slate-600">
-                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                             <span class="font-bold">${c.teacherName || 'TBD'}</span>
-                         </div>
-                         <div class="${colorClass} px-2 py-0.5 rounded-lg border font-black text-[9px] uppercase tracking-widest">${pct}% Yield</div>
-                    </div>
-
-                    <div class="flex items-baseline gap-1.5 mb-2 text-slate-800">
-                        <span class="text-xl font-black">${c.studentAttendedHours}<span class="text-xs font-bold text-slate-400 ml-1">Attended Hours</span></span>
-                    </div>
-
-                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
-                        <div class="bg-gradient-to-r ${barClass} h-full rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
-                    </div>
-                    
-                    <div class="flex justify-between mt-1.5">
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Objective: ${c.courseTotalHours}h</span>
-                        <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tight">${pct}% Goal</span>
-                    </div>
-                </div>
-            </div>`;
-        }).join('');
-
-        if (container) container.innerHTML = html;
+        document.getElementById('total-enrolled-courses').textContent = totalCourses;
+        document.getElementById('total-attended-hours').textContent = totalAttended + 'h';
+        document.getElementById('overall-yield').textContent = overallRate + '%';
+        
+        currentCourses = stats;
+        searchCourses();
 
     } catch (err) {
         container.innerHTML = `<p class="text-rose-500 font-bold text-center col-span-full">Failed to load courses: ${err.message}</p>`;
@@ -470,19 +440,113 @@ async function loadCourseStats() {
 }
 
 function searchCourses() {
-    const input = document.getElementById('course-search-input');
-    if (!input) return;
+    const container = document.getElementById('course-stats-container');
+    const searchInput = document.getElementById('course-search-input');
+    const thresholdFilter = document.getElementById('course-threshold-filter');
+    const sortFilter = document.getElementById('course-sort-filter');
     
-    const query = input.value.toLowerCase();
-    const cards = document.querySelectorAll('#course-stats-container > div');
+    if (!container) return;
     
-    cards.forEach(card => {
-        const titleEl = card.querySelector('h4');
-        if (titleEl) {
-            const match = titleEl.textContent.toLowerCase().includes(query);
-            card.style.display = match ? '' : 'none';
+    const query = searchInput ? searchInput.value.toLowerCase() : '';
+    const threshold = thresholdFilter ? thresholdFilter.value : '';
+    const sortBy = sortFilter ? sortFilter.value : 'name';
+    
+    let filtered = [...currentCourses];
+    
+    // 1. Search Filter
+    if (query) {
+        filtered = filtered.filter(c => 
+            c.courseName.toLowerCase().includes(query) || 
+            (c.teacherName && c.teacherName.toLowerCase().includes(query))
+        );
+    }
+    
+    // 2. Threshold Filter
+    if (threshold) {
+        filtered = filtered.filter(c => {
+            const pct = Math.round(c.attendanceRate);
+            if (threshold === 'CRITICAL') return pct < 75;
+            if (threshold === 'WARNING') return pct >= 75 && pct <= 85;
+            if (threshold === 'GOOD') return pct > 85;
+            return true;
+        });
+    }
+    
+    // 3. Sort
+    filtered.sort((a, b) => {
+        if (sortBy === 'name') {
+            return a.courseName.localeCompare(b.courseName);
+        } else if (sortBy === 'yield-low') {
+            return a.attendanceRate - b.attendanceRate;
+        } else if (sortBy === 'yield-high') {
+            return b.attendanceRate - a.attendanceRate;
         }
+        return 0;
     });
+    
+    // 4. Render
+    if (filtered.length === 0) {
+        container.innerHTML = `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm col-span-full">No courses match the filters.</div>`;
+        return;
+    }
+
+    const html = filtered.map(c => {
+        const pct = Math.round(c.attendanceRate);
+        let colorClass = 'text-[#00B0FF] bg-blue-50 border-blue-100';
+        let barClass = 'from-blue-500 to-[#00B0FF]';
+        
+        if (pct < 75) {
+            colorClass = 'text-red-600 bg-red-50 border-red-100';
+            barClass = 'from-red-500 to-rose-600';
+        } else if (pct <= 85) {
+            colorClass = 'text-amber-600 bg-amber-50 border-amber-100';
+            barClass = 'from-amber-400 to-amber-600';
+        }
+
+        return `
+        <div class="bg-white p-4 rounded-2xl border border-slate-100 hover:border-[#00B0FF]/30 hover:shadow-sm transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#00B0FF] border border-blue-100 flex-shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900 leading-tight">${c.courseName}</h4>
+                    <p class="text-xs font-medium text-slate-500 flex items-center gap-1 mt-0.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        ${c.teacherName || 'TBD'}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 w-full sm:w-auto">
+                <div class="flex-1 sm:w-32 w-full">
+                    <div class="flex justify-between mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                        <span>Progress</span>
+                        <span>${pct}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden flex">
+                        <div class="bg-gradient-to-r ${barClass} h-full rounded-full transition-all duration-1000" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col items-start sm:items-end">
+                    <span class="text-base font-black text-slate-800">${c.studentAttendedHours}h</span>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Attended</p>
+                </div>
+
+                <div class="flex flex-col items-start sm:items-end">
+                    <span class="text-base font-black text-slate-500">${c.courseTotalHours}h</span>
+                    <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Objective</p>
+                </div>
+
+                <div class="${colorClass} px-2.5 py-1 rounded-lg border font-black text-[9px] uppercase tracking-widest self-start sm:self-center">
+                    ${pct}% Yield
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    container.innerHTML = html;
 }
 
 /**
@@ -668,7 +732,7 @@ function closeScanner() {
 /**
  * --- 5. HISTORY & JUSTIFICATIONS ---
  */
-function openJustifyModal(attendanceId, courseName, dateStr) {
+function openJustifyModal(attendanceId, courseName, dateStr, hourSlots) {
     const modal = document.getElementById('justify-modal');
     document.getElementById('just-attendance-id').value = attendanceId;
     document.getElementById('just-session-display').textContent = `${courseName} (${dateStr})`;
@@ -678,12 +742,29 @@ function openJustifyModal(attendanceId, courseName, dateStr) {
     document.getElementById('just-file').value = '';
     document.getElementById('camera-preview').classList.add('hidden');
     
+    // Populate hour slot selector
+    const select = document.getElementById('just-hour-index');
+    if (select) {
+        select.innerHTML = '<option value="">All Missed Hours</option>';
+        if (hourSlots && hourSlots.length > 0) {
+            const absentSlots = hourSlots.filter(slot => slot.status === 'ABSENT');
+            absentSlots.forEach(slot => {
+                const opt = document.createElement('option');
+                opt.value = slot.hourIndex;
+                opt.textContent = `Hour ${slot.hourIndex + 1}`;
+                select.appendChild(opt);
+            });
+            // Hide container if no absent slots to target individually
+            const container = document.getElementById('just-hour-index-container');
+            if (container) container.style.display = absentSlots.length > 0 ? '' : 'none';
+        }
+    }
+    
     modal.classList.remove('hidden');
 }
 
 function toggleJustifyModal() {
     document.getElementById('justify-modal').classList.add('hidden');
-}
 }
 
 function previewFile(input) {
@@ -705,7 +786,15 @@ document.getElementById('justification-form').addEventListener('submit', async (
     const formData = new FormData();
     formData.append('attendanceId', document.getElementById('just-attendance-id').value);
     formData.append('reason', document.getElementById('just-reason').value);
-    formData.append('file', document.getElementById('just-file').files[0]);
+    
+    const fileInput = document.getElementById('just-file');
+    if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+    // Append hourIndex if a specific slot is targeted
+    const hourSelect = document.getElementById('just-hour-index');
+    if (hourSelect && hourSelect.value !== '') {
+        formData.append('hourIndex', hourSelect.value);
+    }
 
     try {
         const response = await fetch('/api/student/justifications/upload', {
@@ -714,13 +803,8 @@ document.getElementById('justification-form').addEventListener('submit', async (
         });
 
         if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
-<<<<<<< HEAD
         
         Swal.fire('Success', 'Justification successfully sent for review.', 'success');
-=======
-
-        alert("Justification successfully sent for review.");
->>>>>>> dc4ad2a060b2fea692f49afe5796e85fe485f5b0
         toggleJustifyModal();
         loadAttendanceHistory();
     } catch (err) {
@@ -733,78 +817,142 @@ async function loadAttendanceHistory() {
     if (!container) return;
     
     try {
-        // Fetch history and justifications in parallel
-        const [historyRes, justRes] = await Promise.all([
-            fetch('/api/student/attendance/history?size=100'),
-            fetch('/api/student/justifications')
+        // Fetch history, justifications, and stats in parallel
+        const statusFilter = document.getElementById('absence-status-filter');
+        const status = statusFilter ? statusFilter.value : '';
+        let url = '/api/student/attendance/history?size=100';
+        if (status) url += `&status=${status}`;
+
+        const [historyRes, justRes, statsRes] = await Promise.all([
+            fetch(url),
+            fetch('/api/student/justifications'),
+            fetch('/api/student/dashboard/stats')
         ]);
         
         const historyData = await historyRes.json();
         const historyList = historyData.content || [];
         const justifications = await justRes.json();
+        const stats = await statsRes.json();
+
+        // Populate summary cards
+        const totalAbsencesEl = document.getElementById('total-absences-count');
+        const pendingJustificationsEl = document.getElementById('pending-justifications-count');
+        if (totalAbsencesEl) totalAbsencesEl.textContent = stats.totalAbsences || 0;
+        if (pendingJustificationsEl) pendingJustificationsEl.textContent = stats.pendingJustifications || 0;
         
-        if (historyList.length === 0) {
-            container.innerHTML = '<p class="text-slate-500 text-sm text-center py-6 border border-slate-200 rounded-2xl bg-white">No session history found.</p>';
-            return;
-        }
-
-        container.innerHTML = historyList.map(h => {
-            const isAbsent = h.status === 'ABSENT';
-            let statusBadge = '';
-            let actionHtml = '';
-
-            // Status Styling
-            if (h.status === 'PRESENT') {
-                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100">PRESENT</span>';
-            } else if (h.status === 'LATE') {
-                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-100">LATE</span>';
-            } else if (h.status === 'EXCUSED') {
-                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">EXCUSED</span>';
-            } else {
-                statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100">ABSENT</span>';
-            }
-
-            // Check justifications for absences
-            if (isAbsent || h.status === 'EXCUSED') {
-                const just = justifications.find(j => j.attendanceId === h.attendanceId);
-                if (just) {
-                    const jStatus = just.status;
-                    let jStyle = jStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                 jStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                                 'bg-amber-50 text-amber-700 border-amber-100';
-                    
-                    actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                    <span class="text-xs text-slate-500 font-medium">Justification: <span class="font-bold text-slate-700 truncate max-w-[150px] inline-block align-bottom" title="${just.reason}">${just.reason}</span></span>
-                                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${jStyle}">${jStatus}</span>
-                                  </div>`;
-                } else if (isAbsent) {
-                    const safeName = (h.courseName || '').replace(/'/g, "\\'");
-                    actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100">
-                                    <button onclick="openJustifyModal(${h.attendanceId}, '${safeName}', '${h.date}')" class="w-full py-2 bg-white border-2 border-slate-200 hover:border-[#00B0FF] hover:text-[#00B0FF] hover:bg-blue-50 rounded-xl text-slate-600 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
-                                        Submit Justification
-                                    </button>
-                                  </div>`;
-                }
-            }
-
-            return `
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h4 class="font-bold text-slate-900 text-sm leading-tight">${h.courseName}</h4>
-                        <p class="text-xs text-slate-500 mt-1"><span class="font-semibold text-slate-700">${h.date}</span> • ${(h.startTime||'').substring(0,5)} - ${(h.endTime||'').substring(0,5)}</p>
-                    </div>
-                    ${statusBadge}
-                </div>
-                ${actionHtml}
-            </div>`;
-        }).join('');
+        currentHistory = historyList;
+        currentJustifications = justifications;
+        renderHistoryWithFilters();
 
     } catch (err) {
         container.innerHTML = '<p class="text-rose-500 text-sm text-center py-4">Failed to load history.</p>';
     }
-<<<<<<< HEAD
+}
+
+function renderHistoryWithFilters() {
+    const container = document.getElementById('history-list-container');
+    const justFilter = document.getElementById('absence-justification-filter');
+    
+    if (!container) return;
+    
+    const justificationFilter = justFilter ? justFilter.value : '';
+    
+    let filtered = [...currentHistory];
+    
+    // Client-side filter for Justification Status
+    if (justificationFilter) {
+        filtered = filtered.filter(h => {
+            const just = currentJustifications.find(j => j.attendanceId === h.attendanceId);
+            
+            if (justificationFilter === 'UNJUSTIFIED') {
+                return (h.status === 'ABSENT' || (h.hourSlots || []).some(s => s.status === 'ABSENT')) && !just;
+            }
+            
+            if (just) {
+                return just.status === justificationFilter;
+            }
+            
+            return false;
+        });
+    }
+    
+    if (filtered.length === 0) {
+        container.innerHTML = '<p class="text-slate-500 text-sm text-center py-6 border border-slate-200 rounded-2xl bg-white">No history records match the filters.</p>';
+        return;
+    }
+
+    container.innerHTML = filtered.map(h => {
+        const isAbsent = h.status === 'ABSENT';
+        const hasAbsentSlots = (h.hourSlots || []).some(s => s.status === 'ABSENT');
+        let statusBadge = '';
+        let actionHtml = '';
+
+        // Status Styling
+        if (h.status === 'PRESENT') {
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100">PRESENT</span>';
+        } else if (h.status === 'LATE') {
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-100">LATE</span>';
+        } else if (h.status === 'EXCUSED') {
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">EXCUSED</span>';
+        } else {
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100">ABSENT</span>';
+        }
+
+        // Hourly slot breakdown pills
+        let slotsHtml = '';
+        if (h.hourSlots && h.hourSlots.length > 0) {
+            const slotColors = {
+                'PRESENT':  'bg-emerald-50 text-emerald-700 border-emerald-100',
+                'LATE':     'bg-amber-50 text-amber-700 border-amber-100',
+                'EXCUSED':  'bg-blue-50 text-blue-700 border-blue-100',
+                'ABSENT':   'bg-rose-50 text-rose-700 border-rose-100'
+            };
+            const pillsHtml = h.hourSlots.map(slot => {
+                const colorCls = slotColors[slot.status] || slotColors['ABSENT'];
+                return `<span class="px-2 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-wider border ${colorCls}">H${slot.hourIndex + 1}: ${slot.status}</span>`;
+            }).join('');
+            slotsHtml = `<div class="flex flex-wrap gap-1.5 mt-2.5">${pillsHtml}</div>`;
+        }
+
+        // Check justifications for absences
+        if (isAbsent || hasAbsentSlots || h.status === 'EXCUSED') {
+            const just = currentJustifications.find(j => j.attendanceId === h.attendanceId);
+            if (just) {
+                const jStatus = just.status;
+                let jStyle = jStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                             jStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                             'bg-amber-50 text-amber-700 border-amber-100';
+                const slotLabel = just.hourIndex != null ? `Hour ${just.hourIndex + 1}` : 'All Hours';
+                
+                actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                <span class="text-xs text-slate-500 font-medium">Justification <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-black ml-1">${slotLabel}</span>: <span class="font-bold text-slate-700 truncate max-w-[120px] inline-block align-bottom" title="${just.reason}">${just.reason}</span></span>
+                                <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${jStyle}">${jStatus}</span>
+                              </div>`;
+            } else if (isAbsent || hasAbsentSlots) {
+                const safeName = (h.courseName || '').replace(/'/g, "\\'");
+                const slotsJson = JSON.stringify(h.hourSlots || []).replace(/"/g, '&quot;').replace(/'/g, "\\'");
+                actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100">
+                                <button onclick="openJustifyModal(${h.attendanceId}, '${safeName}', '${h.date}', ${slotsJson})" class="w-full py-2 bg-white border-2 border-slate-200 hover:border-[#00B0FF] hover:text-[#00B0FF] hover:bg-blue-50 rounded-xl text-slate-600 font-bold text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2 active:scale-95">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                    Submit Justification
+                                </button>
+                              </div>`;
+            }
+        }
+
+        return `
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="font-bold text-slate-900 text-sm leading-tight">${h.courseName}</h4>
+                    <p class="text-xs text-slate-500 mt-1"><span class="font-semibold text-slate-700">${h.date}</span> • ${(h.startTime||'').substring(0,5)} - ${(h.endTime||'').substring(0,5)}</p>
+                </div>
+                ${statusBadge}
+            </div>
+            ${slotsHtml}
+            ${actionHtml}
+        </div>`;
+    }).join('');
 }
 
 /**

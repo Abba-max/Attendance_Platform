@@ -143,16 +143,30 @@ public class StudentServiceImpl implements StudentService {
             records = attendanceRecordRepository.findByUserUserId(userId, pageable);
         }
 
-        return records.map(record -> StudentAttendanceHistoryDto.builder()
-                .attendanceId(record.getAttendanceId())
-                .courseName(record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A")
-                .date(record.getSession().getDate())
-                .startTime(record.getSession().getStartTime())
-                .endTime(record.getSession().getEndTime())
-                .status(record.getStatus())
-                .checkInTime(record.getTimestamp())
-                .teacherName(record.getSession().getTeacher() != null ? record.getSession().getTeacher().getFirstName() + " " + record.getSession().getTeacher().getLastName() : "N/A")
-                .build());
+        return records.map(record -> {
+            // Map granular hour slots so the frontend can display per-slot badges
+            java.util.List<StudentAttendanceHistoryDto.HourSlotDto> slots = null;
+            if (record.getHourSlots() != null && !record.getHourSlots().isEmpty()) {
+                slots = record.getHourSlots().stream()
+                        .sorted(java.util.Comparator.comparing(
+                                group3.en.stuattendance.Attendancemanager.Model.AttendanceHour::getHourIndex))
+                        .map(h -> new StudentAttendanceHistoryDto.HourSlotDto(
+                                h.getHourIndex(), h.getStatus().name()))
+                        .collect(Collectors.toList());
+            }
+            return StudentAttendanceHistoryDto.builder()
+                    .attendanceId(record.getAttendanceId())
+                    .courseName(record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A")
+                    .date(record.getSession().getDate())
+                    .startTime(record.getSession().getStartTime())
+                    .endTime(record.getSession().getEndTime())
+                    .status(record.getStatus())
+                    .checkInTime(record.getTimestamp())
+                    .teacherName(record.getSession().getTeacher() != null
+                            ? record.getSession().getTeacher().getFirstName() + " " + record.getSession().getTeacher().getLastName() : "N/A")
+                    .hourSlots(slots)
+                    .build();
+        });
     }
 
     @Override

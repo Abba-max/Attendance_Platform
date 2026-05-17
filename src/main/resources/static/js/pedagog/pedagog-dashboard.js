@@ -2956,6 +2956,151 @@ window.exportHubAttendance = function() {
 };
 
 // ==========================================
+// JUSTIFICATION REVIEW QUEUE
+// ==========================================
+
+window.loadPendingJustifications = async function () {
+    const container = document.getElementById('justificationQueueList');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center py-14 bg-white rounded-2xl border border-slate-100 text-slate-400">
+            <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+            <p class="text-sm font-bold">Loading pending justifications...</p>
+        </div>`;
+
+    try {
+        const res = await fetch('/api/pedagog/justifications/pending?size=50');
+        if (!res.ok) throw new Error('Failed to load justifications');
+        const page = await res.json();
+        // API returns a paginated Page<JustificationDto>, extract content
+        renderJustificationQueue(page.content || page);
+    } catch (e) {
+        console.error('Justification queue error:', e);
+        container.innerHTML = `
+            <div class="md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center py-14 bg-white rounded-2xl border border-rose-100 text-rose-500">
+                <svg class="w-10 h-10 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-sm font-bold">Failed to load queue: ${escapeHtml(e.message)}</p>
+            </div>`;
+    }
+};
+
+function renderJustificationQueue(list) {
+    const container = document.getElementById('justificationQueueList');
+    if (!container) return;
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `
+            <div class="md:col-span-2 xl:col-span-3 flex flex-col items-center justify-center py-14 bg-white rounded-2xl border border-slate-100 text-slate-400">
+                <svg class="w-12 h-12 mb-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-base font-black text-slate-600 mb-1">All caught up!</p>
+                <p class="text-sm font-medium text-slate-400">No pending justifications to review.</p>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(j => {
+        const slotLabel = (j.hourIndex != null)
+            ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 border border-indigo-100">
+                   <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                   Hour ${j.hourIndex + 1}
+               </span>`
+            : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-100 text-slate-500 border border-slate-200">
+                   All Hours
+               </span>`;
+
+        const fileHtml = j.documentPath
+            ? `<a href="/${escapeHtml(j.documentPath)}" target="_blank" class="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-[#00B0FF] hover:underline">
+                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                   View Attachment
+               </a>`
+            : '';
+
+        const dateStr = j.attendanceDate ? new Date(j.attendanceDate).toLocaleDateString() : '';
+        const initials = (j.studentName || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+        return `
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group" id="justCard-${j.justificationId}">
+            <!-- Card Header -->
+            <div class="px-5 py-4 border-b border-slate-50 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00B0FF] to-blue-600 text-white flex items-center justify-center text-xs font-black shadow-md shadow-blue-500/20 shrink-0">${initials}</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-black text-slate-800 leading-tight truncate">${escapeHtml(j.studentName || 'Unknown Student')}</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate mt-0.5">${escapeHtml(j.courseName || '')} • ${escapeHtml(dateStr)}</p>
+                </div>
+                ${slotLabel}
+            </div>
+
+            <!-- Reason body -->
+            <div class="px-5 py-4 flex-1">
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Reason</p>
+                <p class="text-sm text-slate-700 font-medium leading-relaxed line-clamp-3">${escapeHtml(j.reason || '—')}</p>
+                ${fileHtml}
+            </div>
+
+            <!-- Actions -->
+            <div class="px-5 py-4 border-t border-slate-50 flex gap-2">
+                <button onclick="processJustification(${j.justificationId}, 'APPROVED')"
+                        class="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    Approve
+                </button>
+                <button onclick="processJustification(${j.justificationId}, 'REJECTED')"
+                        class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-rose-500/20 flex items-center justify-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Reject
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.processJustification = async function (justificationId, decision) {
+    const card = document.getElementById('justCard-' + justificationId);
+    if (card) {
+        const btns = card.querySelectorAll('button');
+        btns.forEach(b => { b.disabled = true; b.classList.add('opacity-50'); });
+    }
+
+    try {
+        const res = await fetch(`/api/pedagog/justifications/${justificationId}/${decision === 'APPROVED' ? 'approve' : 'reject'}`, {
+            method: 'POST'
+        });
+        if (!res.ok) throw new Error(await res.text());
+
+        // Animate card out
+        if (card) {
+            card.style.transition = 'opacity 0.3s, transform 0.3s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
+            setTimeout(() => card.remove(), 320);
+        }
+
+        const isApproved = decision === 'APPROVED';
+        showNotification(
+            isApproved ? 'Justification approved ✓' : 'Justification rejected',
+            isApproved ? 'success' : 'info'
+        );
+
+        // If queue is now empty, show empty state
+        setTimeout(() => {
+            const remaining = document.querySelectorAll('#justificationQueueList [id^="justCard-"]');
+            if (remaining.length === 0) renderJustificationQueue([]);
+        }, 400);
+
+    } catch (e) {
+        console.error('Process justification error:', e);
+        showNotification('Failed to process: ' + e.message, 'error');
+        if (card) {
+            const btns = card.querySelectorAll('button');
+            btns.forEach(b => { b.disabled = false; b.classList.remove('opacity-50'); });
+        }
+    }
+};
+
+
+
+// ==========================================
 // NAVIGATION SYSTEM
 // ==========================================
 

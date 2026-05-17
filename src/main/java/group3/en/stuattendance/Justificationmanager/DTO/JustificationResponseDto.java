@@ -14,6 +14,7 @@ public class JustificationResponseDto {
     private String courseName;
     private java.time.LocalDate sessionDate;
     private String reason;
+    private Integer hourIndex;
     private JustificationStatus status;
     private String reasonForRejection;
     private LocalDateTime createdAt;

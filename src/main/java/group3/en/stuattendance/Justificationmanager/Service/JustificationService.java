@@ -29,7 +29,7 @@ public interface JustificationService {
 
     long countByStudent(Integer studentId);
 
-    group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, org.springframework.web.multipart.MultipartFile file, String reason);
+    group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, org.springframework.web.multipart.MultipartFile file, String reason, Integer hourIndex);
 
     java.util.List<group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto> getJustificationsForStudent(Integer userId);
 }

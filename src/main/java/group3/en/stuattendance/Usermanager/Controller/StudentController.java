@@ -79,8 +79,9 @@ public class StudentController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam("attendanceId") Integer attendanceId,
             @RequestParam("reason") String reason,
+            @RequestParam(value = "hourIndex", required = false) Integer hourIndex,
             @RequestPart("file") org.springframework.web.multipart.MultipartFile file) {
-        return ResponseEntity.ok(justificationService.submitJustification(userDetails.getUserId(), attendanceId, file, reason));
+        return ResponseEntity.ok(justificationService.submitJustification(userDetails.getUserId(), attendanceId, file, reason, hourIndex));
     }
 
     @GetMapping("/justifications")

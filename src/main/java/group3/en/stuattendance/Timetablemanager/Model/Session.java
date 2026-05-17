@@ -100,9 +100,12 @@ public class Session {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @Column(name = "attendance_launched_at")
+    private LocalDateTime attendanceLaunchedAt;
+
     public Session() {}
 
-    public Session(Integer sessionId, String day, LocalDate date, LocalTime startTime, LocalTime endTime, Integer week, String location, String qrCode, String prevQr, String pin, Course course, User teacher, Classroom classroom, TimetableEntry entry, SessionStatus status, LocalDateTime actualStart, LocalDateTime actualEnd, Boolean isValidated, Set<AttendanceRecord> records, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public Session(Integer sessionId, String day, LocalDate date, LocalTime startTime, LocalTime endTime, Integer week, String location, String qrCode, String prevQr, String pin, Course course, User teacher, Classroom classroom, TimetableEntry entry, SessionStatus status, LocalDateTime actualStart, LocalDateTime actualEnd, Boolean isValidated, Set<AttendanceRecord> records, LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime attendanceLaunchedAt) {
         this.sessionId = sessionId;
         this.day = day;
         this.date = date;
@@ -124,6 +127,7 @@ public class Session {
         this.attendanceRecords = records;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.attendanceLaunchedAt = attendanceLaunchedAt;
     }
 
     public static SessionBuilder builder() {
@@ -194,6 +198,9 @@ public class Session {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime time) { this.updatedAt = time; }
 
+    public LocalDateTime getAttendanceLaunchedAt() { return attendanceLaunchedAt; }
+    public void setAttendanceLaunchedAt(LocalDateTime time) { this.attendanceLaunchedAt = time; }
+
     public boolean isActive() {
         LocalTime now = LocalTime.now();
         LocalDate today = LocalDate.now();
@@ -247,6 +254,7 @@ public class Session {
         private Set<AttendanceRecord> records = new HashSet<>();
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private LocalDateTime attendanceLaunchedAt;
 
         public SessionBuilder sessionId(Integer id) { this.sessionId = id; return this; }
         public SessionBuilder day(String day) { this.day = day; return this; }
@@ -269,9 +277,10 @@ public class Session {
         public SessionBuilder attendanceRecords(Set<AttendanceRecord> records) { this.records = records; return this; }
         public SessionBuilder createdAt(LocalDateTime time) { this.createdAt = time; return this; }
         public SessionBuilder updatedAt(LocalDateTime time) { this.updatedAt = time; return this; }
+        public SessionBuilder attendanceLaunchedAt(LocalDateTime time) { this.attendanceLaunchedAt = time; return this; }
 
         public Session build() {
-            return new Session(sessionId, day, date, startTime, endTime, week, location, qrCode, prevQr, pin, course, teacher, classroom, entry, status, actualStart, actualEnd, isValidated, records, createdAt, updatedAt);
+            return new Session(sessionId, day, date, startTime, endTime, week, location, qrCode, prevQr, pin, course, teacher, classroom, entry, status, actualStart, actualEnd, isValidated, records, createdAt, updatedAt, attendanceLaunchedAt);
         }
     }
 }

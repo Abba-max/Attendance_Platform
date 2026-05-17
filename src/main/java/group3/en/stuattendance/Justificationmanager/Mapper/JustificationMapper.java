@@ -23,6 +23,7 @@ public class JustificationMapper {
                         justification.getAttendanceRecord().getSession().getCourse().getCourseName() : null)
                 .documentPath(justification.getDocumentPath())
                 .reason(justification.getReason())
+                .hourIndex(justification.getHourIndex())
                 .status(justification.getStatus())
                 .reasonForRejection(justification.getReasonForRejection())
                 .createdAt(justification.getCreatedAt())
@@ -36,6 +37,7 @@ public class JustificationMapper {
                 .justificationId(dto.getJustificationId())
                 .documentPath(dto.getDocumentPath())
                 .reason(dto.getReason())
+                .hourIndex(dto.getHourIndex())
                 .status(dto.getStatus())
                 .reasonForRejection(dto.getReasonForRejection())
                 .build();

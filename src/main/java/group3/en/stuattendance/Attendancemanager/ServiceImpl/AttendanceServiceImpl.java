@@ -30,6 +30,20 @@ public class AttendanceServiceImpl implements AttendanceService {
     private final AttendanceRecordMapper attendanceRecordMapper;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
+    private static java.time.LocalDateTime mockCurrentTime = null;
+
+    public static void setMockCurrentTime(java.time.LocalDateTime time) {
+        mockCurrentTime = time;
+    }
+
+    public static void resetMockCurrentTime() {
+        mockCurrentTime = null;
+    }
+
+    private java.time.LocalDateTime getCurrentTime() {
+        return mockCurrentTime != null ? mockCurrentTime : java.time.LocalDateTime.now();
+    }
+
     public AttendanceServiceImpl(
             AttendanceRecordRepository attendanceRecordRepository,
             SessionRepository sessionRepository,
@@ -53,7 +67,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         AttendanceRecord record = resolveAttendanceRecord(user, session);
 
         record.setStatus(dto.getStatus());
-        record.setTimestamp(LocalDateTime.now());
+        record.setTimestamp(getCurrentTime());
         record.setComments(dto.getComments());
         record.setVerifiedByTeacher(dto.getVerifiedByTeacher());
 
@@ -145,7 +159,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         AttendanceRecord record = resolveAttendanceRecord(teacher, session);
 
         record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
-        record.setTimestamp(LocalDateTime.now());
+        record.setTimestamp(getCurrentTime());
         record.setVerifiedByTeacher(true);
         record.setComments("Teacher self-marked presence.");
 
@@ -166,7 +180,7 @@ public class AttendanceServiceImpl implements AttendanceService {
             AttendanceRecord record = resolveAttendanceRecord(student, session);
 
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
-            record.setTimestamp(LocalDateTime.now());
+            record.setTimestamp(getCurrentTime());
             record.setComments(comment);
             record.setVerifiedByTeacher(true);
 
@@ -178,6 +192,10 @@ public class AttendanceServiceImpl implements AttendanceService {
     public String generateSessionToken(Integer sessionId, String type) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found: " + sessionId));
+
+        if (session.getAttendanceLaunchedAt() == null) {
+            session.setAttendanceLaunchedAt(getCurrentTime());
+        }
 
         if ("PIN".equalsIgnoreCase(type)) {
             String pin = String.format("%04d", (int) (Math.random() * 10000));
@@ -226,7 +244,7 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         if (qrValid) record.setQrValidated(true);
         if (pinValid) record.setPinValidated(true);
-        record.setTimestamp(LocalDateTime.now());
+        record.setTimestamp(getCurrentTime());
 
         // Optional geo enrichment — does NOT affect validity
         if (location != null && !location.isBlank()) {
@@ -234,15 +252,86 @@ public class AttendanceServiceImpl implements AttendanceService {
             record.setLocationAtCheckin(location);
         }
 
-        // ── Mark ALL hour slots PRESENT ──
+        // ── Mark hour slots PRESENT based on check-in timestamp and 15-minute deadlines ──
+        java.time.LocalDateTime dtNow = getCurrentTime();
+        java.time.LocalTime tNow = dtNow.toLocalTime();
+        java.time.LocalTime sessionStart = session.getStartTime();
+        java.time.LocalTime sessionEnd = session.getEndTime();
+
         int totalHours = 1;
-        if (session.getStartTime() != null && session.getEndTime() != null) {
-            totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+        if (sessionStart != null && sessionEnd != null) {
+            totalHours = (int) ChronoUnit.HOURS.between(sessionStart, sessionEnd);
         }
         if (totalHours < 1) totalHours = 1;
 
+        // Step 1: Detect targeted slot index k
+        int checkinSlotIndex = 0;
+        if (sessionStart != null) {
+            if (tNow.isBefore(sessionStart)) {
+                // Early check-in targets the first slot
+                checkinSlotIndex = 0;
+            } else if (sessionEnd != null && (tNow.isAfter(sessionEnd) || tNow.equals(sessionEnd))) {
+                // Late check-in targets the last slot
+                checkinSlotIndex = totalHours - 1;
+            } else {
+                // In-class check-in: find the slot k where sessionStart + k <= tNow < sessionStart + k + 1
+                for (int i = 0; i < totalHours; i++) {
+                    java.time.LocalTime slotStart = sessionStart.plusHours(i);
+                    java.time.LocalTime slotEnd = slotStart.plusHours(1);
+                    if ((tNow.isAfter(slotStart) || tNow.equals(slotStart)) && tNow.isBefore(slotEnd)) {
+                        checkinSlotIndex = i;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Step 2: Evaluate Deadline (Rule A) and Attendance Launch Grace Period (Rule B)
+        boolean standardOnTime = true;
+        boolean gracePeriodOnTime = false;
+
+        if (sessionStart != null) {
+            java.time.LocalTime slotStart = sessionStart.plusHours(checkinSlotIndex);
+            java.time.LocalTime slotEnd = slotStart.plusHours(1);
+            java.time.LocalTime slotDeadline = slotEnd.minusMinutes(15);
+
+            // Rule A: Standard Deadline
+            standardOnTime = tNow.isBefore(slotDeadline) || tNow.equals(slotDeadline);
+
+            // Rule B: Teacher Attendance Launch Grace Period (+10m)
+            java.time.LocalDateTime launchedAt = session.getAttendanceLaunchedAt();
+            if (launchedAt != null) {
+                java.time.LocalDateTime graceDeadline = launchedAt.plusMinutes(10);
+                gracePeriodOnTime = dtNow.isBefore(graceDeadline) || dtNow.isEqual(graceDeadline);
+            }
+        }
+
+        // Student is on-time for the active slot k if standard deadline OR grace period is satisfied
+        boolean onTimeForActiveSlot = standardOnTime || gracePeriodOnTime;
+
+        // Assign hour slots
         for (int i = 0; i < totalHours; i++) {
-            updateHourSlot(record, i, group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT, false);
+            group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus slotStatus;
+            if (i < checkinSlotIndex) {
+                // Preceding hour slots are marked PRESENT
+                slotStatus = group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT;
+            } else if (i == checkinSlotIndex) {
+                // Active hour slot is PRESENT if they satisfy slot deadlines
+                slotStatus = onTimeForActiveSlot 
+                        ? group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT 
+                        : group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT;
+            } else {
+                // Subsequent hour slots are marked ABSENT
+                slotStatus = group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT;
+            }
+            updateHourSlot(record, i, slotStatus, false);
+        }
+
+        // Set overall record status based on grace period
+        if (gracePeriodOnTime) {
+            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
+        } else {
+            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE);
         }
 
         updateRecordStatus(record);
@@ -298,7 +387,7 @@ public class AttendanceServiceImpl implements AttendanceService {
                             .hourIndex(hourIndex)
                             .status(status)
                             .verifiedByTeacher(verified)
-                            .timestamp(LocalDateTime.now())
+                            .timestamp(getCurrentTime())
                             .build();
                     record.getHourSlots().add(newHour);
                     return newHour;
@@ -306,7 +395,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         // Always update — ensures re-check-in works correctly
         hour.setStatus(status);
         hour.setVerifiedByTeacher(verified);
-        hour.setTimestamp(LocalDateTime.now());
+        hour.setTimestamp(getCurrentTime());
     }
 
     @Override
@@ -342,21 +431,29 @@ public class AttendanceServiceImpl implements AttendanceService {
     private void updateRecordStatus(AttendanceRecord record) {
         if (record.getHourSlots() == null) record.setHourSlots(new java.util.ArrayList<>());
 
-        long attendedCount = record.getHourSlots().stream()
+        long presentCount = record.getHourSlots().stream()
                 .filter(h -> h != null && h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT)
                 .count();
-        record.setHoursAttended((int) attendedCount);
+        long lateCount = record.getHourSlots().stream()
+                .filter(h -> h != null && h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
+                .count();
+        long excusedCount = record.getHourSlots().stream()
+                .filter(h -> h != null && h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED)
+                .count();
 
-        // PRESENT if: teacher manually verified, OR student used QR, OR student used PIN, OR any hour attended
-        boolean isPresent = Boolean.TRUE.equals(record.getVerifiedByTeacher())
-                || Boolean.TRUE.equals(record.getQrValidated())
-                || Boolean.TRUE.equals(record.getPinValidated())
-                || attendedCount > 0;
+        record.setHoursAttended((int) (presentCount + lateCount));
 
-        if (isPresent) {
-            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
-        } else if (record.getStatus() == null) {
+        if (presentCount == 0 && lateCount == 0 && excusedCount == 0) {
             record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
+        } else {
+            // Keep existing non-absent status if already set (e.g. LATE), otherwise default to PRESENT
+            if (record.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT || record.getStatus() == null) {
+                record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
+            }
+            // If there are only excused slots, overall status becomes EXCUSED
+            if (presentCount == 0 && lateCount == 0 && excusedCount > 0) {
+                record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+            }
         }
     }
 

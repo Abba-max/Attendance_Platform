@@ -23,4 +23,6 @@ public interface JustificationRepository extends JpaRepository<Justification, In
     long countByUserUserId(Integer userId);
 
     boolean existsByAttendanceRecordAttendanceId(Integer attendanceId);
+
+    boolean existsByAttendanceRecordAttendanceIdAndHourIndex(Integer attendanceId, Integer hourIndex);
 }

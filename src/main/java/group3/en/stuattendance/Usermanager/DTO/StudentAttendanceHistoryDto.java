@@ -4,6 +4,7 @@ import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.List;
 
 public class StudentAttendanceHistoryDto {
     private Integer attendanceId;
@@ -14,6 +15,19 @@ public class StudentAttendanceHistoryDto {
     private AttendanceStatus status;
     private LocalDateTime checkInTime;
     private String teacherName;
+    private List<HourSlotDto> hourSlots;
+
+    /** Lightweight inner DTO for each hourly slot status. */
+    public static class HourSlotDto {
+        private Integer hourIndex;
+        private String status;
+        public HourSlotDto() {}
+        public HourSlotDto(Integer hourIndex, String status) { this.hourIndex = hourIndex; this.status = status; }
+        public Integer getHourIndex() { return hourIndex; }
+        public void setHourIndex(Integer hourIndex) { this.hourIndex = hourIndex; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+    }
 
     public StudentAttendanceHistoryDto() {}
 
@@ -26,6 +40,11 @@ public class StudentAttendanceHistoryDto {
         this.status = status;
         this.checkInTime = checkInTime;
         this.teacherName = teacherName;
+    }
+
+    public StudentAttendanceHistoryDto(Integer attendanceId, String courseName, LocalDate date, LocalTime startTime, LocalTime endTime, AttendanceStatus status, LocalDateTime checkInTime, String teacherName, List<HourSlotDto> hourSlots) {
+        this(attendanceId, courseName, date, startTime, endTime, status, checkInTime, teacherName);
+        this.hourSlots = hourSlots;
     }
 
     public static StudentAttendanceHistoryDtoBuilder builder() {
@@ -57,6 +76,9 @@ public class StudentAttendanceHistoryDto {
     public String getTeacherName() { return teacherName; }
     public void setTeacherName(String name) { this.teacherName = name; }
 
+    public List<HourSlotDto> getHourSlots() { return hourSlots; }
+    public void setHourSlots(List<HourSlotDto> hourSlots) { this.hourSlots = hourSlots; }
+
     public static class StudentAttendanceHistoryDtoBuilder {
         private Integer attendanceId;
         private String courseName;
@@ -66,6 +88,7 @@ public class StudentAttendanceHistoryDto {
         private AttendanceStatus status;
         private LocalDateTime checkInTime;
         private String teacherName;
+        private List<HourSlotDto> hourSlots;
 
         public StudentAttendanceHistoryDtoBuilder attendanceId(Integer id) { this.attendanceId = id; return this; }
         public StudentAttendanceHistoryDtoBuilder courseName(String name) { this.courseName = name; return this; }
@@ -75,9 +98,10 @@ public class StudentAttendanceHistoryDto {
         public StudentAttendanceHistoryDtoBuilder status(AttendanceStatus status) { this.status = status; return this; }
         public StudentAttendanceHistoryDtoBuilder checkInTime(LocalDateTime time) { this.checkInTime = time; return this; }
         public StudentAttendanceHistoryDtoBuilder teacherName(String name) { this.teacherName = name; return this; }
+        public StudentAttendanceHistoryDtoBuilder hourSlots(List<HourSlotDto> hourSlots) { this.hourSlots = hourSlots; return this; }
 
         public StudentAttendanceHistoryDto build() {
-            return new StudentAttendanceHistoryDto(attendanceId, courseName, date, startTime, endTime, status, checkInTime, teacherName);
+            return new StudentAttendanceHistoryDto(attendanceId, courseName, date, startTime, endTime, status, checkInTime, teacherName, hourSlots);
         }
     }
 }

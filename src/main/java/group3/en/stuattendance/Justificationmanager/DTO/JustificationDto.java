@@ -23,6 +23,7 @@ public class JustificationDto {
     private String courseName;
     private String documentPath;
     private String reason;
+    private Integer hourIndex;
     private JustificationStatus status;
     private String reasonForRejection;
     private LocalDateTime createdAt;

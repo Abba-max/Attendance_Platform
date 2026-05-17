@@ -36,6 +36,7 @@ public class JustificationServiceImpl implements JustificationService {
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final JustificationMapper justificationMapper;
     private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
+    private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -45,12 +46,14 @@ public class JustificationServiceImpl implements JustificationService {
             UserRepository userRepository,
             AttendanceRecordRepository attendanceRecordRepository,
             JustificationMapper justificationMapper,
-            group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService) {
+            group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService,
+            group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService) {
         this.justificationRepository = justificationRepository;
         this.userRepository = userRepository;
         this.attendanceRecordRepository = attendanceRecordRepository;
         this.justificationMapper = justificationMapper;
         this.notificationService = notificationService;
+        this.attendanceService = attendanceService;
     }
 
     @Override
@@ -122,7 +125,34 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setReasonForRejection(null);
         
         if (justification.getAttendanceRecord() != null) {
-            justification.getAttendanceRecord().setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+            AttendanceRecord record = justification.getAttendanceRecord();
+            Integer sessionId = record.getSession().getSessionId();
+            Integer userId = justification.getUser().getUserId();
+            
+            if (justification.getHourIndex() != null) {
+                attendanceService.markHourStatus(sessionId, userId, justification.getHourIndex(), 
+                        group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+            } else {
+                int totalHours = 1;
+                if (record.getSession().getStartTime() != null && record.getSession().getEndTime() != null) {
+                    totalHours = (int) java.time.temporal.ChronoUnit.HOURS.between(
+                            record.getSession().getStartTime(), record.getSession().getEndTime());
+                }
+                if (totalHours < 1) totalHours = 1;
+
+                for (int i = 0; i < totalHours; i++) {
+                    final int idx = i;
+                    boolean isAbsent = record.getHourSlots().stream()
+                            .filter(h -> h.getHourIndex() == idx)
+                            .findFirst()
+                            .map(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                            .orElse(true);
+                    if (isAbsent) {
+                        attendanceService.markHourStatus(sessionId, userId, idx, 
+                                group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.EXCUSED);
+                    }
+                }
+            }
         }
         
         Justification saved = justificationRepository.save(justification);
@@ -166,7 +196,7 @@ public class JustificationServiceImpl implements JustificationService {
     }
 
     @Override
-    public group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, MultipartFile file, String reason) {
+    public group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto submitJustification(Integer userId, Integer attendanceId, MultipartFile file, String reason, Integer hourIndex) {
         AttendanceRecord record = attendanceRecordRepository.findById(attendanceId)
                 .orElseThrow(() -> new EntityNotFoundException("Attendance record not found with id: " + attendanceId));
 
@@ -174,12 +204,25 @@ public class JustificationServiceImpl implements JustificationService {
             throw new RuntimeException("Unauthorized: This attendance record does not belong to you.");
         }
 
-        if (record.getStatus() != group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT) {
-            throw new RuntimeException("Justification can only be submitted for ABSENT records.");
+        if (hourIndex != null) {
+            boolean isAbsent = record.getHourSlots().stream()
+                    .filter(h -> h.getHourIndex().equals(hourIndex))
+                    .findFirst()
+                    .map(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
+                    .orElse(true);
+            if (!isAbsent) {
+                throw new RuntimeException("Justification can only be submitted for ABSENT hour slots.");
+            }
+        } else {
+            boolean hasAbsent = record.getHourSlots() == null || record.getHourSlots().isEmpty() ||
+                    record.getHourSlots().stream().anyMatch(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
+            if (!hasAbsent) {
+                throw new RuntimeException("Justification can only be submitted if there are ABSENT hour slots.");
+            }
         }
 
-        if (justificationRepository.existsByAttendanceRecordAttendanceId(attendanceId)) {
-            throw new RuntimeException("A justification has already been submitted for this absence.");
+        if (justificationRepository.existsByAttendanceRecordAttendanceIdAndHourIndex(attendanceId, hourIndex)) {
+            throw new RuntimeException("A justification has already been submitted for this target.");
         }
 
         String path = null;
@@ -194,6 +237,7 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setAttendanceRecord(record);
         justification.setDocumentPath(path);
         justification.setReason(reason);
+        justification.setHourIndex(hourIndex);
         justification.setStatus(JustificationStatus.PENDING);
 
         Justification saved = justificationRepository.save(justification);
@@ -204,6 +248,7 @@ public class JustificationServiceImpl implements JustificationService {
                 .courseName(record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A")
                 .sessionDate(record.getSession().getDate())
                 .reason(saved.getReason())
+                .hourIndex(saved.getHourIndex())
                 .status(saved.getStatus())
                 .createdAt(saved.getCreatedAt())
                 .build();
@@ -219,6 +264,7 @@ public class JustificationServiceImpl implements JustificationService {
                         .courseName(j.getAttendanceRecord().getSession().getCourse() != null ? j.getAttendanceRecord().getSession().getCourse().getCourseName() : "N/A")
                         .sessionDate(j.getAttendanceRecord().getSession().getDate())
                         .reason(j.getReason())
+                        .hourIndex(j.getHourIndex())
                         .status(j.getStatus())
                         .reasonForRejection(j.getReasonForRejection())
                         .createdAt(j.getCreatedAt())
