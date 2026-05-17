@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="pwa-headers">
+    <!-- PWA Integration Meta Tags -->
+    <link rel="manifest" th:href="@{/manifest.json}">
+    <meta name="theme-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Attendee">
+    
+    <!-- PWA Icons Mapping -->
+    <link rel="apple-touch-icon" th:href="@{/image/logo.png}">
+    
+    <!-- Centralized PWA Manager Script -->
+    <script th:src="@{/js/pwa.js}" defer></script>
+</head>
+</html>

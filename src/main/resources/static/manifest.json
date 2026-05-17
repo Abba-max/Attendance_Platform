@@ -1,22 +1,17 @@
 {
-  "name": "Attendee Student Attendance System",
+  "name": "Attendee",
   "short_name": "Attendee",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#00B0FF",
-  "description": "High-precision mobile attendance management system with rotating QR codes.",
+  "theme_color": "#1e293b",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "/image/logo.png",
-      "sizes": "192x192",
+      "sizes": "192x192 384x384 512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/image/logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
     }
   ]
 }
