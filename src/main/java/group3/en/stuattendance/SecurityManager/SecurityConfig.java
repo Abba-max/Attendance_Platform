@@ -63,7 +63,10 @@ public class SecurityConfig {
                                 "/images/**",
                                 "/webjars/**",
                                 "/favicon.ico",
-                                "/error"
+                                "/error",
+                                "/manifest.json",
+                                "/sw.js",
+                                "/offline.html"
                         ).permitAll()
                         .requestMatchers("/admin/classrooms/**").hasAnyRole("ADMIN", "PEDAGOG")
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
@@ -147,7 +150,7 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring()
-                .requestMatchers("/css/**", "/js/**", "/image/**", "/favicon.ico");
+                .requestMatchers("/css/**", "/js/**", "/image/**", "/favicon.ico", "/manifest.json", "/sw.js", "/offline.html");
     }
 
     @Bean
