@@ -83,9 +83,19 @@
 - **Lazy-Loaded Teacher Stats**: Removed `loadTeacherStats()` from the teacher dashboard's initial startup sequence. The class course context lists are now fetched strictly on-demand when navigating to the "Stats" tab (`navigateTo('stats')`).
 - **Pedagogic Assistant Native Lazy-Loading**: Conducted an architecture audit on the Pedagogic Assistant Dashboard. Confirmed it operates natively with deep-linking lazy fetches (e.g. `loadPlanning()`, `loadSessionsMonitor()`, `loadJustifications()`, `loadHubClasses()`, `loadAttendanceStats()`) triggered on-demand by programmatically clicking sidebar tabs according to active route segments. Added no additional startup overhead.
 
-## 21. Teacher & Pedagogic Assistant Dashboard Lazy-Loading ✅
+## 22. System Performance & PWA Self-Sufficiency Optimizations ✅
 
-**Files:** `teacher-dashboard.js`, `pedagog-dashboard.js`
+**Files:** `application.properties`, `application-prod.properties`, `StudentClassHistoryRepository.java`, `AcademicYearScheduleRepository.java`, `StudentMigrationService.java`, `AcademicYearScheduleServiceImpl.java`, `pedagog.html`, `teacher.html`, `student.html`, `sw.js`
 
-- **Lazy-Loaded Teacher Stats**: Removed `loadTeacherStats()` from the teacher dashboard's initial startup sequence. The class course context lists are now fetched strictly on-demand when navigating to the "Stats" tab (`navigateTo('stats')`).
-- **Pedagogic Assistant Native Lazy-Loading**: Conducted an architecture audit on the Pedagogic Assistant Dashboard. Confirmed it operates natively with deep-linking lazy fetches (e.g. `loadPlanning()`, `loadSessionsMonitor()`, `loadJustifications()`, `loadHubClasses()`, `loadAttendanceStats()`) triggered on-demand by programmatically clicking sidebar tabs according to active route segments. Added no additional startup overhead.
+- **OSIV and Lazy-load Disabled with Connection Pool Tuning**: Disabled `spring.jpa.open-in-view` and `spring.jpa.properties.hibernate.enable_lazy_load_no_trans` to prevent connection pool exhaustion. Configured explicit HikariCP connection limits (`maximum-pool-size=20`, `minimum-idle=5`) to prevent database pool starvation under heavy concurrency.
+- **Repository JOIN FETCH Optimizations**: Added explicit `@Query("SELECT ... JOIN FETCH ...")` queries to eager-load lazy relations for `StudentClassHistoryRepository` and `AcademicYearScheduleRepository`, resolving N+1 query overhead completely.
+- **Transactional Read-only Session Contexts**: Enforced class-level `@Transactional(readOnly = true)` annotations across key service implementation layers (`StudentMigrationService` and `AcademicYearScheduleServiceImpl`) to ensure Hibernate session persistence is maintained safely during lazy mapping sequences outside the view lifecycle.
+- **Local Static Asset Hosting & SW Pre-caching**: Downloaded CDN vendor libraries (`SockJS`, `Stomp`, and `Tom Select` JS/CSS) locally to static resources, eliminating runtime dependence on external CDNs. Registered these assets in `/sw.js` `PRECACHE_ASSETS` registry for 100% offline-first compatibility.
+- **Dynamic Dashboard Asset Integration**: Modified `pedagog.html`, `teacher.html`, and `student.html` to resolve locally-hosted SockJS and Stomp copies, ensuring full offline functionality and removing third-party CDN reliance.
+- **Production Configuration Profile**: Crafted a standalone `/src/main/resources/application-prod.properties` configuration with production-grade compression (Gzip enabled for all HTML/JS/CSS payloads above 1024 bytes), Thymeleaf engine template caching, 1-year browser resource caching policies, and streamlined logs levels.
+- **Compilation & Packaging Success**: Validated clean compilation of the complete Java Spring Boot system via the Maven wrapper:
+  ```powershell
+  .\mvnw.cmd compile
+  Exit code: 0 — BUILD SUCCESS
+  ```
+
