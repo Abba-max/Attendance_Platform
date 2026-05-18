@@ -1965,6 +1965,8 @@
         username: /*[[${username}]]*/ 'Admin'
     };
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 <script src="/js/pedagog/pedagog-dashboard.js"></script>
 
 <!-- Shared UI Components -->
@@ -2207,7 +2209,6 @@
     })();
 </script>
 
-<script src="/js/pedagog/pedagog-dashboard.js"></script>
 <script th:src="@{/js/pedagog/migration-module.js}"></script>
 <div th:replace="~{fragments/ui :: modernConfirm}"></div>
 </body>
