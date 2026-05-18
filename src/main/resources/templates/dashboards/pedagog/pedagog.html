@@ -17,7 +17,7 @@
     <link rel="stylesheet" th:href="@{/css/main.css}">
     <link rel="stylesheet" th:href="@{/css/admin-dashboard.css}">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.min.css" rel="stylesheet">
+    <link href="/css/libs/tom-select.default.min.css" rel="stylesheet">
     <style>
         body { transition: background 0.3s, color 0.3s; }
 
@@ -1958,15 +1958,15 @@
 </div>
 
 <!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<script src="/js/libs/tom-select.complete.min.js"></script>
 <script th:inline="javascript">
     window.user = {
         id: /*[[${userId}]]*/ 0,
         username: /*[[${username}]]*/ 'Admin'
     };
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+<script src="/js/libs/sockjs.min.js"></script>
+<script src="/js/libs/stomp.min.js"></script>
 <script src="/js/pedagog/pedagog-dashboard.js"></script>
 
 <!-- Shared UI Components -->

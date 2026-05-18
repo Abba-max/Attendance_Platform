@@ -10,6 +10,10 @@ const PRECACHE_ASSETS = [
     '/css/Login.css',
     '/css/Classes.css',
     '/js/Login.js',
+    '/js/libs/sockjs.min.js',
+    '/js/libs/stomp.min.js',
+    '/js/libs/tom-select.complete.min.js',
+    '/css/libs/tom-select.default.min.css',
     'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap'
 ];
 
