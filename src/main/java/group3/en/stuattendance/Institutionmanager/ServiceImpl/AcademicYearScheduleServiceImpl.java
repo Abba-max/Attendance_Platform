@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AcademicYearScheduleServiceImpl implements AcademicYearScheduleService {
 
     private final AcademicYearScheduleRepository scheduleRepository;

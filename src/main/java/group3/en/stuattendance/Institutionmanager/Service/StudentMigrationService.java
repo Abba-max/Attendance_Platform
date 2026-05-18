@@ -9,7 +9,7 @@ import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository
 import group3.en.stuattendance.Institutionmanager.Repository.StudentClassHistoryRepository;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class StudentMigrationService {
 
     private final UserRepository userRepository;
