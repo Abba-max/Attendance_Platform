@@ -184,7 +184,10 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden bg-white relative pb-[70px] md:pb-0">
         <!-- Header -->
         <header class="flex items-center justify-between px-6 py-4 glass-panel border-b border-slate-100 z-30 shrink-0 shadow-premium">
-            <h1 class="text-lg font-bold text-slate-900 tracking-tight">Instructor Panel</h1>
+            <div class="flex items-center gap-3">
+                <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo" class="w-10 h-10 object-contain md:hidden rounded-xl shadow-sm">
+                <h1 class="text-lg font-black text-slate-900 tracking-tight">Welcome, <span th:text="${firstName + ' ' + lastName}">Instructor</span></h1>
+            </div>
 
             <div class="flex items-center gap-3 relative group">
                 <button class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 rounded-2xl transition-all duration-300 focus:outline-none">
@@ -1076,7 +1079,7 @@
             render(filtered);
         };
 
-        function init() { populateFilters(source()); render(source()); }
+        function init() { populateFilters(source()); filterStudents(); }
         window.refreshStudentsUI = init;
         document.addEventListener('DOMContentLoaded', init);
         setTimeout(init, 800);
