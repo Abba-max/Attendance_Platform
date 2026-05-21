@@ -3,6 +3,9 @@ package group3.en.stuattendance.Timetablemanager.Repository;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.Collection;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -43,12 +46,14 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
     
     List<Session> findByDateBeforeAndStatus(LocalDate date, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
 
-    /**
-     * Récupère toutes les séances d'une classe entre deux dates (pour la fiche hebdomadaire).
-     */
     List<Session> findByClassroomClassIdAndDateBetween(
             Integer classroomId,
             java.time.LocalDate startDate,
             java.time.LocalDate endDate);
 
+    @Query("SELECT s FROM Session s WHERE s.classroom.classId = :classroomId " +
+            "AND s.course.courseId IN :courseIds")
+    List<Session> findByClassroomClassIdAndCourseIds(
+            @Param("classroomId") Integer classroomId,
+            @Param("courseIds")   Collection<Integer> courseIds);
 }
