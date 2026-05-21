@@ -42,4 +42,13 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
     void deleteByClassroomClassIdAndWeekAndStatus(Integer classroomId, Integer week, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
     
     List<Session> findByDateBeforeAndStatus(LocalDate date, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
+    /**
+     * Récupère toutes les séances d'une classe entre deux dates (pour la fiche hebdomadaire).
+     */
+    List<Session> findByClassroomClassIdAndDateBetween(
+            Integer classroomId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate);
+
 }
