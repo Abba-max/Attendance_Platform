@@ -36,12 +36,7 @@ public class SemesterAbsenceReportController {
         ByteArrayInputStream stream = semesterAbsenceReportService
                 .generateSemesterReport(classroomId, semester);
 
-        byte[] bytes;
-        try {
-            bytes = stream.readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Erreur lecture PDF semestriel", e);
-        }
+        byte[] bytes = stream.readAllBytes();
 
         String filename = "recapitulatif_absences_semestre"
                 + semester + "_classe" + classroomId + ".pdf";

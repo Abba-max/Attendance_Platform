@@ -39,12 +39,7 @@ public class WeeklyAbsenceReportController {
         ByteArrayInputStream pdfStream = weeklyAbsenceReportService
                 .generateWeeklyReport(classroomId, weekStart);
 
-        byte[] pdfBytes;
-        try {
-            pdfBytes = pdfStream.readAllBytes();
-        } catch (IOException e) {
-            throw new RuntimeException("Erreur lors de la lecture du PDF généré", e);
-        }
+        byte[] pdfBytes = pdfStream.readAllBytes();
 
         // Nom du fichier : fiche_absences_semaine_YYYY-MM-DD_classeID.pdf
         String filename = "fiche_absences_semaine_"

@@ -551,9 +551,11 @@ public class PdfExportServiceImpl implements PdfExportService {
         if (!sessionCoversSlot(session, slotIndex)) return null;
 
         // Chercher dans hourSlots
-        if (rec.getHourSlots() != null) {
+        if (rec.getHourSlots() != null && session != null && session.getStartTime() != null) {
+            int slotStart = FIXED_SLOTS[slotIndex][0];
+            int relativeHour = slotStart - session.getStartTime().getHour();
             for (AttendanceHourDto h : rec.getHourSlots()) {
-                if (h.getHourIndex() != null && h.getHourIndex() == slotIndex) {
+                if (h.getHourIndex() != null && h.getHourIndex() == relativeHour) {
                     return h.getStatus() != null ? h.getStatus().name() : null;
                 }
             }
