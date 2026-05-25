@@ -9,6 +9,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.ss.usermodel.BorderStyle;
 
 import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
@@ -62,6 +63,7 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
     private static final Color MUTED_SLATE = new Color(241, 245, 249);  // Slate-100
     private static final Color BORDER_SLATE = new Color(203, 213, 225); // Slate-300
     private static final Color TEXT_DARK = new Color(30, 41, 59);       // Slate-800
+    private static final Color TEXT_MUTED = new Color(100, 116, 139);   // Slate-500
     private static final Color TEXT_LIGHT = new Color(255, 255, 255);   // White
     
     private static final Color COLOR_PRESENT = new Color(34, 197, 94);  // Green-500
