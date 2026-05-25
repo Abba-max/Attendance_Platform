@@ -2308,9 +2308,9 @@
 <div th:replace="~{fragments/ui :: modernConfirm}"></div>
 
 <!-- Report Preview Modal -->
-<div id="reportPreviewModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
-    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeReportPreview()"></div>
-    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] scale-95 transition-transform duration-300 transform" id="reportPreviewContent">
+<div id="reportPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="background-color: rgba(15, 23, 42, 0.5);" onclick="closeReportPreview()"></div>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden relative z-10 flex flex-col scale-95 transition-transform duration-300 transform" style="height: 90vh;" id="reportPreviewContent">
         <!-- Header -->
         <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
             <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
