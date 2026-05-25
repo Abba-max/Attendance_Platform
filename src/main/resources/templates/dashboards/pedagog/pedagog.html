@@ -241,6 +241,17 @@
                         <span class="font-medium">Student Migration</span>
                     </a>
                 </li>
+                <li>
+                    <a href="#"
+                       class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-purple-700 hover:bg-purple-50 transition-all duration-200"
+                       data-section="reports">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span class="font-medium">Export Reports</span>
+                    </a>
+                </li>
             </ul>
         </nav>
     </aside>
@@ -1342,6 +1353,74 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Export Reports Section -->
+            <section id="section-reports" class="content-section hidden">
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Export Attendance Reports</h2>
+                            <p class="text-slate-500 mt-1">Generate and download official PDF reports for classes</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Daily Report Card -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-800">Daily Attendance</h3>
+                            <p class="text-sm text-slate-500">Download the daily attendance call sheet for a specific class.</p>
+                            <div class="space-y-3 pt-2">
+                                <select id="dailyReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Class...</option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                </select>
+                                <input type="date" id="dailyReportDate" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                <button onclick="downloadDailyReport()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Report Card -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                            <div class="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-800">Weekly Absences</h3>
+                            <p class="text-sm text-slate-500">Generate the weekly absence recap per student.</p>
+                            <div class="space-y-3 pt-2">
+                                <select id="weeklyReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Class...</option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                </select>
+                                <input type="date" id="weeklyReportDate" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                <button onclick="downloadWeeklyReport()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                            </div>
+                        </div>
+
+                        <!-- Semester Report Card -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+                            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9.5a2.5 2.5 0 00-2.5-2.5H15M9 11l3 3L22 4"/></svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-slate-800">Semester Summary</h3>
+                            <p class="text-sm text-slate-500">Semester absence summary and malus threshold report.</p>
+                            <div class="space-y-3 pt-2">
+                                <select id="semesterReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Class...</option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                </select>
+                                <select id="semesterReportNumber" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                </select>
+                                <button onclick="downloadSemesterReport()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 </div>
@@ -2210,6 +2289,7 @@
 </script>
 
 <script th:src="@{/js/pedagog/migration-module.js}"></script>
+<script th:src="@{/js/pedagog/reports-module.js}"></script>
 <div th:replace="~{fragments/ui :: modernConfirm}"></div>
 </body>
 </html>

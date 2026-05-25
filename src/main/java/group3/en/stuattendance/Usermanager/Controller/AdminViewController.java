@@ -19,6 +19,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +50,7 @@ public class AdminViewController {
     }
 
     @GetMapping("/dashboard")
+    @Transactional(readOnly = true)
     public String dashboard(Model model) {
         // Adding data to satisfy Thymeleaf requirements in admin.html
         model.addAttribute("institutions", institutionService.getAllInstitutions());
