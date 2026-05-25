@@ -11,4 +11,13 @@ public interface SemesterAbsenceReportService {
      * @return ByteArrayInputStream du PDF généré
      */
     ByteArrayInputStream generateSemesterReport(Integer classroomId, Integer semester);
+
+    /**
+     * Génère le récapitulatif Excel des absences du semestre pour une classe.
+     *
+     * @param classroomId ID de la classe
+     * @param semester    Numéro du semestre (1 ou 2)
+     * @return ByteArrayInputStream du fichier Excel généré
+     */
+    ByteArrayInputStream generateSemesterReportExcel(Integer classroomId, Integer semester);
 }

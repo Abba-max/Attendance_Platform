@@ -1,7 +1,10 @@
 package group3.en.stuattendance.Timetablemanager.Repository;
 
 import group3.en.stuattendance.Timetablemanager.Model.Course;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -24,4 +27,17 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
     List<Course> findBySpecialitySpecialityIdAndLevelAndSemester(
             Integer specialityId, Integer level, Integer semester);
+
+    @Cacheable(value = "semesterCourses")
+    @Query("SELECT DISTINCT c FROM Course c " +
+           "JOIN TimetableEntry te ON te.course.id = c.id " +
+           "JOIN Timetablecontent tc ON te.timetablecontent.id = tc.id " +
+           "WHERE tc.classroom.id = :classroomId " +
+           "AND tc.academicYear.id = :academicYearId " +
+           "AND tc.semester = :semester " +
+           "AND tc.isActive = true")
+    List<Course> findActualCoursesForClassroomAndSemester(
+            @Param("classroomId") Integer classroomId,
+            @Param("academicYearId") Long academicYearId,
+            @Param("semester") Integer semester);
 }

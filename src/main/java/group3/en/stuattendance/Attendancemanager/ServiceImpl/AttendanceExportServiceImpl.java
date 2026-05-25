@@ -70,6 +70,7 @@ public class AttendanceExportServiceImpl implements AttendanceExportService {
            .append(data.get("classroom")).append("\n\n");
         
         csv.append("Matricule,Name,Status,Timestamp,Teacher Verified\n");
+        @SuppressWarnings("unchecked")
         List<Map<String, String>> students = (List<Map<String, String>>) data.get("students");
         for (Map<String, String> s : students) {
             csv.append(s.get("matricule")).append(",")

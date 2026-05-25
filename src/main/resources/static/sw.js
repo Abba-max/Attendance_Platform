@@ -120,6 +120,12 @@ self.addEventListener('fetch', event => {
                                 cache.put(event.request, responseClone);
                             });
                         }
+                        // Cache dynamically generated reports for offline viewing
+                        else if (url.pathname.includes('/pdf') || url.pathname.includes('/excel')) {
+                            caches.open(DYNAMIC_CACHE_NAME).then(cache => {
+                                cache.put(event.request, responseClone);
+                            });
+                        }
 
                         return networkResponse;
                     });
@@ -131,5 +137,75 @@ self.addEventListener('fetch', event => {
 self.addEventListener('message', event => {
     if (event.data === 'skipWaiting') {
         self.skipWaiting();
+    }
+});
+
+// IndexedDB Helper for Background Sync
+function openDB() {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open('attendee-offline-db', 1);
+        req.onupgradeneeded = e => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('timetable-requests')) {
+                db.createObjectStore('timetable-requests', { autoIncrement: true, keyPath: 'id' });
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
+function getOfflineTimetables() {
+    return openDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('timetable-requests', 'readonly');
+            const store = tx.objectStore('timetable-requests');
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    });
+}
+
+function removeOfflineTimetable(id) {
+    return openDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('timetable-requests', 'readwrite');
+            const store = tx.objectStore('timetable-requests');
+            const req = store.delete(id);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    });
+}
+
+// Background Sync Event Listener
+self.addEventListener('sync', event => {
+    if (event.tag === 'sync-timetable') {
+        console.log('[Service Worker] Background Sync: sync-timetable triggered');
+        event.waitUntil(
+            getOfflineTimetables().then(requests => {
+                return Promise.all(requests.map(req => {
+                    return fetch('/api/timetablecontent', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(req.payload)
+                    }).then(res => {
+                        if (res.ok) {
+                            // Successfully synced, remove from IndexedDB
+                            return removeOfflineTimetable(req.id).then(() => {
+                                self.registration.showNotification('Attendee', {
+                                    body: 'Your offline timetable has been successfully synced to the server!',
+                                    icon: '/image/logo.png',
+                                    vibrate: [200, 100, 200]
+                                });
+                            });
+                        } else {
+                            throw new Error('Server returned an error during sync');
+                        }
+                    });
+                }));
+            })
+        );
     }
 });

@@ -2240,11 +2240,11 @@ window.handleDeleteSpeciality = async function (id) {
             if (result === 'success') {
                 window.location.reload();
             } else {
-                alert('Failed to delete speciality.');
+                showNotification('Failed to delete speciality.', 'error');
             }
         }).catch(err => {
             console.error('Delete error:', err);
-            alert('Error deleting speciality.');
+            showNotification('Error deleting speciality.', 'error');
         });
     }
 };
@@ -2384,7 +2384,7 @@ window.handleDeleteCycle = async function (id) {
             if (response.ok) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                alert('Failed to delete cycle.');
+                showNotification('Failed to delete cycle.', 'error');
             }
         });
     }
@@ -2410,7 +2410,7 @@ window.handleDeleteDepartment = async function (id) {
             if (response.ok) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                alert('Failed to delete department.');
+                showNotification('Failed to delete department.', 'error');
             }
         });
     }
@@ -2436,7 +2436,7 @@ window.handleDeleteClassroom = async function (id) {
             if (response.ok) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                alert('Failed to delete classroom.');
+                showNotification('Failed to delete classroom.', 'error');
             }
         });
     }

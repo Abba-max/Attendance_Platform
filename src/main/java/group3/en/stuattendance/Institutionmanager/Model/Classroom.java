@@ -3,8 +3,8 @@ package group3.en.stuattendance.Institutionmanager.Model;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
-import lombok.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -12,11 +12,7 @@ import java.util.Set;
 
 @Entity
 @Table(name = "classrooms")
-@Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Classroom {
 
     @Id
@@ -28,7 +24,7 @@ public class Classroom {
     private String name;
 
     @Column
-    private Integer level; // e.g., 1, 2, 3
+    private Integer level;
 
     private Integer capacity;
 
@@ -37,22 +33,77 @@ public class Classroom {
     @JsonIgnore
     private Speciality speciality;
 
-    // Students in this classroom
     @OneToMany(mappedBy = "classroom")
     @JsonIgnore
-    @Builder.Default
     private Set<User> students = new HashSet<>();
 
-    // Staff (Teachers) associated with this classroom
     @ManyToMany(mappedBy = "staffClassrooms")
     @JsonIgnore
-    @Builder.Default
     private Set<User> staff = new HashSet<>();
 
     @OneToMany(mappedBy = "classroom", cascade = CascadeType.ALL)
     @JsonIgnore
-    @Builder.Default
     private Set<Session> sessions = new HashSet<>();
+
+    // All-args constructor
+    public Classroom(Integer classId, String name, Integer level, Integer capacity,
+                     Speciality speciality, Set<User> students, Set<User> staff, Set<Session> sessions) {
+        this.classId = classId;
+        this.name = name;
+        this.level = level;
+        this.capacity = capacity;
+        this.speciality = speciality;
+        this.students = students != null ? students : new HashSet<>();
+        this.staff = staff != null ? staff : new HashSet<>();
+        this.sessions = sessions != null ? sessions : new HashSet<>();
+    }
+
+    // Getters
+    public Integer getClassId() { return classId; }
+    public String getName() { return name; }
+    public Integer getLevel() { return level; }
+    public Integer getCapacity() { return capacity; }
+    public Speciality getSpeciality() { return speciality; }
+    public Set<User> getStudents() { return students; }
+    public Set<User> getStaff() { return staff; }
+    public Set<Session> getSessions() { return sessions; }
+
+    // Setters
+    public void setClassId(Integer classId) { this.classId = classId; }
+    public void setName(String name) { this.name = name; }
+    public void setLevel(Integer level) { this.level = level; }
+    public void setCapacity(Integer capacity) { this.capacity = capacity; }
+    public void setSpeciality(Speciality speciality) { this.speciality = speciality; }
+    public void setStudents(Set<User> students) { this.students = students; }
+    public void setStaff(Set<User> staff) { this.staff = staff; }
+    public void setSessions(Set<Session> sessions) { this.sessions = sessions; }
+
+    // Builder
+    public static ClassroomBuilder builder() { return new ClassroomBuilder(); }
+
+    public static class ClassroomBuilder {
+        private Integer classId;
+        private String name;
+        private Integer level;
+        private Integer capacity;
+        private Speciality speciality;
+        private Set<User> students = new HashSet<>();
+        private Set<User> staff = new HashSet<>();
+        private Set<Session> sessions = new HashSet<>();
+
+        public ClassroomBuilder classId(Integer classId) { this.classId = classId; return this; }
+        public ClassroomBuilder name(String name) { this.name = name; return this; }
+        public ClassroomBuilder level(Integer level) { this.level = level; return this; }
+        public ClassroomBuilder capacity(Integer capacity) { this.capacity = capacity; return this; }
+        public ClassroomBuilder speciality(Speciality speciality) { this.speciality = speciality; return this; }
+        public ClassroomBuilder students(Set<User> students) { this.students = students; return this; }
+        public ClassroomBuilder staff(Set<User> staff) { this.staff = staff; return this; }
+        public ClassroomBuilder sessions(Set<Session> sessions) { this.sessions = sessions; return this; }
+
+        public Classroom build() {
+            return new Classroom(classId, name, level, capacity, speciality, students, staff, sessions);
+        }
+    }
 
     public boolean isAtCapacity() {
         return students != null && students.size() >= capacity;

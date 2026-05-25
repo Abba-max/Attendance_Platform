@@ -13,6 +13,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @SpringBootApplication
 @org.springframework.scheduling.annotation.EnableScheduling
+@org.springframework.cache.annotation.EnableCaching
 public class StuattendanceApplication {
 
 	public static void main(String[] args) {

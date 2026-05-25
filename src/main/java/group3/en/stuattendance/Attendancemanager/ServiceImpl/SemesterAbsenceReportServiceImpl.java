@@ -1,7 +1,28 @@
 package group3.en.stuattendance.Attendancemanager.ServiceImpl;
 
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Rectangle;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus;
 import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
@@ -39,12 +60,13 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
     private final CourseRepository           courseRepository;
     private final SessionRepository          sessionRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository academicYearRepository;
 
     // ──────────────── COULEURS ────────────────
-    private static final Color NAVY        = new Color(30,  58,  95);
-    private static final Color HEADER_BLUE = new Color(41,  82, 128);
-    private static final Color SUB_HDR     = new Color(189, 210, 235);
-    private static final Color COL_ALT     = new Color(241, 245, 249);
+    private static final Color NAVY        = new Color(44,  62,  80);   // Soft dark gray-blue
+    private static final Color HEADER_BLUE = new Color(63,  81, 181);  // Muted Indigo
+    private static final Color SUB_HDR     = new Color(226, 232, 240); // Slate-200
+    private static final Color COL_ALT     = new Color(248, 250, 252); // Slate-50
     private static final Color RED_DARK    = new Color(198,  40,  40);
     private static final Color RED_LIGHT   = new Color(255, 205, 210);
     private static final Color GREEN_DARK  = new Color( 27,  94,  32);
@@ -76,23 +98,11 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
                         Comparator.nullsLast(String::compareTo)))
                 .collect(Collectors.toList());
 
-        // 3. Cours du semestre pour la spécialité + niveau de la classe
-        Integer specialityId = (classroom.getSpeciality() != null)
-                ? classroom.getSpeciality().getSpecialityId() : null;
-        Integer level = classroom.getLevel();
-
-        List<Course> courses;
-        if (specialityId != null && level != null) {
-            courses = courseRepository
-                    .findBySpecialitySpecialityIdAndLevelAndSemester(
-                            specialityId, level, semester)
-                    .stream()
-                    .sorted(Comparator.comparing(Course::getCode,
-                            Comparator.nullsLast(String::compareToIgnoreCase)))
-                    .collect(Collectors.toList());
-        } else {
-            courses = Collections.emptyList();
-        }
+        // 3. Dynamic cached fetch based on Timetable
+        Long academicYearId = academicYearRepository.findActiveAcademicYear()
+                .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId).orElse(null);
+        List<Course> courses = new ArrayList<>(courseRepository.findActualCoursesForClassroomAndSemester(classroomId, academicYearId, semester));
+        courses.sort(Comparator.comparing(Course::getCode, Comparator.nullsLast(String::compareToIgnoreCase)));
 
         // 4. Séances de cette classe appartenant à ces cours
         List<Integer> courseIds = courses.stream()
@@ -143,6 +153,210 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
         // 8. Génération PDF
         return buildPdf(classroom, semester, students, courses,
                 sessionsByCourse, attendanceMap, periodStart, periodEnd);
+    }
+
+    @Override
+    public ByteArrayInputStream generateSemesterReportExcel(Integer classroomId, Integer semester) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new EntityNotFoundException("Classe introuvable : " + classroomId));
+
+        List<User> students = userRepository
+                .findByClassroomClassIdAndRolesName(classroomId, "STUDENT")
+                .stream()
+                .sorted(Comparator.comparing(u -> nvl(u.getLastName()).toUpperCase(), Comparator.nullsLast(String::compareTo)))
+                .collect(Collectors.toList());
+
+        Long academicYearId = academicYearRepository.findActiveAcademicYear()
+                .map(group3.en.stuattendance.Institutionmanager.Model.AcademicYear::getId).orElse(null);
+        List<Course> courses = new ArrayList<>(courseRepository.findActualCoursesForClassroomAndSemester(classroomId, academicYearId, semester));
+        courses.sort(Comparator.comparing(Course::getCode, Comparator.nullsLast(String::compareToIgnoreCase)));
+
+        List<Integer> courseIds = courses.stream().map(Course::getCourseId).collect(Collectors.toList());
+        List<Session> allSessions = courseIds.isEmpty() ? Collections.emptyList() : sessionRepository.findByClassroomClassIdAndCourseIds(classroomId, courseIds);
+
+        List<Integer> sessionIds = allSessions.stream().map(Session::getSessionId).collect(Collectors.toList());
+        List<AttendanceRecord> allRecords = sessionIds.isEmpty() ? Collections.emptyList() : attendanceRecordRepository.findWithHourSlotsBySessionIds(sessionIds);
+
+        Map<Integer, Map<Integer, AttendanceRecord>> attendanceMap = new HashMap<>();
+        for (AttendanceRecord rec : allRecords) {
+            attendanceMap.computeIfAbsent(rec.getSession().getSessionId(), k -> new HashMap<>()).put(rec.getUser().getUserId(), rec);
+        }
+
+        Map<Integer, List<Session>> sessionsByCourse = new HashMap<>();
+        for (Session s : allSessions) {
+            if (s.getCourse() != null) {
+                sessionsByCourse.computeIfAbsent(s.getCourse().getCourseId(), k -> new ArrayList<>()).add(s);
+            }
+        }
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Absences Semestre");
+
+            org.apache.poi.ss.usermodel.Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 14);
+
+            CellStyle titleStyle = workbook.createCellStyle();
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            org.apache.poi.ss.usermodel.Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+            headerStyle.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+            headerStyle.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            CellStyle subHeaderStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font subFont = workbook.createFont();
+            subFont.setBold(true);
+            subHeaderStyle.setFont(subFont);
+            subHeaderStyle.setAlignment(HorizontalAlignment.CENTER);
+            subHeaderStyle.setVerticalAlignment(org.apache.poi.ss.usermodel.VerticalAlignment.CENTER);
+            subHeaderStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            subHeaderStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("RÉCAPITULATIF SEMESTRE " + semester + " - " + classroom.getName());
+            titleCell.setCellStyle(titleStyle);
+
+            if (students.isEmpty() || courses.isEmpty()) {
+                sheet.createRow(2).createCell(0).setCellValue("Aucune donnée disponible.");
+                workbook.write(out);
+                return new ByteArrayInputStream(out.toByteArray());
+            }
+
+            // Headers - Row 2 (noms de cours)
+            Row headerRow1 = sheet.createRow(2);
+            headerRow1.createCell(0).setCellValue("NOMS ET PRÉNOMS");
+            headerRow1.getCell(0).setCellStyle(headerStyle);
+            headerRow1.createCell(1).setCellValue("GENRE");
+            headerRow1.getCell(1).setCellStyle(headerStyle);
+            headerRow1.createCell(2).setCellValue("MATRICULE");
+            headerRow1.getCell(2).setCellStyle(headerStyle);
+
+            int colIdx = 3;
+            for (Course c : courses) {
+                Cell cell = headerRow1.createCell(colIdx);
+                cell.setCellValue(c.getCode() + " - " + c.getCourseName());
+                cell.setCellStyle(headerStyle);
+                colIdx += 7;
+            }
+            Cell totHeaderCell = headerRow1.createCell(colIdx);
+            totHeaderCell.setCellValue("TOTAUX SEMESTRE");
+            totHeaderCell.setCellStyle(headerStyle);
+
+            // Headers - Row 3 (sous-colonnes)
+            Row headerRow2 = sheet.createRow(3);
+            headerRow2.createCell(0).setCellValue("");
+            headerRow2.createCell(1).setCellValue("");
+            headerRow2.createCell(2).setCellValue("");
+
+            colIdx = 3;
+            for (Course c : courses) {
+                String[] subHeaders = {"TH", "HC", "%H", "SN", "JH", "NJ", "M"};
+                for (String h : subHeaders) {
+                    Cell subCell = headerRow2.createCell(colIdx++);
+                    subCell.setCellValue(h);
+                    subCell.setCellStyle(subHeaderStyle);
+                }
+            }
+            String[] globalHeaders = {"T.TH", "T.HC", "T.%H", "T.JH", "T.NJ", "T.M"};
+            for (String h : globalHeaders) {
+                Cell subCell = headerRow2.createCell(colIdx++);
+                subCell.setCellValue(h);
+                subCell.setCellStyle(subHeaderStyle);
+            }
+
+            // Data Rows
+            int rowIdx = 4;
+            for (User student : students) {
+                Row row = sheet.createRow(rowIdx++);
+                String fullName = nvl(student.getLastName()).toUpperCase() + " " + nvl(student.getFirstName());
+                row.createCell(0).setCellValue(fullName.trim());
+                row.createCell(1).setCellValue(detectGenre(student));
+                row.createCell(2).setCellValue(nvl(student.getMatricule()));
+
+                colIdx = 3;
+                int globalTH = 0;
+                int globalHC = 0;
+                int globalJH = 0;
+                int globalNJ = 0;
+                int globalM = 0;
+
+                for (Course course : courses) {
+                    List<Session> sessions = sessionsByCourse.getOrDefault(course.getCourseId(), Collections.emptyList());
+                    int th = 0;
+                    int jh = 0;
+                    int nj = 0;
+
+                    for (Session s : sessions) {
+                        int dur = sessionDuration(s);
+                        th += dur;
+
+                        Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
+                        AttendanceRecord rec = byUser.get(student.getUserId());
+                        if (rec != null) {
+                            if (rec.getStatus() == AttendanceStatus.ABSENT) {
+                                nj += dur;
+                            } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
+                                jh += dur;
+                            }
+                        }
+                    }
+
+                    int hc = th - jh - nj;
+                    double pctH = th > 0 ? (hc * 100.0) / th : 100.0;
+                    double absenceRate = th > 0 ? (nj * 100.0) / th : 0.0;
+                    boolean sn = absenceRate > SN_THRESHOLD_PCT;
+
+                    int seuil = (int) Math.floor(th * SN_THRESHOLD_PCT / 100.0);
+                    int malus = nj > seuil ? -(nj - seuil) : 0;
+
+                    globalTH += th;
+                    globalHC += hc;
+                    globalJH += jh;
+                    globalNJ += nj;
+                    globalM += malus;
+
+                    row.createCell(colIdx++).setCellValue(th);
+                    row.createCell(colIdx++).setCellValue(hc);
+                    row.createCell(colIdx++).setCellValue(th > 0 ? String.format("%.0f%%", pctH) : "-");
+                    row.createCell(colIdx++).setCellValue(sn ? "OUI" : "NON");
+                    row.createCell(colIdx++).setCellValue(jh);
+                    row.createCell(colIdx++).setCellValue(nj);
+                    row.createCell(colIdx++).setCellValue(malus);
+                }
+
+                // Global totals cells
+                row.createCell(colIdx++).setCellValue(globalTH);
+                row.createCell(colIdx++).setCellValue(globalHC);
+                double globalPctH = globalTH > 0 ? (globalHC * 100.0) / globalTH : 100.0;
+                row.createCell(colIdx++).setCellValue(globalTH > 0 ? String.format("%.0f%%", globalPctH) : "-");
+                row.createCell(colIdx++).setCellValue(globalJH);
+                row.createCell(colIdx++).setCellValue(globalNJ);
+                row.createCell(colIdx++).setCellValue(globalM);
+            }
+
+            // Autosize columns
+            for (int i = 0; i < colIdx; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur génération Excel : " + e.getMessage(), e);
+        }
+    }
+
+    private String nvl(String s) {
+        return s == null ? "" : s;
     }
 
     // ══════════════════════════════════════════════════
@@ -281,36 +495,34 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
             throws DocumentException {
 
         int C = courses.size();
-        // colonnes : N° | NOMS | GENRE | MATRICULE | 5*C (TH|HJ|TA|DEC|MALUS) | THS | THJ
-        int totalCols = 4 + 5 * C + 2;
+        // colonnes : N° | NOMS | GENRE | MATRICULE | 7*C (TH|HC|%H|SN|JH|NJ|M) | T.TH | T.HC | T.%H | T.JH | T.NJ | T.M
+        int totalCols = 4 + 7 * C + 6;
 
         PdfPTable table = new PdfPTable(totalCols);
         table.setWidthPercentage(100);
         table.setKeepTogether(false);
 
         // ── Largeurs relatives ──
-        float nW   = 2.5f;
-        float nmW  = 14f;
-        float geW  = 4.5f;
-        float maW  = 7f;
-        float cW   = 3.2f;  // 5 sous-colonnes par cours
-        float tsW  = 4f;
-        float tjW  = 4f;
+        float nW   = 2.2f;
+        float nmW  = 13f;
+        float geW  = 3.5f;
+        float maW  = 5.5f;
+        float cW   = 2.2f;  // 7 sous-colonnes par cours
+        float tW   = 2.5f;  // 6 colonnes de totaux
 
         float[] widths = new float[totalCols];
         widths[0] = nW;
         widths[1] = nmW;
         widths[2] = geW;
         widths[3] = maW;
-        for (int i = 0; i < C * 5; i++) widths[4 + i] = cW;
-        widths[totalCols - 2] = tsW;
-        widths[totalCols - 1] = tjW;
+        for (int i = 0; i < C * 7; i++) widths[4 + i] = cW;
+        for (int i = 0; i < 6; i++) widths[4 + C * 7 + i] = tW;
         table.setWidths(widths);
 
-        // ── Ligne 1 des en-têtes (noms des cours + THF) ──
+        // ── Ligne 1 des en-têtes (noms des cours + TOTAUX SEMESTRE) ──
         addCourseHeaderRow1(table, courses, C);
 
-        // ── Ligne 2 des en-têtes (TH | HJ | TA | DEC | MALUS) ──
+        // ── Ligne 2 des en-têtes (TH | HC | %H | SN | JH | NJ | M) ──
         addCourseHeaderRow2(table, C);
 
         // ── Lignes de données ──
@@ -336,45 +548,72 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
         table.addCell(makeHdrCell("GENRE",           fixedF, NAVY, 2, 1, true,  40f));
         table.addCell(makeHdrCell("MATRICULE",       fixedF, NAVY, 2, 1, true,  40f));
 
-        // Un bloc par cours (colspan=5)
+        // Un bloc par cours (colspan=7)
         for (Course c : courses) {
-            String label = c.getCode() + "\nTHF " + c.getTotalHours();
+            String label = c.getCode() + "\n" + shorten(c.getCourseName(), 20);
             PdfPCell cc = new PdfPCell(new Phrase(label, courseF));
-            cc.setColspan(5);
+            cc.setColspan(7);
             cc.setRowspan(1);
             cc.setBackgroundColor(HEADER_BLUE);
             cc.setHorizontalAlignment(Element.ALIGN_CENTER);
             cc.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cc.setPadding(2f);
-            cc.setFixedHeight(40f);
+            cc.setPadding(4f);
+            cc.setFixedHeight(45f);
             cc.setBorderColor(BORDER);
             cc.setBorderWidth(0.4f);
             table.addCell(cc);
         }
 
-        // THS et THJ (rowspan=2)
-        table.addCell(makeHdrCell("THS", fixedF, NAVY, 2, 1, true, 40f));
-        table.addCell(makeHdrCell("THJ", fixedF, NAVY, 2, 1, true, 40f));
+        // Totaux Semestre (colspan=6)
+        PdfPCell totCell = new PdfPCell(new Phrase("TOTAUX SEMESTRE", fixedF));
+        totCell.setColspan(6);
+        totCell.setRowspan(1);
+        totCell.setBackgroundColor(NAVY);
+        totCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        totCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        totCell.setPadding(4f);
+        totCell.setFixedHeight(45f);
+        totCell.setBorderColor(BORDER);
+        totCell.setBorderWidth(0.4f);
+        table.addCell(totCell);
     }
 
-    // ── En-tête ligne 2 : TH | HJ | TA | DEC | MALUS ──────────────
+    // Helper to shorten course name
+    private String shorten(String s, int maxLen) {
+        if (s == null) return "";
+        return s.length() > maxLen ? s.substring(0, maxLen - 2) + ".." : s;
+    }
+
+    // ── En-tête ligne 2 : TH | HC | %H | SN | JH | NJ | M ──────────────
     private void addCourseHeaderRow2(PdfPTable table, int C) {
         Font subF = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5f, NAVY);
 
         for (int i = 0; i < C; i++) {
-            for (String lbl : new String[]{"TH", "HJ", "TA", "DEC", "MALUS"}) {
+            for (String lbl : new String[]{"TH", "HC", "%H", "SN", "JH", "NJ", "M"}) {
                 PdfPCell cell = new PdfPCell(new Phrase(lbl, subF));
                 cell.setBackgroundColor(SUB_HDR);
                 cell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                cell.setPadding(2f);
-                cell.setFixedHeight(12f);
+                cell.setPadding(3f);
+                cell.setFixedHeight(18f);
                 cell.setBorderColor(BORDER);
                 cell.setBorderWidth(0.4f);
                 table.addCell(cell);
             }
         }
-        // THS / THJ couverts par rowspan=2 dans la ligne 1
+
+        // Totaux sub-headers
+        for (String lbl : new String[]{"T.TH", "T.HC", "T.%H", "T.JH", "T.NJ", "T.M"}) {
+            PdfPCell cell = new PdfPCell(new Phrase(lbl, subF));
+            cell.setBackgroundColor(SUB_HDR);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setPadding(3f);
+            cell.setFixedHeight(18f);
+            cell.setBorderColor(BORDER);
+            cell.setBorderWidth(0.4f);
+            table.addCell(cell);
+        }
     }
 
     // ── Ligne de données d'un étudiant ──────────────────────────────
@@ -403,83 +642,106 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
         // Matricule
         table.addCell(makeDataCell(nvl(student.getMatricule()), dataF, rowBg, rowH, true));
 
-        // ── Colonnes par cours ──
-        int totalAbsent  = 0;
-        int totalExcused = 0;
+        // Totaux Semester Accumulators
+        int globalTH = 0;
+        int globalHC = 0;
+        int globalJH = 0;
+        int globalNJ = 0;
+        int globalM = 0;
 
         for (Course course : courses) {
             List<Session> sessions = sessionsByCourse.getOrDefault(
                     course.getCourseId(), Collections.emptyList());
 
-            // Calcul TH (heures absentes) et HJ (heures justifiées)
             int th = 0;
-            int hj = 0;
+            int jh = 0;
+            int nj = 0;
+
             for (Session s : sessions) {
                 int dur = sessionDuration(s);
-                Map<Integer, AttendanceRecord> byUser =
-                        attendanceMap.getOrDefault(
-                                s.getSessionId(), Collections.emptyMap());
+                th += dur;
+
+                Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
                 AttendanceRecord rec = byUser.get(student.getUserId());
                 if (rec != null) {
-                    if (rec.getStatus() == AttendanceStatus.ABSENT)  th += dur;
-                    if (rec.getStatus() == AttendanceStatus.EXCUSED) hj += dur;
+                    if (rec.getStatus() == AttendanceStatus.ABSENT) {
+                        nj += dur;
+                    } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
+                        jh += dur;
+                    }
                 }
             }
 
-            int    thf   = (course.getTotalHours() != null
-                    && course.getTotalHours() > 0)
-                    ? course.getTotalHours() : 1;
-            double ta    = (th * 100.0) / thf;
-            boolean sn   = ta <= SN_THRESHOLD_PCT;
+            int hc = th - jh - nj;
+            double pctH = th > 0 ? (hc * 100.0) / th : 100.0;
+            double absenceRate = th > 0 ? (nj * 100.0) / th : 0.0;
+            boolean sn = absenceRate > SN_THRESHOLD_PCT;
 
-            totalAbsent  += th;
-            totalExcused += hj;
+            int seuil = (int) Math.floor(th * SN_THRESHOLD_PCT / 100.0);
+            int malus = nj > seuil ? -(nj - seuil) : 0;
+
+            globalTH += th;
+            globalHC += hc;
+            globalJH += jh;
+            globalNJ += nj;
+            globalM += malus;
 
             // ── TH ──
-            table.addCell(makeNumCell(th, dataF,
-                    th > 0 ? RED_LIGHT : rowBg, rowH, RED_DARK, th > 0));
+            table.addCell(makeDataCell(String.valueOf(th), dataF, rowBg, rowH, true));
 
-            // ── HJ ──
-            table.addCell(makeNumCell(hj, dataF,
-                    hj > 0 ? YELLOW_BG : rowBg, rowH, Color.DARK_GRAY, false));
+            // ── HC ──
+            table.addCell(makeDataCell(String.valueOf(hc), dataF, rowBg, rowH, true));
 
-            // ── TA ──
-            String taStr = String.format("%.0f%%", ta);
-            Color  taBg  = ta > SN_THRESHOLD_PCT ? RED_LIGHT : rowBg;
-            Font   taF   = ta > SN_THRESHOLD_PCT
-                    ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5.5f, RED_DARK)
-                    : dataF;
-            table.addCell(makeDataCell(taStr, taF, taBg, rowH, true));
+            // ── %H ──
+            String pctHStr = th > 0 ? String.format("%.0f%%", pctH) : "-";
+            table.addCell(makeDataCell(pctHStr, dataF, rowBg, rowH, true));
 
-            // ── DEC (SN/OUI ou SN/NON) ──
-            String dec  = sn ? "SN/OUI" : "SN/NON";
-            Color decBg = sn ? GREEN_LIGHT : RED_LIGHT;
-            Font  decF  = sn
-                    ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 4.5f, GREEN_DARK)
-                    : FontFactory.getFont(FontFactory.HELVETICA_BOLD, 4.5f, RED_DARK);
-            table.addCell(makeDataCell(dec, decF, decBg, rowH, true));
+            // ── SN ──
+            String snStr = sn ? "OUI" : "NON";
+            Color snBg = sn ? RED_LIGHT : GREEN_LIGHT;
+            Font snF = sn
+                    ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5f, RED_DARK)
+                    : FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5f, GREEN_DARK);
+            table.addCell(makeDataCell(snStr, snF, snBg, rowH, true));
 
-            // ── MALUS ──
-            // seuil  = floor(totalHours × 10%)
-            // malus  = -(th - seuil) si th > seuil, sinon 0
-            int seuil = (int) Math.floor(thf * SN_THRESHOLD_PCT / 100.0);
-            int malus = th > seuil ? -(th - seuil) : 0;
+            // ── JH ──
+            table.addCell(makeDataCell(String.valueOf(jh), dataF, jh > 0 ? YELLOW_BG : rowBg, rowH, true));
 
+            // ── NJ ──
+            table.addCell(makeDataCell(String.valueOf(nj), dataF, nj > 0 ? RED_LIGHT : rowBg, rowH, true));
+
+            // ── M ──
             String malusStr = malus < 0 ? String.valueOf(malus) : "0";
-            Color  malusBg  = malus < 0 ? RED_LIGHT   : rowBg;
-            Font   malusF   = malus < 0
+            Color malusBg = malus < 0 ? RED_LIGHT : rowBg;
+            Font malusF = malus < 0
                     ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5.5f, RED_DARK)
                     : FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5.5f, GREEN_DARK);
             table.addCell(makeDataCell(malusStr, malusF, malusBg, rowH, true));
         }
 
-        // ── THS (total absences semestre) ──
-        Font totF = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f,
-                totalAbsent > 0 ? RED_DARK : GREEN_DARK);
-        table.addCell(makeNumCell(totalAbsent,  totF,  TOTAL_BG, rowH, RED_DARK,   false));
+        // ── T.TH ──
+        table.addCell(makeDataCell(String.valueOf(globalTH), boldF, TOTAL_BG, rowH, true));
 
-        // ── THJ (total justifiées semestre) ──
-        table.addCell(makeNumCell(totalExcused, dataF, TOTAL_BG, rowH, Color.DARK_GRAY, false));
+        // ── T.HC ──
+        table.addCell(makeDataCell(String.valueOf(globalHC), boldF, TOTAL_BG, rowH, true));
+
+        // ── T.%H ──
+        double globalPctH = globalTH > 0 ? (globalHC * 100.0) / globalTH : 100.0;
+        String globalPctHStr = globalTH > 0 ? String.format("%.0f%%", globalPctH) : "-";
+        table.addCell(makeDataCell(globalPctHStr, boldF, TOTAL_BG, rowH, true));
+
+        // ── T.JH ──
+        table.addCell(makeDataCell(String.valueOf(globalJH), boldF, TOTAL_BG, rowH, true));
+
+        // ── T.NJ ──
+        table.addCell(makeDataCell(String.valueOf(globalNJ), boldF, TOTAL_BG, rowH, true));
+
+        // ── T.M ──
+        String globalMStr = globalM < 0 ? String.valueOf(globalM) : "0";
+        Font globalMF = globalM < 0
+                ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5.5f, RED_DARK)
+                : FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5.5f, GREEN_DARK);
+        table.addCell(makeDataCell(globalMStr, globalMF, TOTAL_BG, rowH, true));
     }
 
     // ══════════════════════════════════════════════════
@@ -589,6 +851,4 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
             return "";
         }
     }
-
-    private String nvl(String s) { return s != null ? s : ""; }
 }

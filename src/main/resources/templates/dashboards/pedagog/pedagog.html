@@ -1373,12 +1373,16 @@
                             <h3 class="text-lg font-semibold text-slate-800">Daily Attendance</h3>
                             <p class="text-sm text-slate-500">Download the daily attendance call sheet for a specific class.</p>
                             <div class="space-y-3 pt-2">
+                                <select id="dailyReportSpec" onchange="filterClassrooms(this.value, 'dailyReportClass')" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="">Select Speciality...</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}"></option>
+                                </select>
                                 <select id="dailyReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
                                     <option value="">Select Class...</option>
-                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}" th:data-spec="${c.speciality?.specialityId}"></option>
                                 </select>
                                 <input type="date" id="dailyReportDate" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                <button onclick="downloadDailyReport()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                                <button onclick="downloadDailyReport()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium transition-colors">Preview Report</button>
                             </div>
                         </div>
 
@@ -1390,12 +1394,19 @@
                             <h3 class="text-lg font-semibold text-slate-800">Weekly Absences</h3>
                             <p class="text-sm text-slate-500">Generate the weekly absence recap per student.</p>
                             <div class="space-y-3 pt-2">
-                                <select id="weeklyReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="">Select Class...</option>
-                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                <select id="weeklyReportSpec" onchange="filterClassrooms(this.value, 'weeklyReportClass')" class="w-full rounded-xl border-slate-200 text-sm focus:border-purple-500 focus:ring-purple-500">
+                                    <option value="">Select Speciality...</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}"></option>
                                 </select>
-                                <input type="date" id="weeklyReportDate" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                <button onclick="downloadWeeklyReport()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                                <select id="weeklyReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-purple-500 focus:ring-purple-500">
+                                    <option value="">Select Class...</option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}" th:data-spec="${c.speciality?.specialityId}"></option>
+                                </select>
+                                <select id="weeklyReportWeek" class="w-full rounded-xl border-slate-200 text-sm focus:border-purple-500 focus:ring-purple-500">
+                                    <option value="">Select Week...</option>
+                                    <option th:each="w : ${#numbers.sequence(1, 40)}" th:value="${w}" th:text="'Week ' + ${w}" th:selected="${w == currentWeek}"></option>
+                                </select>
+                                <button onclick="downloadWeeklyReport()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-sm font-medium transition-colors">Preview Report</button>
                             </div>
                         </div>
 
@@ -1407,15 +1418,19 @@
                             <h3 class="text-lg font-semibold text-slate-800">Semester Summary</h3>
                             <p class="text-sm text-slate-500">Semester absence summary and malus threshold report.</p>
                             <div class="space-y-3 pt-2">
-                                <select id="semesterReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
-                                    <option value="">Select Class...</option>
-                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}"></option>
+                                <select id="semesterReportSpec" onchange="filterClassrooms(this.value, 'semesterReportClass')" class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                                    <option value="">Select Speciality...</option>
+                                    <option th:each="spec : ${specialities}" th:value="${spec.specialityId}" th:text="${spec.name}"></option>
                                 </select>
-                                <select id="semesterReportNumber" class="w-full rounded-xl border-slate-200 text-sm focus:border-blue-500 focus:ring-blue-500">
+                                <select id="semesterReportClass" class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
+                                    <option value="">Select Class...</option>
+                                    <option th:each="c : ${classrooms}" th:value="${c.classId}" th:text="${c.name}" th:data-spec="${c.speciality?.specialityId}"></option>
+                                </select>
+                                <select id="semesterReportNumber" class="w-full rounded-xl border-slate-200 text-sm focus:border-emerald-500 focus:ring-emerald-500">
                                     <option value="1">Semester 1</option>
                                     <option value="2">Semester 2</option>
                                 </select>
-                                <button onclick="downloadSemesterReport()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors">Download PDF</button>
+                                <button onclick="downloadSemesterReport()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition-colors">Preview Report</button>
                             </div>
                         </div>
                     </div>
@@ -2291,5 +2306,41 @@
 <script th:src="@{/js/pedagog/migration-module.js}"></script>
 <script th:src="@{/js/pedagog/reports-module.js}"></script>
 <div th:replace="~{fragments/ui :: modernConfirm}"></div>
+
+<!-- Report Preview Modal -->
+<div id="reportPreviewModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+    <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onclick="closeReportPreview()"></div>
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden relative z-10 flex flex-col h-[90vh] scale-95 transition-transform duration-300 transform" id="reportPreviewContent">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80">
+            <h3 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <i class="fas fa-file-alt text-blue-500"></i> Report Preview
+            </h3>
+            <button onclick="closeReportPreview()" class="w-8 h-8 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="flex-1 bg-slate-100 dark:bg-slate-900 p-2 overflow-hidden relative">
+            <div id="reportPreviewLoading" class="absolute inset-0 flex items-center justify-center bg-white dark:bg-slate-800 z-10">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+            <iframe id="reportPreviewFrame" class="w-full h-full rounded-lg shadow-sm bg-white" src="" frameborder="0" onload="document.getElementById('reportPreviewLoading').classList.add('hidden')"></iframe>
+        </div>
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 flex justify-end gap-3 bg-white dark:bg-slate-800">
+            <button onclick="closeReportPreview()" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-700 font-medium transition-colors">
+                Cancel
+            </button>
+            <button id="btnDownloadPdf" class="px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 font-medium flex items-center gap-2 transition-colors">
+                <i class="fas fa-file-pdf"></i> Download PDF
+            </button>
+            <button id="btnDownloadExcel" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-medium flex items-center gap-2 transition-colors">
+                <i class="fas fa-file-excel"></i> Download Excel
+            </button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

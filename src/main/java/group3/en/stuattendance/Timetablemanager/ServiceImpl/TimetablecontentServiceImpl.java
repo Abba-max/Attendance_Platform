@@ -16,6 +16,7 @@ import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     private final TimetablecontentMapper timetablecontentMapper;
 
     @Override
+    @CacheEvict(value = "semesterCourses", allEntries = true)
     public TimetablecontentDto saveWeeklyTimetable(TimetablecontentDto dto) {
         Classroom classroom = classroomRepository.findById(dto.getClassroomId())
                 .orElseThrow(() -> new EntityNotFoundException("Classroom not found with id: " + dto.getClassroomId()));
@@ -226,6 +228,7 @@ public class TimetablecontentServiceImpl implements TimetablecontentService {
     }
 
     @Override
+    @CacheEvict(value = "semesterCourses", allEntries = true)
     public void deleteWeeklyTimetable(Integer classroomId, Long academicYearId, Integer week, Integer semester) {
         timetablecontentRepository.findFirstByClassroomClassIdAndAcademicYearIdAndWeekAndSemesterAndIsActiveTrueOrderByVersionDesc(classroomId, academicYearId, week, semester)
                 .ifPresent(timetablecontentRepository::delete);

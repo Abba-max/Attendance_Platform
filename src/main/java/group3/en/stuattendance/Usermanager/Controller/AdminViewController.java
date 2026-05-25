@@ -54,9 +54,22 @@ public class AdminViewController {
     public String dashboard(Model model) {
         // Adding data to satisfy Thymeleaf requirements in admin.html
         model.addAttribute("institutions", institutionService.getAllInstitutions());
-        model.addAttribute("cycles", cycleService.getAllCycles());
-        model.addAttribute("allDepartments", departmentService.getAllDepartments());
+        
+        List<group3.en.stuattendance.Institutionmanager.Model.Cycle> cycles = cycleService.getAllCycles();
+        for (group3.en.stuattendance.Institutionmanager.Model.Cycle c : cycles) {
+            if (c.getDepartments() != null) c.getDepartments().size();
+        }
+        model.addAttribute("cycles", cycles);
+        
+        List<group3.en.stuattendance.Institutionmanager.Model.Department> depts = departmentService.getAllDepartments();
+        for (group3.en.stuattendance.Institutionmanager.Model.Department d : depts) {
+            if (d.getSpecialities() != null) d.getSpecialities().size();
+            if (d.getCycle() != null) d.getCycle().getName();
+        }
+        model.addAttribute("allDepartments", depts);
+        
         model.addAttribute("allSpecialities", specialityService.getAllSpecialities());
+        
         model.addAttribute("classrooms", classroomService.getAllClassrooms());
         model.addAttribute("courses", new ArrayList<>());
         model.addAttribute("roles", roleRepository.findAll());
@@ -69,6 +82,9 @@ public class AdminViewController {
         // Add pending password reset requests
         List<group3.en.stuattendance.Usermanager.Model.PasswordResetRequest> pendingResets = 
             passwordResetRequestRepository.findByStatus(group3.en.stuattendance.Usermanager.Model.PasswordResetRequest.RequestStatus.PENDING);
+        for (group3.en.stuattendance.Usermanager.Model.PasswordResetRequest req : pendingResets) {
+            if (req.getUser() != null) req.getUser().getUsername();
+        }
         model.addAttribute("pendingResets", pendingResets);
         
         // Add missing attributes for the overview section

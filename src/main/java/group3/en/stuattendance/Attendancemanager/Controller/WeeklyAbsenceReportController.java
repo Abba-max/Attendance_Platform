@@ -48,11 +48,31 @@ public class WeeklyAbsenceReportController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", filename);
+        headers.add("Content-Disposition", "inline; filename=\"" + filename + "\"");
         headers.setContentLength(pdfBytes.length);
 
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(pdfBytes);
+    }
+
+    @GetMapping("/excel")
+    public ResponseEntity<byte[]> exportWeeklyReportExcel(
+            @RequestParam Integer classroomId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+
+        ByteArrayInputStream excelStream = weeklyAbsenceReportService.generateWeeklyReportExcel(classroomId, weekStart);
+        byte[] excelBytes = excelStream.readAllBytes();
+
+        String filename = "fiche_hebdomadaire_" + weekStart + "_classe" + classroomId + ".xlsx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(excelBytes.length);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelBytes);
     }
 }

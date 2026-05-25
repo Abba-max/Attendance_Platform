@@ -1645,6 +1645,8 @@ window.saveTimetable = async function () {
     };
 
     try {
+        if (!navigator.onLine) throw new Error('offline');
+
         const res = await fetch('/api/timetablecontent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1660,9 +1662,41 @@ window.saveTimetable = async function () {
         }
     } catch (err) {
         console.error('Error saving timetable:', err);
-        showNotification('Network error ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â could not reach the server. Check your connection and try again.', 'error');
-    }
-};
+        
+        // Handle Offline Background Sync
+        if ('serviceWorker' in navigator && 'SyncManager' in window) {
+            try {
+                const db = await new Promise((resolve, reject) => {
+                    const req = indexedDB.open('attendee-offline-db', 1);
+                    req.onupgradeneeded = e => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('timetable-requests')) {
+                            db.createObjectStore('timetable-requests', { autoIncrement: true, keyPath: 'id' });
+                        }
+                    };
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('timetable-requests', 'readwrite');
+                    tx.objectStore('timetable-requests').add({ payload });
+                    tx.oncomplete = resolve;
+                    tx.onerror = () => reject(tx.error);
+                });
+
+                const swReg = await navigator.serviceWorker.ready;
+                await swReg.sync.register('sync-timetable');
+                
+                showNotification('You are offline. Your timetable has been saved locally and will automatically sync when you reconnect.', 'warning');
+            } catch (syncErr) {
+                console.error('Failed to register background sync:', syncErr);
+                showNotification('Network error — could not reach the server and offline sync failed.', 'error');
+            }
+        } else {
+            showNotification('Network error — could not reach the server. Check your connection and try again.', 'error');
+        }
+    }};
 
 window.exportTTPdf = function () {
     const classroomId = document.getElementById('ttClassSelect').value;
@@ -2393,7 +2427,7 @@ window.exportPlanningPdf = async function() {
     const roomId = document.getElementById('planningClassroomId').value;
     const week = document.getElementById('planningWeek').value;
 
-    if (!roomId || !week) return alert("Select a Classroom and Week first.");
+    if (!roomId || !week) return showNotification("Select a Classroom and Week first.", 'warning');
 
     window.open(`/api/timetablecontent/export/pdf?classroomId=${roomId}&week=${week}&semester=1`, '_blank');
 };

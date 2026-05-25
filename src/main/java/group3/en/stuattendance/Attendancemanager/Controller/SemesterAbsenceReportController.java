@@ -43,9 +43,31 @@ public class SemesterAbsenceReportController {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", filename);
+        headers.add("Content-Disposition", "inline; filename=\"" + filename + "\"");
         headers.setContentLength(bytes.length);
 
-        return ResponseEntity.ok().headers(headers).body(bytes);
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(bytes);
+    }
+
+    @GetMapping("/excel")
+    public ResponseEntity<byte[]> exportSemesterReportExcel(
+            @RequestParam Integer classroomId,
+            @RequestParam Integer semester) {
+
+        ByteArrayInputStream excelStream = semesterAbsenceReportService.generateSemesterReportExcel(classroomId, semester);
+        byte[] excelBytes = excelStream.readAllBytes();
+
+        String filename = "recapitulatif_semestre" + semester + "_classe" + classroomId + ".xlsx";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDispositionFormData("attachment", filename);
+        headers.setContentLength(excelBytes.length);
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(excelBytes);
     }
 }
