@@ -1441,7 +1441,7 @@
 </div>
 
 <!-- Create Student Modal (Individual) -->
-<div id="studentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+<div id="studentModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
          id="studentModalContent">
         <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
@@ -1525,7 +1525,7 @@
 </div>
 
 <!-- Bulk Import Modal -->
-<div id="bulkImportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+<div id="bulkImportModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden transform transition-all scale-95 opacity-0 duration-500 border border-slate-200"
          id="bulkImportModalContent">
         <!-- Dynamic Header -->
@@ -1721,7 +1721,7 @@
 </div>
 
 <!-- Course Creation Modal (Enhanced) -->
-<div id="courseModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+<div id="courseModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4">
     <div class="bg-white text-slate-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
          id="courseModalContent">
         <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
@@ -1881,7 +1881,7 @@
 
 <!-- Email Timetable Modal -->
 <div id="emailTTModal"
-     class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4 backdrop-blur-sm">
+     class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
          id="emailTTModalContent">
         <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
@@ -1963,7 +1963,7 @@
 </div>
 
 <!-- Migration Confirmation Modal -->
-<div id="migrationConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+<div id="migrationConfirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300 border border-slate-200" id="migrationConfirmModalContent">
         <div class="p-6 text-center">
             <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
@@ -1982,7 +1982,7 @@
 </div>
 
 <!-- Migration Result Modal -->
-<div id="migrationResultModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+<div id="migrationResultModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300 border border-slate-200" id="migrationResultModalContent">
         <div class="p-6 text-center">
             <div id="migrationResultIcon" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -2006,7 +2006,7 @@
 </div>
 
 <!-- Migration History Modal -->
-<div id="migrationHistoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+<div id="migrationHistoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center p-4">
     <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all scale-95 opacity-0 duration-300 border border-slate-200"
          id="migrationHistoryModalContent">
 
@@ -2135,7 +2135,7 @@
 
 
 <!-- Session Reschedule Modal -->
-<div id="rescheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 items-center justify-center hidden opacity-0 transition-opacity duration-300">
+<div id="rescheduleModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] items-center justify-center hidden opacity-0 transition-opacity duration-300">
     <div class="bg-white rounded-[2rem] w-full max-w-md shadow-2xl shadow-slate-900/20 overflow-hidden transform scale-95 transition-transform duration-300 relative">
         <div class="px-6 py-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -2308,7 +2308,7 @@
 <div th:replace="~{fragments/ui :: modernConfirm}"></div>
 
 <!-- Report Preview Modal -->
-<div id="reportPreviewModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
+<div id="reportPreviewModal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 sm:p-6 opacity-0 transition-opacity duration-300">
     <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" style="background-color: rgba(15, 23, 42, 0.5);" onclick="closeReportPreview()"></div>
     <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-6xl overflow-hidden relative z-10 flex flex-col scale-95 transition-transform duration-300 transform" style="height: 90vh;" id="reportPreviewContent">
         <!-- Header -->
