@@ -589,7 +589,41 @@ function searchCourses() {
  */
 let checkinMode = null; // 'qr' | 'pin'
 
-function openScanner(sessionId) {
+async function openScanner(sessionId) {
+    if (!sessionId) {
+        // Automatically find the IN_PROGRESS session
+        const active = allGridSessions.find(s => s.status === 'IN_PROGRESS');
+        if (active) {
+            sessionId = active.sessionId;
+        } else {
+            Swal.fire('No Active Session', 'There are no active classes available for check-in right now.', 'info');
+            return;
+        }
+    }
+
+    // Geofence check BEFORE opening
+    Swal.fire({
+        title: 'Checking Location',
+        text: 'Verifying your position...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const geoCheck = await validateGeofence();
+        Swal.close();
+        if (!geoCheck.allowed) {
+            Swal.fire('Location Restriction', geoCheck.message || 'You must be in the classroom to check in.', 'error');
+            return;
+        }
+        currentCheckinContext.lat = geoCheck.lat;
+        currentCheckinContext.lng = geoCheck.lng;
+    } catch (e) {
+        Swal.close();
+        Swal.fire('Location Error', 'Unable to determine your location. Please ensure location services are enabled.', 'error');
+        return;
+    }
+
     currentCheckinContext.sessionId = sessionId;
     currentCheckinContext.qrCode = null;
     currentCheckinContext.pin = null;
@@ -611,12 +645,19 @@ function openScanner(sessionId) {
 }
 
 function _showCheckinModeSelector() {
-    const modePanel = document.getElementById('checkin-mode-selector');
+    const initialPanel = document.getElementById('initial-panel');
     const qrPanel   = document.getElementById('qr-panel');
     const pinPanel  = document.getElementById('pin-panel');
-    if (modePanel) modePanel.classList.remove('hidden');
+    
+    if (initialPanel) initialPanel.classList.remove('hidden');
     if (qrPanel)   qrPanel.classList.add('hidden');
     if (pinPanel)  pinPanel.classList.add('hidden');
+
+    const btnQr = document.getElementById('btn-mode-qr');
+    const btnPin = document.getElementById('btn-mode-pin');
+    
+    if (btnQr) btnQr.className = "flex-1 py-2.5 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all text-slate-500 hover:text-slate-700";
+    if (btnPin) btnPin.className = "flex-1 py-2.5 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all text-slate-500 hover:text-slate-700";
 
     // Stop any running scanner
     if (html5QrScanner) {
@@ -627,12 +668,20 @@ function _showCheckinModeSelector() {
 
 window.selectCheckinMode = function(mode) {
     checkinMode = mode;
-    const modePanel = document.getElementById('checkin-mode-selector');
+    const initialPanel = document.getElementById('initial-panel');
     const qrPanel   = document.getElementById('qr-panel');
     const pinPanel  = document.getElementById('pin-panel');
-    if (modePanel) modePanel.classList.add('hidden');
+    const btnQr = document.getElementById('btn-mode-qr');
+    const btnPin = document.getElementById('btn-mode-pin');
+    
+    if (initialPanel) initialPanel.classList.add('hidden');
+
+    const activeClass = "flex-1 py-2.5 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all bg-white text-[#00B0FF] shadow-sm";
+    const inactiveClass = "flex-1 py-2.5 rounded-xl font-bold text-sm flex justify-center items-center gap-2 transition-all text-slate-500 hover:text-slate-700";
 
     if (mode === 'qr') {
+        if (btnQr) btnQr.className = activeClass;
+        if (btnPin) btnPin.className = inactiveClass;
         if (qrPanel) qrPanel.classList.remove('hidden');
         if (pinPanel) pinPanel.classList.add('hidden');
         // Start camera
@@ -650,8 +699,17 @@ window.selectCheckinMode = function(mode) {
             console.warn("Failed to init scanner", err);
         }
     } else {
+        if (btnQr) btnQr.className = inactiveClass;
+        if (btnPin) btnPin.className = activeClass;
         if (pinPanel) pinPanel.classList.remove('hidden');
         if (qrPanel)  qrPanel.classList.add('hidden');
+        
+        // Stop any running scanner
+        if (html5QrScanner) {
+            html5QrScanner.stop().catch(() => {});
+            html5QrScanner = null;
+        }
+
         // Enable validate button immediately when user types
         const pinInput = document.getElementById('pin-input');
         const btn = document.getElementById('btn-validate');
@@ -659,6 +717,7 @@ window.selectCheckinMode = function(mode) {
             pinInput.oninput = () => {
                 btn.disabled = pinInput.value.trim().length < 4;
             };
+            pinInput.focus();
         }
     }
 };
@@ -703,14 +762,8 @@ async function submitFinalCheckin() {
     if (btn) { btn.disabled = true; btn.textContent = 'Vérification...'; }
 
     try {
-        // --- Geofence Check ---
-        const geoCheck = await validateGeofence();
-        if (!geoCheck.allowed) {
-            Swal.fire('Location Restriction', geoCheck.message, 'error');
-            if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
-            return;
-        }
-
+        const locationStr = currentCheckinContext.lat ? `${currentCheckinContext.lat},${currentCheckinContext.lng}` : null;
+        
         const response = await fetch('/api/attendance/student/check-in', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -718,7 +771,7 @@ async function submitFinalCheckin() {
                 sessionId: currentCheckinContext.sessionId,
                 qrData:   currentCheckinContext.qrCode || null,
                 pinCode:  currentCheckinContext.pin    || null,
-                location:  geoCheck.allowed ? `${geoCheck.lat},${geoCheck.lng}` : null
+                location: locationStr
             })
         });
 

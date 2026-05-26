@@ -154,9 +154,21 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Appel Journalière");
 
-            // Fonts & Styles
             org.apache.poi.ss.usermodel.Font boldFont = workbook.createFont();
             boldFont.setBold(true);
+
+            org.apache.poi.ss.usermodel.Font titleFont = workbook.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 16);
+
+            CellStyle titleStyle = workbook.createCellStyle();
+            titleStyle.setFont(titleFont);
+            
+            CellStyle subtitleStyle = workbook.createCellStyle();
+            org.apache.poi.ss.usermodel.Font subtitleFont = workbook.createFont();
+            subtitleFont.setBold(true);
+            subtitleFont.setFontHeightInPoints((short) 12);
+            subtitleStyle.setFont(subtitleFont);
 
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFont(boldFont);
@@ -182,81 +194,107 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
             leftStyle.setBorderLeft(BorderStyle.THIN);
             leftStyle.setBorderRight(BorderStyle.THIN);
 
-            // Title Row
             Row titleRow = sheet.createRow(0);
-            Cell titleCell = titleRow.createCell(0);
-            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.FRENCH);
-            titleCell.setCellValue("FICHE D'APPEL - " + classroom.getName() + " - " + date.format(fmt).toUpperCase());
-            titleCell.setCellStyle(headerStyle);
+            titleRow.createCell(0).setCellValue("INSTITUT UNIVERSITAIRE SAINT JEAN");
+            titleRow.getCell(0).setCellStyle(titleStyle);
+            
+            Row subtitleRow = sheet.createRow(2);
+            subtitleRow.createCell(0).setCellValue("ATTENDANCE FORM SCHOOL YEAR " + (date.getYear()) + "-" + (date.getYear() + 1));
+            subtitleRow.getCell(0).setCellStyle(subtitleStyle);
+            
+            String levelStr = classroom.getName() != null ? classroom.getName() : "";
+            sheet.createRow(3).createCell(0).setCellValue("Level: " + levelStr);
+            
+            String optionStr = classroom.getSpeciality() != null ? classroom.getSpeciality().getName() : "";
+            sheet.createRow(4).createCell(0).setCellValue("Option: " + optionStr);
+            
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            sheet.createRow(5).createCell(0).setCellValue("Date: " + date.format(fmt));
 
-            if (students.isEmpty() || sessions.isEmpty()) {
-                Row msgRow = sheet.createRow(2);
-                msgRow.createCell(0).setCellValue(students.isEmpty() ? "Aucun étudiant." : "Aucune séance planifiée.");
+            if (students.isEmpty()) {
+                Row msgRow = sheet.createRow(7);
+                msgRow.createCell(0).setCellValue("Aucun étudiant inscrit dans cette classe.");
                 workbook.write(out);
                 return new ByteArrayInputStream(out.toByteArray());
             }
 
             // Headers
-            Row headerRow = sheet.createRow(2);
-            headerRow.setHeightInPoints(40f);
-            headerRow.createCell(0).setCellValue("N°");
-            headerRow.getCell(0).setCellStyle(headerStyle);
-            headerRow.createCell(1).setCellValue("NOMS ET PRÉNOMS");
-            headerRow.getCell(1).setCellStyle(headerStyle);
+            Row headerRow = sheet.createRow(7);
+            headerRow.setHeightInPoints(30f);
+            
+            String[] headers = {"N°", "Matricule", "Names"};
+            for (int i=0; i<headers.length; i++) {
+                Cell c = headerRow.createCell(i);
+                c.setCellValue(headers[i]);
+                c.setCellStyle(headerStyle);
+            }
 
-            DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-            int colIdx = 2;
-            for (Session s : sessions) {
-                String courseName = s.getCourse() != null ? s.getCourse().getCode() : "N/A";
-                String time = (s.getStartTime() != null ? s.getStartTime().format(timeFmt) : "") + " - " + 
-                              (s.getEndTime() != null ? s.getEndTime().format(timeFmt) : "");
+            String[] timeSlots = {
+                "08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", 
+                "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00"
+            };
+
+            int colIdx = 3;
+            for (String slot : timeSlots) {
                 Cell c = headerRow.createCell(colIdx++);
-                c.setCellValue(courseName + "\n" + time);
+                c.setCellValue(slot);
                 c.setCellStyle(headerStyle);
             }
 
             // Data Rows
-            int rowIdx = 3;
+            int rowIdx = 8;
             int index = 1;
             for (User student : students) {
                 Row row = sheet.createRow(rowIdx++);
-                row.setHeightInPoints(30f);
+                row.setHeightInPoints(20f);
                 
                 Cell nCell = row.createCell(0);
                 nCell.setCellValue(index++);
                 nCell.setCellStyle(centerStyle);
+                
+                Cell matCell = row.createCell(1);
+                matCell.setCellValue(student.getMatricule() != null ? student.getMatricule() : "");
+                matCell.setCellStyle(centerStyle);
 
                 String fullName = (student.getLastName() != null ? student.getLastName().toUpperCase() : "") + " " + 
-                                  (student.getFirstName() != null ? student.getFirstName() : "");
-                Cell nameCell = row.createCell(1);
+                                  (student.getFirstName() != null ? student.getFirstName().toUpperCase() : "");
+                Cell nameCell = row.createCell(2);
                 nameCell.setCellValue(fullName.trim());
                 nameCell.setCellStyle(leftStyle);
 
-                colIdx = 2;
-                for (Session s : sessions) {
-                    Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
-                    AttendanceRecord rec = byUser.get(student.getUserId());
-                    
+                colIdx = 3;
+                for (String slot : timeSlots) {
                     Cell sCell = row.createCell(colIdx++);
                     sCell.setCellStyle(centerStyle);
                     
-                    if (rec == null) {
-                        sCell.setCellValue("-");
-                    } else if (rec.getStatus() == AttendanceStatus.PRESENT) {
-                        sCell.setCellValue("P");
-                    } else if (rec.getStatus() == AttendanceStatus.ABSENT) {
-                        sCell.setCellValue("A");
-                    } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
-                        sCell.setCellValue("J");
+                    String[] parts = slot.split("-");
+                    java.time.LocalTime slotStart = java.time.LocalTime.parse(parts[0]);
+                    java.time.LocalTime slotEnd = java.time.LocalTime.parse(parts[1]);
+                    
+                    String cellValue = "";
+                    for (Session s : sessions) {
+                        if (s.getStartTime() == null || s.getEndTime() == null) continue;
+                        if (s.getStartTime().isBefore(slotEnd) && s.getEndTime().isAfter(slotStart)) {
+                            Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
+                            AttendanceRecord rec = byUser.get(student.getUserId());
+                            if (rec != null) {
+                                if (rec.getStatus() == AttendanceStatus.PRESENT) cellValue = "P";
+                                else if (rec.getStatus() == AttendanceStatus.ABSENT) cellValue = "A";
+                                else if (rec.getStatus() == AttendanceStatus.EXCUSED) cellValue = "J";
+                            }
+                            break;
+                        }
                     }
+                    sCell.setCellValue(cellValue);
                 }
             }
 
             // Auto-size columns
             sheet.autoSizeColumn(0);
             sheet.autoSizeColumn(1);
-            for (int i = 2; i < 2 + sessions.size(); i++) {
-                sheet.autoSizeColumn(i);
+            sheet.autoSizeColumn(2);
+            for (int i = 3; i < 3 + timeSlots.length; i++) {
+                sheet.setColumnWidth(i, 3500); // fixed width for time slots
             }
 
             workbook.write(out);
@@ -288,11 +326,6 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
                 msg.setAlignment(Element.ALIGN_CENTER);
                 msg.setSpacingBefore(20);
                 document.add(msg);
-            } else if (sessions.isEmpty()) {
-                Paragraph msg = new Paragraph("Aucune séance planifiée pour cette date.", FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY));
-                msg.setAlignment(Element.ALIGN_CENTER);
-                msg.setSpacingBefore(20);
-                document.add(msg);
             } else {
                 PdfPTable table = buildCallSheetTable(students, sessions, attendanceMap);
                 document.add(table);
@@ -308,143 +341,134 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
     }
 
     private void addHeader(Document document, Classroom classroom, LocalDate date) throws DocumentException {
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.FRENCH);
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-        PdfPTable header = new PdfPTable(3);
-        header.setWidthPercentage(100);
-        header.setWidths(new float[]{30f, 40f, 30f});
-        header.setSpacingAfter(15f);
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18f, Color.BLACK);
+        Paragraph title = new Paragraph("INSTITUT UNIVERSITAIRE SAINT JEAN", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
+        
+        document.add(new Paragraph("\n"));
 
-        Font boldSmall = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, Color.BLACK);
-        Font tinyGray = FontFactory.getFont(FontFactory.HELVETICA, 7f, Color.DARK_GRAY);
-        PdfPCell leftCell = new PdfPCell();
-        leftCell.setBorder(Rectangle.NO_BORDER);
-        Paragraph leftContent = new Paragraph();
-        leftContent.add(new Chunk("UNIVERSITE SAINT JEAN\n", boldSmall));
-        leftContent.add(new Chunk("Saint Jean Ingénieur\n", tinyGray));
-        leftContent.add(new Chunk("REPUBLIQUE DU CAMEROUN", tinyGray));
-        leftCell.addElement(leftContent);
-        header.addCell(leftCell);
+        Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12f, Color.BLACK);
+        Paragraph subtitle = new Paragraph("ATTENDANCE FORM SCHOOL YEAR " + (date.getYear()) + "-" + (date.getYear() + 1), subtitleFont);
+        subtitle.setAlignment(Element.ALIGN_LEFT);
+        document.add(subtitle);
 
-        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12f, TEXT_DARK);
-        Font dateFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f, Color.BLACK);
-        PdfPCell centerCell = new PdfPCell();
-        centerCell.setBorder(Rectangle.NO_BORDER);
-        centerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        Paragraph centerContent = new Paragraph();
-        centerContent.setAlignment(Element.ALIGN_CENTER);
-        centerContent.add(new Chunk("FICHE D'APPEL JOURNALIÈRE\n", titleFont));
-        centerContent.add(new Chunk(date.format(fmt).toUpperCase(), dateFont));
-        centerCell.addElement(centerContent);
-        header.addCell(centerCell);
+        document.add(new Paragraph("\n"));
 
-        Font classFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f, TEXT_DARK);
-        PdfPCell rightCell = new PdfPCell();
-        rightCell.setBorder(Rectangle.NO_BORDER);
-        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        rightCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        Paragraph classContent = new Paragraph(classroom.getName() != null ? classroom.getName() : "", classFont);
-        classContent.setAlignment(Element.ALIGN_RIGHT);
-        rightCell.addElement(classContent);
-        header.addCell(rightCell);
-
-        document.add(header);
+        Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10f, Color.BLACK);
+        
+        String levelStr = classroom.getName() != null ? classroom.getName() : "";
+        Paragraph level = new Paragraph("Level: " + levelStr, normalFont);
+        document.add(level);
+        
+        String optionStr = classroom.getSpeciality() != null ? classroom.getSpeciality().getName() : "";
+        Paragraph option = new Paragraph("Option: " + optionStr, normalFont);
+        document.add(option);
+        
+        Paragraph dateLine = new Paragraph("Date: " + date.format(fmt), normalFont);
+        dateLine.setSpacingAfter(15f);
+        document.add(dateLine);
     }
 
     private PdfPTable buildCallSheetTable(List<User> students, List<Session> sessions, Map<Integer, Map<Integer, AttendanceRecord>> attendanceMap) throws DocumentException {
-        int totalCols = 2 + sessions.size();
+        String[] timeSlots = {
+            "08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", 
+            "14:00-15:00", "15:00-16:00", "16:00-17:00", "17:00-18:00"
+        };
+        int totalCols = 3 + timeSlots.length; // N°, Matricule, Names, 8 slots
         PdfPTable table = new PdfPTable(totalCols);
         table.setWidthPercentage(100);
         
         float[] widths = new float[totalCols];
         widths[0] = 5f; // N°
-        widths[1] = 35f; // Nom
-        float sessionWidth = 60f / sessions.size();
-        for (int i = 2; i < totalCols; i++) widths[i] = sessionWidth;
+        widths[1] = 12f; // Matricule
+        widths[2] = 27f; // Names
+        float sessionWidth = 56f / timeSlots.length;
+        for (int i = 3; i < totalCols; i++) widths[i] = sessionWidth;
         table.setWidths(widths);
 
-        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, TEXT_LIGHT);
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7f, Color.BLACK);
         
-        PdfPCell nLabel = new PdfPCell(new Phrase("N°", headerFont));
-        nLabel.setBackgroundColor(PRIMARY_INDIGO);
-        nLabel.setBorderColor(BORDER_SLATE);
-        nLabel.setHorizontalAlignment(Element.ALIGN_CENTER);
-        nLabel.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        nLabel.setPadding(8f);
-        table.addCell(nLabel);
-
-        PdfPCell nameLabel = new PdfPCell(new Phrase("NOMS ET PRÉNOMS", headerFont));
-        nameLabel.setBackgroundColor(PRIMARY_INDIGO);
-        nameLabel.setBorderColor(BORDER_SLATE);
-        nameLabel.setHorizontalAlignment(Element.ALIGN_CENTER);
-        nameLabel.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        nameLabel.setPadding(8f);
-        table.addCell(nameLabel);
-
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-        for (Session s : sessions) {
-            String courseName = s.getCourse() != null ? s.getCourse().getCode() : "N/A";
-            String time = (s.getStartTime() != null ? s.getStartTime().format(timeFmt) : "") + " - " + 
-                          (s.getEndTime() != null ? s.getEndTime().format(timeFmt) : "");
-            PdfPCell sLabel = new PdfPCell(new Phrase(courseName + "\n" + time, headerFont));
-            sLabel.setBackgroundColor(PRIMARY_INDIGO);
-            sLabel.setBorderColor(BORDER_SLATE);
-            sLabel.setHorizontalAlignment(Element.ALIGN_CENTER);
-            sLabel.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            sLabel.setPadding(8f);
-            table.addCell(sLabel);
+        String[] headers = {"N°", "Matricule", "Names"};
+        for (String h : headers) {
+            PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
+            cell.setBackgroundColor(Color.LIGHT_GRAY);
+            cell.setBorderColor(Color.BLACK);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setPadding(6f);
+            table.addCell(cell);
         }
 
-        Font nameFont = FontFactory.getFont(FontFactory.HELVETICA, 8f, TEXT_DARK);
-        Font noDataFont = FontFactory.getFont(FontFactory.HELVETICA, 8f, TEXT_MUTED);
-        Font presentFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_PRESENT);
-        Font absentFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_ABSENT);
-        Font excusedFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, COLOR_EXCUSED);
+        for (String slot : timeSlots) {
+            PdfPCell cell = new PdfPCell(new Phrase(slot, headerFont));
+            cell.setBackgroundColor(Color.LIGHT_GRAY);
+            cell.setBorderColor(Color.BLACK);
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            cell.setPadding(6f);
+            table.addCell(cell);
+        }
 
+        Font nameFont = FontFactory.getFont(FontFactory.HELVETICA, 7f, Color.BLACK);
+        Font presentFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, Color.BLACK);
+        
         int index = 1;
         for (User student : students) {
-            Color rowBg = (index % 2 == 0) ? MUTED_SLATE : TEXT_LIGHT;
-
             PdfPCell nCell = new PdfPCell(new Phrase(String.valueOf(index++), nameFont));
-            nCell.setBackgroundColor(rowBg);
-            nCell.setBorderColor(BORDER_SLATE);
+            nCell.setBorderColor(Color.BLACK);
             nCell.setHorizontalAlignment(Element.ALIGN_CENTER);
             nCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            nCell.setPadding(8f);
+            nCell.setPadding(6f);
             table.addCell(nCell);
+            
+            String matricule = student.getMatricule() != null ? student.getMatricule() : "";
+            PdfPCell matCell = new PdfPCell(new Phrase(matricule, nameFont));
+            matCell.setBorderColor(Color.BLACK);
+            matCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            matCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+            matCell.setPadding(6f);
+            table.addCell(matCell);
 
             String fullName = (student.getLastName() != null ? student.getLastName().toUpperCase() : "") + " " + 
-                              (student.getFirstName() != null ? student.getFirstName() : "");
+                              (student.getFirstName() != null ? student.getFirstName().toUpperCase() : "");
             PdfPCell nameCell = new PdfPCell(new Phrase(fullName.trim(), nameFont));
-            nameCell.setBackgroundColor(rowBg);
-            nameCell.setBorderColor(BORDER_SLATE);
+            nameCell.setBorderColor(Color.BLACK);
             nameCell.setHorizontalAlignment(Element.ALIGN_LEFT);
             nameCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
             nameCell.setPaddingLeft(5f);
-            nameCell.setPadding(8f);
+            nameCell.setPadding(6f);
             table.addCell(nameCell);
 
-            for (Session s : sessions) {
-                Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
-                AttendanceRecord rec = byUser.get(student.getUserId());
+            // Time slots matching
+            for (String slot : timeSlots) {
+                String[] parts = slot.split("-");
+                java.time.LocalTime slotStart = java.time.LocalTime.parse(parts[0]);
+                java.time.LocalTime slotEnd = java.time.LocalTime.parse(parts[1]);
                 
-                PdfPCell sCell = new PdfPCell();
-                sCell.setBackgroundColor(rowBg);
-                sCell.setBorderColor(BORDER_SLATE);
+                String cellValue = "";
+                for (Session s : sessions) {
+                    if (s.getStartTime() == null || s.getEndTime() == null) continue;
+                    // Overlap logic: session starts before slot ends AND session ends after slot starts
+                    if (s.getStartTime().isBefore(slotEnd) && s.getEndTime().isAfter(slotStart)) {
+                        Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
+                        AttendanceRecord rec = byUser.get(student.getUserId());
+                        if (rec != null) {
+                            if (rec.getStatus() == AttendanceStatus.PRESENT) cellValue = "P";
+                            else if (rec.getStatus() == AttendanceStatus.ABSENT) cellValue = "A";
+                            else if (rec.getStatus() == AttendanceStatus.EXCUSED) cellValue = "J";
+                        }
+                        break; // Found matching session for this slot
+                    }
+                }
+
+                PdfPCell sCell = new PdfPCell(new Phrase(cellValue, presentFont));
+                sCell.setBorderColor(Color.BLACK);
                 sCell.setHorizontalAlignment(Element.ALIGN_CENTER);
                 sCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                sCell.setPadding(8f);
-                
-                if (rec == null) {
-                    sCell.setPhrase(new Phrase("-", noDataFont));
-                } else if (rec.getStatus() == AttendanceStatus.PRESENT) {
-                    sCell.setPhrase(new Phrase("P", presentFont));
-                } else if (rec.getStatus() == AttendanceStatus.ABSENT) {
-                    sCell.setPhrase(new Phrase("A", absentFont));
-                } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
-                    sCell.setPhrase(new Phrase("J", excusedFont));
-                }
-                
+                sCell.setPadding(6f);
                 table.addCell(sCell);
             }
         }
