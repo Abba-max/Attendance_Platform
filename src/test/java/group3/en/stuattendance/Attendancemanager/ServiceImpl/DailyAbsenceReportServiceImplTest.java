@@ -13,6 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -22,10 +23,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import group3.en.stuattendance.Timetablemanager.Repository.CourseRepository;
-
 @ExtendWith(MockitoExtension.class)
-class SemesterAbsenceReportServiceImplTest {
+class DailyAbsenceReportServiceImplTest {
 
     @Mock
     private ClassroomRepository classroomRepository;
@@ -34,29 +33,23 @@ class SemesterAbsenceReportServiceImplTest {
     private UserRepository userRepository;
 
     @Mock
-    private CourseRepository courseRepository;
-
-    @Mock
     private SessionRepository sessionRepository;
 
     @Mock
     private AttendanceRecordRepository attendanceRecordRepository;
 
-    @Mock
-    private group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository academicYearRepository;
-
     @InjectMocks
-    private SemesterAbsenceReportServiceImpl semesterAbsenceReportService;
+    private DailyAbsenceReportServiceImpl dailyAbsenceReportService;
 
     @BeforeEach
     void setUp() {
     }
 
     @Test
-    void testGenerateSemesterReport_Success() {
+    void testGenerateDailyReport_Success() {
         // Given
         Integer classroomId = 1;
-        int semester = 1;
+        LocalDate date = LocalDate.now();
 
         Classroom classroom = new Classroom();
         classroom.setClassId(classroomId);
@@ -64,10 +57,10 @@ class SemesterAbsenceReportServiceImplTest {
 
         when(classroomRepository.findById(classroomId)).thenReturn(Optional.of(classroom));
         when(userRepository.findByClassroomClassIdAndRolesName(classroomId, "STUDENT")).thenReturn(Collections.emptyList());
-        org.mockito.Mockito.lenient().when(sessionRepository.findByClassroomClassIdAndCourseIds(eq(classroomId), any())).thenReturn(Collections.emptyList());
+        when(sessionRepository.findByClassroomClassIdAndDateBetween(eq(classroomId), any(), any())).thenReturn(Collections.emptyList());
 
         // When
-        ByteArrayInputStream pdfStream = semesterAbsenceReportService.generateSemesterReport(classroomId, semester);
+        ByteArrayInputStream pdfStream = dailyAbsenceReportService.generateDailyReport(classroomId, date);
 
         // Then
         assertNotNull(pdfStream, "The generated PDF stream should not be null");
