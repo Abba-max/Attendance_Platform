@@ -3214,13 +3214,16 @@ function buildScheduleActions(s) {
  */
 async function scheduleAction(id, action) {
     if (action === 'delete') {
-        const confirmed = await ModernConfirm({
+        const result = await Swal.fire({
             title: "Delete Schedule?",
-            message: "Are you sure you want to delete this schedule? This cannot be undone.",
-            confirmText: "Yes, Delete",
-            type: "danger"
+            text: "Are you sure you want to delete this schedule? This cannot be undone.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#94a3b8",
+            confirmButtonText: "Yes, Delete"
         });
-        if (!confirmed) return;
+        if (!result.isConfirmed) return;
     }
 
     try {

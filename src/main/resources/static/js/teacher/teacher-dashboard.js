@@ -565,9 +565,16 @@ window.initializeGlobalWebSockets = function() {
         // Subscribe to user-specific notifications
         globalStompClient.subscribe('/user/queue/notifications', function (msg) {
             const notification = JSON.parse(msg.body);
-            if (typeof showNotification === 'function') {
-                showNotification(notification.message, notification.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
-            }
+            Swal.fire({
+                title: 'Notification',
+                text: notification.message,
+                icon: notification.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 5000,
+                customClass: { popup: 'rounded-xl shadow-lg' }
+            });
             if (typeof loadNotifications === 'function') loadNotifications();
         });
 

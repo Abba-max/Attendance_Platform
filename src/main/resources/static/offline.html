@@ -120,11 +120,16 @@
                 }, 500);
             } else {
                 setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHtml;
-                    
-                    // Show soft toast notification if SweetAlert resides in fallback
-                    alert("Still offline. Please check your Wi-Fi or mobile data network.");
+                    btn.innerHTML = `
+                        <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-rose-200">Still Offline</span>
+                    `;
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }, 2000);
                 }, 1000);
             }
         }

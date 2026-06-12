@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendee - Advanced Timetable Creator</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
             --primary: #1976d2;
@@ -292,7 +293,7 @@
         function saveAllData() {
             saveCurrentToMemory();
             localStorage.setItem('campus_timetables', JSON.stringify(timetableData));
-            alert("All timetables saved successfully!");
+            Swal.fire({icon: 'success', title: 'Saved!', text: 'All timetables saved successfully!', timer: 3000, showConfirmButton: false});
         }
 
         window.onload = initGrid;

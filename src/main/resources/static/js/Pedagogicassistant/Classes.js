@@ -37,10 +37,27 @@ function handleEdit(e) {
 }
 
 // Handle delete button click
-function handleDelete(e) {
+async function handleDelete(e) {
   const card = e.target.closest('.class-card');
-  if (confirm('Are you sure you want to delete this course?')) {
-    card.remove();
+  if (typeof Swal !== 'undefined') {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to delete this course?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#94a3b8',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (result.isConfirmed) {
+      card.remove();
+      Swal.fire({toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, icon: 'success', title: 'Course deleted'});
+    }
+  } else {
+    // Fallback if someone forgot to include sweetalert
+    if (confirm('Are you sure you want to delete this course?')) {
+      card.remove();
+    }
   }
 }
 

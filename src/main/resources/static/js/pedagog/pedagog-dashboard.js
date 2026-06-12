@@ -2721,13 +2721,16 @@ function renderSessionRow(s) {
 }
 
 window.cancelSession = async function(sessionId) {
-    const confirmed = await ModernConfirm({
+    const result = await Swal.fire({
         title: "Cancel this session?",
-        message: "This will remove the session from the schedule and notify the teacher. This action is permanent.",
-        confirmText: "Yes, Cancel Session",
-        type: "danger"
+        text: "This will remove the session from the schedule and notify the teacher. This action is permanent.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#ef4444",
+        cancelButtonColor: "#94a3b8",
+        confirmButtonText: "Yes, Cancel Session"
     });
-    if (!confirmed) return;
+    if (!result.isConfirmed) return;
     try {
         const res = await fetch("/api/sessions/" + sessionId, { method: 'DELETE' });
         if (!res.ok) throw new Error("Could not cancel session");
@@ -2980,13 +2983,16 @@ window.hubMarkAll = async function(status) {
     const sessionId = document.getElementById('hubSessionFilter').value;
     if (!sessionId) return;
 
-    const confirmed = await ModernConfirm({
+    const result = await Swal.fire({
         title: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}?`,
-        message: `This will update the entire roster for this session to ${status.toLowerCase()}.`,
-        confirmText: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}`,
-        type: status === 'PRESENT' ? 'info' : 'warning'
+        text: `This will update the entire roster for this session to ${status.toLowerCase()}.`,
+        icon: status === 'PRESENT' ? 'info' : 'warning',
+        showCancelButton: true,
+        confirmButtonColor: status === 'PRESENT' ? '#3b82f6' : '#ef4444',
+        cancelButtonColor: '#94a3b8',
+        confirmButtonText: `Mark All ${status === 'PRESENT' ? 'Present' : 'Absent'}`
     });
-    if (!confirmed) return;
+    if (!result.isConfirmed) return;
 
     // Snappy UI: Update all checkboxes immediately
     const checkboxes = document.querySelectorAll('#hubRosterBody input[type="checkbox"]');
@@ -3331,10 +3337,16 @@ window.initializeNotifications = function() {
 function handleIncomingNotification(n) {
     console.log("New Notification:", n);
 
-    // Show Toast
-    if (typeof showNotification === 'function') {
-        showNotification(n.message, n.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
-    }
+    Swal.fire({
+        title: 'New Notification',
+        text: n.message,
+        icon: n.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 5000,
+        customClass: { popup: 'rounded-xl shadow-lg' }
+    });
 
     // Update UI (e.g., refresh sessions if on that page)
     const currentSection = new URLSearchParams(window.location.search).get('section');
@@ -4286,9 +4298,11 @@ window.toggleDelegate = async function (studentId, currentStatus, btnElement) {
             // Flip the status visually for the next click
             btnElement.setAttribute('data-is-delegate', (!currentStatus).toString());
             if (currentStatus) {
+                btnElement.classList.remove('text-slate-400');
                 btnElement.classList.add('text-amber-500');
             } else {
                 btnElement.classList.remove('text-amber-500');
+                btnElement.classList.add('text-slate-400');
             }
         } else {
             const data = await response.json();
@@ -4316,6 +4330,8 @@ window.openEditStudentModal = async function(studentId) {
         const response = await fetch(`/api/pedagog/students/${studentId}`);
         if (!response.ok) throw new Error('Failed to fetch student details');
         const student = await response.json();
+        
+        window._currentEditStudent = student;
 
         document.getElementById('editStudentId').value = student.userId || '';
         document.getElementById('editStudentFirstName').value = student.firstName || '';
@@ -4341,10 +4357,12 @@ window.openEditStudentModal = async function(studentId) {
         });
     } catch (error) {
         console.error('Error viewing student for edit:', error);
-        Swal.fire({
-            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
-            icon: 'error', title: 'Could not load student details'
-        });
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                icon: 'error', title: 'Could not load student details'
+            });
+        }
     }
 };
 
@@ -4358,6 +4376,7 @@ window.closeEditStudentModal = function() {
     setTimeout(() => {
         modal.classList.add('hidden');
         document.getElementById('editStudentForm').reset();
+        window._currentEditStudent = null;
     }, 300);
 };
 
@@ -4369,10 +4388,13 @@ window.submitEditStudent = async function(e) {
     btn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Saving...';
 
     const studentId = document.getElementById('editStudentId').value;
+    const newEmail = document.getElementById('editStudentEmail').value.trim();
     const data = {
+        ...(window._currentEditStudent || {}),
         firstName: document.getElementById('editStudentFirstName').value.trim(),
         lastName: document.getElementById('editStudentLastName').value.trim(),
-        email: document.getElementById('editStudentEmail').value.trim(),
+        email: newEmail,
+        username: newEmail,
         matricule: document.getElementById('editStudentMatricule').value.trim(),
         classroomId: document.getElementById('editStudentClassroom').value || null
     };
@@ -4481,9 +4503,9 @@ window.sendAnnouncement = async function(e) {
 
     try {
         const formData = new FormData();
-        formData.append('target', target);
-        formData.append('title', title);
-        formData.append('message', message);
+        formData.append('targetType', target);
+        formData.append('subject', title);
+        formData.append('content', message);
         if (classroomId) formData.append('classroomId', classroomId);
         
         announcementFiles.forEach(f => formData.append('files', f));

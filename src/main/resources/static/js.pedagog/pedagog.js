@@ -1222,7 +1222,7 @@ function exportTTPDF() {
     doc.setTextColor(180, 180, 180); doc.setFontSize(5.5); doc.setFont(undefined, 'normal');
     doc.text('Attendee  •  Confidential', W/2, H-2.5, { align: 'center' });
     doc.save(`Timetable_${(cls?.name || 'all').replace(/\s+/g,'_')}_${semester.replace(/\s+/g,'_')}.pdf`);
-  }).catch(() => alert('Could not load PDF library. Check your internet connection.'));
+  }).catch(() => Swal.fire({icon: 'error', title: 'Error', text: 'Could not load PDF library. Check your internet connection.'}));
 }
 
 /* ═══════════════════════════════════════════════════════════
