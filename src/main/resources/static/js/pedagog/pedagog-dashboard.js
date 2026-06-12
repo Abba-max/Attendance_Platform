@@ -1933,7 +1933,7 @@ window.handleSendEmailTT = async function (event) {
     const academicYearId = document.getElementById('ttAcademicYearSelect').value;
 
     if (!formData.get('classroomId')) {
-        showNotification('error', 'Please select a classroom first.');
+        Swal.fire({ text: 'Please select a classroom first.', icon: 'error', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         return;
     }
 
@@ -1958,14 +1958,14 @@ window.handleSendEmailTT = async function (event) {
         const result = await response.json();
 
         if (response.ok) {
-            showNotification(result.message || 'Timetable emails sent successfully!', 'success');
+            Swal.fire({ text: result.message || 'Timetable emails sent successfully!', icon: 'success', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
             closeEmailTTModal();
         } else {
-            showNotification(result.error || 'Failed to send emails.', 'error');
+            Swal.fire({ text: result.error || 'Failed to send emails.', icon: 'error', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         }
     } catch (error) {
         console.error('Email error:', error);
-        showNotification('Network error while sending emails.', 'error');
+        Swal.fire({ text: 'Network error while sending emails.', icon: 'error', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
     } finally {
         loader.classList.add('hidden');
         btn.disabled = false;
