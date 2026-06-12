@@ -1364,6 +1364,35 @@ function closeStaffModal() {
     }
 }
 
+function displayValidationErrors(form, errorData) {
+    // Clear previous errors
+    form.querySelectorAll('.validation-error').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+
+    if (errorData && errorData.details) {
+        let hasErrors = false;
+        for (const [field, message] of Object.entries(errorData.details)) {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input) {
+                input.classList.add('border-red-500');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'validation-error text-red-500 text-xs mt-1';
+                errorDiv.innerText = message;
+                input.parentNode.appendChild(errorDiv);
+                hasErrors = true;
+            }
+        }
+        return hasErrors;
+    }
+    return false;
+}
+
+function clearValidationErrors(form) {
+    if(!form) return;
+    form.querySelectorAll('.validation-error').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+}
+
 /**
  * Handle Create Staff Form Submission
  */
@@ -1397,11 +1426,16 @@ async function handleCreateStaff(e) {
 
         if (response.ok) {
             showNotification('Staff member created! Credentials sent via email.', 'success');
+            clearValidationErrors(form);
             closeStaffModal();
             loadUsers(); // Refresh table
         } else {
             const error = await response.json();
-            throw new Error(error.message || 'Failed to create staff member');
+            if (displayValidationErrors(form, error)) {
+                showNotification('Validation failed. Please check the highlighted fields.', 'error');
+            } else {
+                throw new Error(error.message || error.error || 'Failed to create staff member');
+            }
         }
     } catch (error) {
         console.error('Error creating staff:', error);

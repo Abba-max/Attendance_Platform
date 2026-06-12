@@ -46,4 +46,9 @@ public interface EmailService {
             java.util.List<group3.en.stuattendance.Usermanager.DTO.AttachmentDto> attachments,
             String senderName
     );
+
+    /**
+     * Sends an email notification to a student regarding their justification decision.
+     */
+    void sendJustificationDecisionEmail(String to, String courseName, String decision, String reason);
 }

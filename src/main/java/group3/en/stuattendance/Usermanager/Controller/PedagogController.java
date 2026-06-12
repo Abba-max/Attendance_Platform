@@ -25,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/pedagog")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasAnyRole('PEDAGOG', 'ADMIN')")
 public class PedagogController {
 
     private final UserService userService;
@@ -75,12 +76,12 @@ public class PedagogController {
     }
 
     @PostMapping("/teachers")
-    public ResponseEntity<UserDto> createTeacher(@RequestBody TeacherCreateDto dto) {
+    public ResponseEntity<UserDto> createTeacher(@jakarta.validation.Valid @RequestBody TeacherCreateDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerTeacher(dto));
     }
 
     @PostMapping("/students")
-    public ResponseEntity<UserDto> createStudent(@RequestBody StudentCreateDto dto) {
+    public ResponseEntity<UserDto> createStudent(@jakarta.validation.Valid @RequestBody StudentCreateDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userService.registerStudent(dto));
     }
 

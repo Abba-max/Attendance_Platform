@@ -13,7 +13,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-// @PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final UserService userService;
@@ -39,7 +39,7 @@ public class AdminController {
 
     @PostMapping("/staff")
     public ResponseEntity<UserDto> registerStaff(
-        @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
+        @jakarta.validation.Valid @RequestBody group3.en.stuattendance.Usermanager.DTO.StaffCreateDto dto) {
         return ResponseEntity.ok(userService.registerStaff(dto));
     }
 

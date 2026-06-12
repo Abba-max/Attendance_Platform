@@ -39,6 +39,7 @@ public class JustificationServiceImpl implements JustificationService {
     private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
+    private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
 
     @Value("${file.upload-dir}")
     private String uploadDir;
@@ -50,7 +51,8 @@ public class JustificationServiceImpl implements JustificationService {
             JustificationMapper justificationMapper,
             group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService,
             group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService,
-            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate) {
+            org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate,
+            group3.en.stuattendance.Usermanager.Service.EmailService emailService) {
         this.justificationRepository = justificationRepository;
         this.userRepository = userRepository;
         this.attendanceRecordRepository = attendanceRecordRepository;
@@ -58,6 +60,7 @@ public class JustificationServiceImpl implements JustificationService {
         this.notificationService = notificationService;
         this.attendanceService = attendanceService;
         this.messagingTemplate = messagingTemplate;
+        this.emailService = emailService;
     }
 
     @Override
@@ -171,8 +174,20 @@ public class JustificationServiceImpl implements JustificationService {
         
         Justification saved = justificationRepository.save(justification);
         
-        notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_APPROVED", 
-                "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " has been APPROVED.");
+        String courseName = saved.getAttendanceRecord().getSession().getCourse().getCourseName();
+        
+        try {
+            notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_APPROVED", 
+                    "Your justification for " + courseName + " has been APPROVED.");
+            
+            if (saved.getUser().getEmail() != null) {
+                emailService.sendJustificationDecisionEmail(saved.getUser().getEmail(), courseName, "APPROVED", "Your justification meets the required criteria.");
+            }
+        } catch (Exception e) {
+            // Log error but do not fail the transaction, ensuring DB status is preserved
+            org.slf4j.LoggerFactory.getLogger(JustificationServiceImpl.class)
+                    .error("Failed to send approval notification or email for justification ID " + id, e);
+        }
         
         return justificationMapper.toDto(saved);
     }
@@ -186,8 +201,20 @@ public class JustificationServiceImpl implements JustificationService {
         justification.setReasonForRejection(reasonForRejection);
         Justification saved = justificationRepository.save(justification);
         
-        notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_REJECTED", 
-                "Your justification for " + saved.getAttendanceRecord().getSession().getCourse().getCourseName() + " was REJECTED. Reason: " + reasonForRejection);
+        String courseName = saved.getAttendanceRecord().getSession().getCourse().getCourseName();
+        
+        try {
+            notificationService.sendNotification(saved.getUser().getUserId(), "JUSTIFICATION_REJECTED", 
+                    "Your justification for " + courseName + " was REJECTED. Reason: " + reasonForRejection);
+            
+            if (saved.getUser().getEmail() != null) {
+                emailService.sendJustificationDecisionEmail(saved.getUser().getEmail(), courseName, "REJECTED", reasonForRejection);
+            }
+        } catch (Exception e) {
+            // Log error but do not fail the transaction, ensuring DB status is preserved
+            org.slf4j.LoggerFactory.getLogger(JustificationServiceImpl.class)
+                    .error("Failed to send rejection notification or email for justification ID " + id, e);
+        }
         
         return justificationMapper.toDto(saved);
     }

@@ -8,7 +8,10 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
+@Slf4j
 public class JwtUtil {
 
     @Value("${jwt.secret}")
@@ -44,13 +47,13 @@ public class JwtUtil {
             parseClaims(token);
             return true;
         } catch (ExpiredJwtException e) {
-            System.out.println("JWT expiré : " + e.getMessage());
+            log.error("JWT expiré : {}", e.getMessage());
         } catch (UnsupportedJwtException e) {
-            System.out.println("JWT non supporté : " + e.getMessage());
+            log.error("JWT non supporté : {}", e.getMessage());
         } catch (MalformedJwtException e) {
-            System.out.println("JWT malformé : " + e.getMessage());
+            log.error("JWT malformé : {}", e.getMessage());
         } catch (IllegalArgumentException e) {
-            System.out.println("JWT vide : " + e.getMessage());
+            log.error("JWT vide : {}", e.getMessage());
         }
         return false;
     }

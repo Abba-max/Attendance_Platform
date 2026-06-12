@@ -21,7 +21,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class PdfExportServiceImpl implements PdfExportService {
 
     // ─────────────────────────────────────────────────────────────
@@ -772,7 +775,9 @@ public class PdfExportServiceImpl implements PdfExportService {
                                     bgColor = Color.decode(entry.getColor());
                                     textColor = isDarkColor(bgColor)
                                             ? Color.WHITE : Color.BLACK;
-                                } catch (Exception ignored) {}
+                                } catch (Exception e) {
+                                    log.error("Failed to decode color: {}", entry.getColor(), e);
+                                }
                             }
 
                             String content = Boolean.TRUE.equals(entry.getIsEvent())

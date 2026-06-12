@@ -843,7 +843,7 @@ window.markHourStatus = async (userId, hourIndex, isPresent) => {
         const res = await fetch(`/api/attendance/session/${activeSessionId}/student/${userId}/hour/${hourIndex}?status=${isPresent ? 'PRESENT' : 'ABSENT'}`, { method: 'POST' });
         if (!res.ok) {
             let errMsg = `Server error ${res.status}`;
-            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(_) {}
+            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(parseErr) { console.error("Failed to parse error response:", parseErr); }
             showNotification(errMsg, 'error');
             // Revert the checkbox to its previous state
             const cb = document.querySelector(`.slot-checkbox[data-user-id="${userId}"][data-hour="${hourIndex}"]`);
@@ -862,7 +862,8 @@ window.markHourStatus = async (userId, hourIndex, isPresent) => {
             }
             updateSummaryStats();
         }
-    } catch {
+    } catch (networkErr) {
+        console.error("markHourStatus network error:", networkErr);
         showNotification('Network error: could not update attendance.', 'error');
     }
 };
@@ -902,14 +903,15 @@ window.teacherMarkAllPresent = async (userId) => {
         });
         if (!res.ok) {
             let errMsg = `Server error ${res.status}`;
-            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(_) {}
+            try { const body = await res.json(); errMsg = body.message || body.error || errMsg; } catch(parseErr) { console.error("Failed to parse error response:", parseErr); }
             showNotification(errMsg, 'error');
             return;
         }
         // Immediately update all checkboxes for this student in the UI
         document.querySelectorAll(`.slot-checkbox[data-user-id="${userId}"]`).forEach(cb => cb.checked = true);
         showNotification('Marked all present.', 'success');
-    } catch {
+    } catch (networkErr) {
+        console.error("teacherMarkAllPresent network error:", networkErr);
         showNotification('Network error: could not mark attendance.', 'error');
     }
 };
@@ -918,7 +920,9 @@ window.markAllSessionStatus = async (s) => {
     try {
         await fetch(`/api/attendance/session/${activeSessionId}/mark-all?status=${s}`, { method: 'POST' });
         document.querySelectorAll('.slot-checkbox').forEach(cb => cb.checked = (s === 'PRESENT'));
-    } catch {}
+    } catch (e) {
+        console.error("markAllSessionStatus network error:", e);
+    }
 };
 
 window.submitRollCall = async () => {
@@ -934,7 +938,7 @@ window.submitRollCall = async () => {
             try {
                 const errBody = await res.json();
                 errMsg = errBody.message || errBody.error || errMsg;
-            } catch (_) {}
+            } catch (parseErr) { console.error("Failed to parse error response:", parseErr); }
             showNotification(errMsg, 'error');
             if (btn) { btn.disabled = false; btn.textContent = 'Finalize Session'; }
             return;
@@ -970,7 +974,9 @@ window.confirmAndExportAttendance = async () => {
 
         closeAttendance();
         loadSessions();
-    } catch {}
+    } catch (e) {
+        console.error("confirmAndExportAttendance error:", e);
+    }
 };
 
 // ── Teacher Stats Integration ──────────────────────────────────────────────
@@ -1080,7 +1086,9 @@ window.generatePin = async () => {
         const res = await fetch('/api/attendance/session-token', { method: 'POST', body: JSON.stringify({sessionId:activeSessionId, type:'PIN'}), headers:{'Content-Type':'application/json'} });
         const data = await res.json();
         document.getElementById('pin-display').textContent = data.token;
-    } catch {}
+    } catch (e) {
+        console.error("generatePin error:", e);
+    }
 };
 
 window.toggleQrView = () => {
@@ -1139,7 +1147,9 @@ async function generateQr() {
             document.getElementById('qr-canvas-placeholder').appendChild(cv);
             window.QRCode.toCanvas(cv, data.token, { width: 250, margin: 1, color: { dark: '#0F172A', light: '#FFFFFF' } });
         }
-    } catch {}
+    } catch (e) {
+        console.error("generateQr error:", e);
+    }
 }
 
 function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }

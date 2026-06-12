@@ -12,6 +12,7 @@ import java.util.Set;
 
 @RestController
 @RequestMapping("/api/admin/roles")
+@org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
 public class RoleController {
 

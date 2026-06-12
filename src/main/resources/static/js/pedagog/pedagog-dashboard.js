@@ -302,6 +302,35 @@ window.filterClassrooms = function (specId, targetId = 'classroomSelect') {
     }
 };
 
+function displayValidationErrors(form, errorData) {
+    // Clear previous errors
+    form.querySelectorAll('.validation-error').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+
+    if (errorData && errorData.details) {
+        let hasErrors = false;
+        for (const [field, message] of Object.entries(errorData.details)) {
+            const input = form.querySelector(`[name="${field}"]`);
+            if (input) {
+                input.classList.add('border-red-500');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'validation-error text-red-500 text-xs mt-1';
+                errorDiv.innerText = message;
+                input.parentNode.appendChild(errorDiv);
+                hasErrors = true;
+            }
+        }
+        return hasErrors;
+    }
+    return false;
+}
+
+function clearValidationErrors(form) {
+    if(!form) return;
+    form.querySelectorAll('.validation-error').forEach(el => el.remove());
+    form.querySelectorAll('.border-red-500').forEach(el => el.classList.remove('border-red-500'));
+}
+
 // Individual Student Creation
 window.handleCreateStudent = async function (event) {
     event.preventDefault();
@@ -328,11 +357,16 @@ window.handleCreateStudent = async function (event) {
         if (response.ok) {
             showNotification('Student registered successfully!', 'success');
             form.reset();
+            clearValidationErrors(form);
             closeStudentModal();
             window.location.reload(); // Refresh to see stats update
         } else {
             const errorData = await response.json();
-            showNotification(errorData.message || 'Failed to register student', 'error');
+            if (displayValidationErrors(form, errorData)) {
+                showNotification('Validation failed. Please check the highlighted fields.', 'error');
+            } else {
+                showNotification(errorData.message || errorData.error || 'Failed to register student', 'error');
+            }
         }
     } catch (error) {
         console.error('Error creating student:', error);
@@ -910,12 +944,17 @@ window.handleCreateCourse = async function (event) {
         if (response.ok) {
             showNotification(courseId ? 'Course updated successfully!' : 'Course created successfully!', 'success');
             form.reset();
+            clearValidationErrors(form);
             resetTeacherSelection();
             closeCourseModal();
             window.location.reload();
         } else {
             const error = await response.json();
-            showNotification(error.message || 'Failed to save course', 'error');
+            if (displayValidationErrors(form, error)) {
+                showNotification('Validation failed. Please check the highlighted fields.', 'error');
+            } else {
+                showNotification(error.message || error.error || 'Failed to save course', 'error');
+            }
         }
     } catch (error) {
         console.error('Error saving course:', error);
@@ -1624,7 +1663,7 @@ window.saveTimetable = async function () {
                     try {
                         const parsed = JSON.parse(teachersStr);
                         if (parsed && parsed.length > 0) return parseInt(parsed[0].id);
-                    } catch (e) {}
+                    } catch (e) { console.warn("Failed to parse teachers string", e); }
                 }
                 return block.getAttribute('data-teacher-id') ? parseInt(block.getAttribute('data-teacher-id')) : null;
             })(),
@@ -1657,7 +1696,7 @@ window.saveTimetable = async function () {
             showNotification('Timetable saved successfully! All entries have been stored.', 'success');
         } else {
             let detail = '';
-            try { const body = await res.json(); detail = body.message || body.error || ''; } catch (_) {}
+            try { const body = await res.json(); detail = body.message || body.error || ''; } catch (parseErr) { console.error("Failed to parse error response:", parseErr); }
             showNotification(`Failed to save timetable.${ detail ? ' ' + detail : ' Please check server logs for details.' }`, 'error');
         }
     } catch (err) {

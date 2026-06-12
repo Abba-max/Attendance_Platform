@@ -226,4 +226,47 @@ public class EmailServiceImpl implements EmailService {
             log.error("Unexpected error while sending announcement email", e);
         }
     }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendJustificationDecisionEmail(String to, String courseName, String decision, String reason) {
+        log.info("Sending justification decision email to {}", to);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            Context context = new Context();
+            context.setVariable("courseName", courseName);
+            context.setVariable("decision", decision);
+            context.setVariable("reason", reason);
+            context.setVariable("baseUrl", baseUrl);
+
+            // We will reuse a generic template or create a simple text fallback
+            // Assuming "mail/justification-decision" exists, or just use text if html throws error
+            String text = String.format(
+                "Hello,\n\nYour justification for the course '%s' has been %s.\n\n" +
+                (reason != null && !reason.isEmpty() ? "Reason: %s\n\n" : "") +
+                "Regards,\nAttendance Management Team", courseName, decision, reason);
+
+            String html;
+            try {
+                html = templateEngine.process("mail/justification-decision", context);
+            } catch (Exception e) {
+                // fallback if template does not exist
+                html = text.replace("\n", "<br>");
+            }
+
+            helper.setTo(to);
+            helper.setSubject("Attendee - Justification " + decision);
+            helper.setText(text, html);
+            helper.setFrom("Attendance System <" + fromEmail + ">");
+
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
+
+            mailSender.send(message);
+            log.info("Justification decision email sent successfully to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send justification decision email to {}", to, e);
+        }
+    }
 }
