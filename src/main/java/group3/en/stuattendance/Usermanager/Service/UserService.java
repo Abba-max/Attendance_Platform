@@ -54,6 +54,7 @@ public interface UserService {
     void requestPasswordReset(String email);
     void changePassword(String currentPassword, String newPassword);
     void resetPassword(Integer userId, String newPassword);
+    void toggleStudentDelegate(Integer userId, Boolean isDelegate);
 
     // Bulk Operations
     group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto bulkImportStaff(org.springframework.web.multipart.MultipartFile file, boolean dryRun);

@@ -46,6 +46,8 @@ public interface SessionRepository extends JpaRepository<Session, Integer> {
     
     List<Session> findByDateBeforeAndStatus(LocalDate date, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
 
+    List<Session> findByDateAndStatus(LocalDate date, group3.en.stuattendance.Timetablemanager.Enum.SessionStatus status);
+
     List<Session> findByClassroomClassIdAndDateBetween(
             Integer classroomId,
             java.time.LocalDate startDate,

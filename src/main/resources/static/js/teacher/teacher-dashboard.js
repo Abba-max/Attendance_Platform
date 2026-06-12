@@ -18,6 +18,7 @@ function initDashboard() {
     window.dashboardInitialized = true;
 
     loadSessions();       // Single initial load — do NOT call again on tab change
+    loadNotifications();
     if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 
     setInterval(loadSessions, 300000); // Background refresh every 5 min only
@@ -66,6 +67,10 @@ window.navigateTo = function(section) {
     }
     if (section === 'stats') {
         loadTeacherStats();
+    }
+    if (section === 'documents') {
+        loadMyDocuments();
+        populateDocDropdowns();
     }
 };
 
@@ -563,6 +568,7 @@ window.initializeGlobalWebSockets = function() {
             if (typeof showNotification === 'function') {
                 showNotification(notification.message, notification.type === 'ATTENDANCE_SUBMITTED' ? 'success' : 'info');
             }
+            if (typeof loadNotifications === 'function') loadNotifications();
         });
 
         // Subscribe to session updates
@@ -1130,3 +1136,260 @@ async function generateQr() {
 }
 
 function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }
+
+// ── Send Mail & Documents Section ───────────────────────────────────────────
+let selectedFiles = [];
+
+window.handleFileSelection = function(input) {
+    const preview = document.getElementById('file-list-preview');
+    if (!preview) return;
+    preview.innerHTML = '';
+    selectedFiles = Array.from(input.files);
+    
+    if (selectedFiles.length === 0) return;
+    
+    selectedFiles.forEach((file, index) => {
+        const fileDiv = document.createElement('div');
+        fileDiv.className = 'flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5';
+        fileDiv.innerHTML = `
+            <div class="flex items-center gap-2.5 min-w-0">
+                <svg class="w-4 h-4 text-[#00B0FF] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                <span class="text-xs font-semibold text-slate-700 truncate">${escapeHtml(file.name)}</span>
+                <span class="text-[10px] text-slate-400 font-bold font-mono">${(file.size / 1024).toFixed(1)} KB</span>
+            </div>
+            <button type="button" onclick="removeSelectedFile(${index})" class="text-slate-400 hover:text-red-500 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        `;
+        preview.appendChild(fileDiv);
+    });
+};
+
+window.removeSelectedFile = function(index) {
+    selectedFiles.splice(index, 1);
+    
+    // Create a new DataTransfer to update the input's files
+    const dt = new DataTransfer();
+    selectedFiles.forEach(file => dt.items.add(file));
+    const fileInput = document.getElementById('doc-upload-file');
+    if (fileInput) fileInput.files = dt.files;
+    
+    // Re-render
+    handleFileSelection(fileInput);
+};
+
+window.sendMailSubmit = async function(event) {
+    event.preventDefault();
+    const classroomInput = document.getElementById('doc-upload-classroom');
+    const targetInput = document.getElementById('doc-upload-target');
+    const subjectInput = document.getElementById('doc-upload-title');
+    const messageInput = document.getElementById('doc-upload-message');
+    const fileInput = document.getElementById('doc-upload-file');
+    const btn = document.getElementById('doc-upload-btn');
+
+    if (!classroomInput.value || !targetInput.value || !subjectInput.value || !messageInput.value) {
+        showNotification('Please fill in all required fields.', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    const originalBtnText = btn.innerHTML;
+    btn.innerHTML = `
+        <svg class="animate-spin -ml-1 mr-3 h-4 w-4 text-white inline-block" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg> Sending Email...`;
+
+    const fd = new FormData();
+    fd.append('targetType', targetInput.value);
+    fd.append('classroomId', classroomInput.value);
+    fd.append('subject', subjectInput.value);
+    fd.append('content', messageInput.value);
+
+    // Append multiple files
+    if (fileInput && fileInput.files.length > 0) {
+        for (let i = 0; i < fileInput.files.length; i++) {
+            fd.append('files', fileInput.files[i]);
+        }
+    }
+
+    try {
+        const res = await fetch('/api/announcements/send', {
+            method: 'POST',
+            body: fd
+        });
+
+        if (!res.ok) {
+            let errMsg = 'Failed to send announcement.';
+            try {
+                const data = await res.json();
+                errMsg = data.error || data.message || errMsg;
+            } catch (_) {
+                errMsg = await res.text() || errMsg;
+            }
+            throw new Error(errMsg);
+        }
+
+        showNotification('Email announcement sent successfully!', 'success');
+        
+        // Reset form
+        subjectInput.value = '';
+        messageInput.value = '';
+        if (fileInput) fileInput.value = '';
+        const preview = document.getElementById('file-list-preview');
+        if (preview) preview.innerHTML = '';
+        selectedFiles = [];
+    } catch (e) {
+        showNotification(e.message || 'Failed to send email.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+    }
+};
+
+window.populateDocDropdowns = async function() {
+    try {
+        const res = await fetch('/api/teacher/stats/classes');
+        const groups = await res.json();
+        
+        const cUpload = document.getElementById('doc-upload-classroom');
+        if (!cUpload) return;
+
+        const prevClassroom = cUpload.value;
+        cUpload.innerHTML = '<option value="">Select Classroom...</option>';
+
+        const uniqueClassrooms = new Map();
+        groups.forEach(g => {
+            uniqueClassrooms.set(g.classroomId, g.classroomName);
+        });
+
+        uniqueClassrooms.forEach((name, id) => {
+            cUpload.add(new Option(name, id, false, String(id) === prevClassroom));
+        });
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+window.loadMyDocuments = async function() {
+    // Deprecated - documents list has been removed in favor of direct email attachments
+};
+
+// ── Notifications State & Logic ──────────────────────────────────────────────
+let allNotifications = [];
+
+window.loadNotifications = function() {
+    fetch('/api/notifications/my')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            allNotifications = data || [];
+            renderNotifications();
+        })
+        .catch(err => console.error('Error fetching notifications:', err));
+};
+
+function renderNotifications() {
+    const listEl = document.getElementById('notification-list');
+    const badgeEl = document.getElementById('notif-count-badge');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+
+    if (badgeEl) {
+        if (unreadCount > 0) {
+            badgeEl.textContent = unreadCount;
+            badgeEl.style.display = 'flex';
+        } else {
+            badgeEl.style.display = 'none';
+        }
+    }
+
+    if (allNotifications.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-8 text-center text-slate-400">
+                <p class="text-xs font-bold">No new notifications</p>
+            </div>`;
+        return;
+    }
+
+    allNotifications.forEach(n => {
+        const item = document.createElement('div');
+        item.className = `p-4 flex flex-col gap-1.5 transition-colors cursor-pointer hover:bg-slate-50/50 ${n.isRead ? 'opacity-60' : 'bg-blue-50/10'}`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            markNotificationRead(n.notificationId);
+        };
+
+        // Parse notification type for icon
+        let iconHtml = '';
+        if (n.type === 'TIMETABLE') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-250">Timetable</span>';
+        } else if (n.type === 'ANNOUNCEMENT') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-250">Announcement</span>';
+        } else {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-250">Notice</span>';
+        }
+
+        item.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                ${iconHtml}
+                <span class="text-[10px] text-slate-400 font-bold">${new Date(n.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-700 leading-relaxed">${escapeHtml(n.message)}</p>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+window.markNotificationRead = function(id) {
+    fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => n.notificationId === id ? { ...n, isRead: true } : n);
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking notification as read:', err));
+};
+
+window.markAllNotificationsRead = function() {
+    fetch('/api/notifications/read-all', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => ({ ...n, isRead: true }));
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking all notifications as read:', err));
+};
+
+// Toggle Notification Dropdown
+document.addEventListener('DOMContentLoaded', () => {
+    const notifBtn = document.getElementById('notification-btn');
+    const notifPanel = document.getElementById('notification-panel');
+
+    if (notifBtn && notifPanel) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notifPanel.classList.toggle('hidden');
+            if (!notifPanel.classList.contains('hidden')) {
+                loadNotifications();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notifPanel.contains(e.target) && e.target !== notifBtn) {
+                notifPanel.classList.add('hidden');
+            }
+        });
+    }
+});

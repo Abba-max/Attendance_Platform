@@ -23,6 +23,7 @@ public class TimetablecontentController {
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
     private final group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository classroomRepository;
     private final group3.en.stuattendance.Usermanager.Repository.UserRepository userRepository;
+    private final group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
 
     /**
      * Save (or update) a weekly timetable.
@@ -186,7 +187,8 @@ public class TimetablecontentController {
             @RequestParam Integer week,
             @RequestParam Integer semester,
             @RequestParam String subject,
-            @RequestParam(required = false) String message) {
+            @RequestParam(required = false) String message,
+            @RequestParam(value = "recipientIds", required = false) List<Integer> recipientIds) {
 
         // 1. Get Timetable Data
         TimetablecontentDto dto;
@@ -203,17 +205,30 @@ public class TimetablecontentController {
         java.io.ByteArrayInputStream bis = pdfExportService.exportTimetableToPdf(dto);
         byte[] pdfBytes = bis.readAllBytes();
 
-        // 3. Find recipients (Students in the classroom)
+        // 3. Find recipients
         group3.en.stuattendance.Institutionmanager.Model.Classroom classroom = classroomRepository.findById(classroomId)
                 .orElseThrow(() -> new RuntimeException("Classroom not found"));
 
-        List<String> bccList = classroom.getStudents().stream()
+        List<User> targetStudents;
+        if (recipientIds != null && !recipientIds.isEmpty()) {
+            targetStudents = userRepository.findAllById(recipientIds).stream()
+                    .filter(u -> u.getClassroom() != null && u.getClassroom().getClassId().equals(classroomId))
+                    .toList();
+        } else {
+            targetStudents = userRepository.findByClassroomClassIdAndIsDelegateTrue(classroomId);
+        }
+
+        if (targetStudents.isEmpty()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "No recipients selected and no class delegates assigned. Please select a student recipient."));
+        }
+
+        List<String> bccList = targetStudents.stream()
                 .map(group3.en.stuattendance.Usermanager.Model.User::getEmail)
                 .filter(email -> email != null && !email.isEmpty())
                 .toList();
 
         if (bccList.isEmpty()) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", "The selected classroom has no students with valid email addresses."));
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Selected student(s) have no valid email addresses."));
         }
 
         // 4. Get Current Pedagog Email
@@ -233,7 +248,17 @@ public class TimetablecontentController {
         String filename = classroom.getName().replaceAll("[^a-zA-Z0-9]", "_") + "_Week" + week + "_Timetable.pdf";
         emailService.sendTimetableEmail(fromEmail, bccList, subject, message != null ? message : "", pdfBytes, filename, senderName);
 
-        return ResponseEntity.ok(java.util.Map.of("message", "Email distribution started for " + bccList.size() + " students."));
+        // 6. Dispatch persistent and real-time notifications
+        String notificationMessage = "[" + senderName + "] Sent Timetable: " + subject + " (" + filename + ")";
+        for (User target : targetStudents) {
+            try {
+                notificationService.sendNotification(target.getUserId(), "TIMETABLE", notificationMessage);
+            } catch (Exception e) {
+                // ignore
+            }
+        }
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Email distribution completed for " + bccList.size() + " recipients."));
     }
 
     /**

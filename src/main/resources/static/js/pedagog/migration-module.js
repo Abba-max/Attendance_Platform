@@ -18,21 +18,21 @@ const MigrationModule = (() => {
 
     const TYPE_CONFIG = {
         LEVEL_PROMOTION: {
-            label: 'Passage de Niveau',
+            label: 'Level Promotion',
             icon: '⬆️',
             color: 'blue',
             targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
             yearBadgeColor: 'purple',
         },
         SPECIALITY_CHANGE: {
-            label: 'Changement de Spécialité',
+            label: 'Speciality Change',
             icon: '🔀',
             color: 'orange',
             targetYearKey: 'migrationTargetYearForSpeciality',  // → N
             yearBadgeColor: 'green',
         },
         TRONC_COMMUN: {
-            label: 'Tronc Commun → Spécialité',
+            label: 'Common Core → Speciality',
             icon: '🎓',
             color: 'emerald',
             targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
@@ -83,10 +83,10 @@ const MigrationModule = (() => {
             <div class="bg-red-50 border border-red-300 rounded-2xl p-4 text-sm text-red-700 flex gap-3">
                 <span class="text-xl">🚫</span>
                 <div>
-                    <p class="font-bold">Migrations de passage bloquées</p>
-                    <p class="mt-1">L'année <strong>${state.nextYearName}</strong> est déjà <strong>ACTIVE</strong>.
-                    Les migrations de Passage de Niveau et Tronc Commun ne peuvent cibler qu'une année
-                    <strong>PLANIFIÉE (N+1)</strong>. Contactez l'administrateur.</p>
+                    <p class="font-bold">Level Promotion Blocked</p>
+                    <p class="mt-1">The academic year <strong>${state.nextYearName}</strong> is already <strong>ACTIVE</strong>.
+                    Level promotions and Common Core migrations can only target a
+                    <strong>PLANNED (N+1)</strong> year. Contact the administrator.</p>
                 </div>
             </div>`;
         } else if (!state.nextYearExists) {
@@ -94,9 +94,9 @@ const MigrationModule = (() => {
             <div class="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-sm text-amber-700 flex gap-3">
                 <span class="text-xl">ℹ️</span>
                 <div>
-                    <p class="font-bold">Nouvelle année académique requise</p>
-                    <p class="mt-1">L'année cible <strong>${state.nextYearName}</strong> sera automatiquement initialisée
-                    avec le statut <strong>PLANIFIÉE</strong> lors de la validation finale de votre première migration.</p>
+                    <p class="font-bold">New Academic Year Required</p>
+                    <p class="mt-1">The target year <strong>${state.nextYearName}</strong> will be automatically initialized
+                    with status <strong>PLANNED</strong> upon final confirmation of your first migration.</p>
                 </div>
             </div>`;
         }
@@ -108,19 +108,19 @@ const MigrationModule = (() => {
             <!-- Left Column: Parameters Selection (lg:col-span-7) -->
             <div class="lg:col-span-7 space-y-6">
                 <!-- En-tête & General Settings Card -->
-                <div class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-6">
+                <div class="bento-card p-6 space-y-6">
                     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-50 pb-4">
                         <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
                             <span class="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl text-xl">🏫</span>
-                            Migration des Étudiants
+                            Student Migration
                         </h2>
                         <!-- Badges -->
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="bg-emerald-50 text-emerald-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-emerald-100/50">
-                                Active : <strong>${state.activeYearName}</strong>
+                                Active: <strong>${state.activeYearName}</strong>
                             </span>
                             <span class="bg-indigo-50 text-indigo-700 text-[11px] font-bold px-3 py-1.5 rounded-xl border border-indigo-100/50">
-                                Cible N+1 : <strong>${state.nextYearName}</strong>
+                                Target N+1: <strong>${state.nextYearName}</strong>
                                 ${!state.nextYearExists ? ' (auto)' : state.nextYearReadyForMigration ? ' ✅' : ' 🚫 active'}
                             </span>
                         </div>
@@ -131,7 +131,7 @@ const MigrationModule = (() => {
                     <!-- Étape 1 : Type de migration -->
                     <div class="space-y-3">
                         <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                            Étape 1 — Type de migration
+                            Step 1 — Migration Type
                         </label>
                         <div class="grid grid-cols-1 sm:grid-cols-${state.hasTroncCommun ? 3 : 2} gap-3">
                             ${renderTypeButton('LEVEL_PROMOTION')}
@@ -139,7 +139,7 @@ const MigrationModule = (() => {
                             ${state.hasTroncCommun ? renderTypeButton('TRONC_COMMUN') : ''}
                         </div>
                         <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-                            <span>Année cible pour ce type :</span>
+                            <span>Target year for this type:</span>
                             <span id="active-type-year-badge" class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase
                                 ${getYearBadgeClass(state.migrationType)}">
                                 ${getTargetYearLabel(state.migrationType)}
@@ -150,13 +150,13 @@ const MigrationModule = (() => {
                     <!-- Étape 2 : Classe source -->
                     <div class="space-y-2">
                         <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                            Étape 2 — Classe source
+                            Step 2 — Source Classroom
                         </label>
                         <div class="relative">
                             <select id="migration-source-select"
                                 class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700
                                        focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all appearance-none cursor-pointer">
-                                <option value="">— Choisir une classe source —</option>
+                                <option value="">— Choose a source classroom —</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
                                 🔍
@@ -166,26 +166,26 @@ const MigrationModule = (() => {
                 </div>
 
                 <!-- Étape 4 : Classe cible -->
-                <div id="migration-target-section" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+                <div id="migration-target-section" class="hidden bento-card p-6 space-y-4">
                     <div class="flex items-center justify-between border-b border-slate-50 pb-3">
                         <label class="text-xs font-black text-slate-400 uppercase tracking-wider">
-                            Étape 4 — Classe cible
+                            Step 4 — Target Classroom
                         </label>
                         <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg">
-                            Cible : ${getTargetYearLabel(state.migrationType)}
+                            Target: ${getTargetYearLabel(state.migrationType)}
                         </span>
                     </div>
                     <div id="target-classrooms-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
                 </div>
 
                 <!-- Étape 5 : Confirmation -->
-                <div id="migration-confirm-section" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+                <div id="migration-confirm-section" class="hidden bento-card p-6 space-y-4">
                     <div class="space-y-2">
                         <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                            Étape 5 — Motif & Confirmation
+                            Step 5 — Reason & Confirmation
                         </label>
                         <textarea id="migration-reason" rows="2"
-                            placeholder="Ex. : Résultats du concours de passage, orientation académique..."
+                            placeholder="e.g., Exam results, academic orientation..."
                             class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-700 resize-none
                                    focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:bg-white transition-all"></textarea>
                     </div>
@@ -194,33 +194,33 @@ const MigrationModule = (() => {
                         class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-4 rounded-2xl
                                shadow-md shadow-indigo-100 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-0">
                         <span id="btn-migrate-icon" class="text-lg">🚀</span>
-                        <span id="btn-migrate-label">Lancer la migration</span>
+                        <span id="btn-migrate-label">Launch Migration</span>
                     </button>
                 </div>
 
                 <!-- Résultats -->
-                <div id="migration-results" class="hidden bg-white border border-slate-100 rounded-3xl shadow-sm p-6"></div>
+                <div id="migration-results" class="hidden bento-card p-6"></div>
             </div>
 
             <!-- Right Column: Student Listing (lg:col-span-5) -->
             <div class="lg:col-span-5">
                 <!-- Card Container for Student List -->
-                <div id="migration-students-section" class="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4 min-h-[400px] flex flex-col">
+                <div id="migration-students-section" class="bento-card p-6 space-y-4 min-h-[400px] flex flex-col">
                     
                     <!-- Header with Checkbox & Count -->
                     <div class="flex items-center justify-between border-b border-slate-50 pb-4">
                         <div>
                             <label class="text-xs font-black text-slate-400 uppercase tracking-wider block">
-                                Étape 3 — Sélectionner les étudiants
+                                Step 3 — Select Students
                             </label>
                             <span id="selected-count"
                                 class="inline-block mt-1 bg-indigo-50 text-indigo-700 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-                                0 sélectionné(s)
+                                0 selected
                             </span>
                         </div>
                         <label id="select-all-wrapper" class="hidden flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 transition-all select-none">
                             <input type="checkbox" id="select-all-students" class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
-                            <span>Tout</span>
+                            <span>All</span>
                         </label>
                     </div>
 
@@ -230,8 +230,8 @@ const MigrationModule = (() => {
                         <div id="students-placeholder" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 mt-12 text-slate-400">
                             <div class="text-4xl">👥</div>
                             <div>
-                                <p class="font-bold text-slate-700 text-sm">Aucune classe sélectionnée</p>
-                                <p class="text-slate-400 text-xs mt-1">Choisissez une classe source dans l'Étape 2 pour charger sa liste d'étudiants.</p>
+                                <p class="font-bold text-slate-700 text-sm">No classroom selected</p>
+                                <p class="text-slate-400 text-xs mt-1">Choose a source classroom in Step 2 to load the student list.</p>
                             </div>
                         </div>
                     </div>
@@ -330,8 +330,8 @@ const MigrationModule = (() => {
                         <div id="students-placeholder" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 mt-12 text-slate-400">
                             <div class="text-4xl">👥</div>
                             <div>
-                                <p class="font-bold text-slate-700 text-sm">Aucune classe sélectionnée</p>
-                                <p class="text-slate-400 text-xs mt-1">Choisissez une classe source dans l'Étape 2 pour charger sa liste d'étudiants.</p>
+                                <p class="font-bold text-slate-700 text-sm">No classroom selected</p>
+                                <p class="text-slate-400 text-xs mt-1">Choose a source classroom in Step 2 to load the student list.</p>
                             </div>
                         </div>`;
                     }
@@ -361,11 +361,11 @@ const MigrationModule = (() => {
         const data = await apiFetch(`/api/migration/available-targets?type=${state.migrationType}`);
         const select = document.getElementById('migration-source-select');
         if (!select) return;
-        select.innerHTML = '<option value="">— Choisir une classe source —</option>';
+        select.innerHTML = '<option value="">— Choose a source classroom —</option>';
         (data.sourceClassrooms || []).forEach(c => {
             select.innerHTML += `<option value="${c.classId}">
-                ${c.name} — Niv. ${c.level} (${c.specialityName}${c.troncCommun ? ' [TC]' : ''})
-                — ${c.availableSlots} place(s) libre(s)
+                ${c.name} — Lvl. ${c.level} (${c.specialityName}${c.troncCommun ? ' [CC]' : ''})
+                — ${c.availableSlots} free slot(s)
             </option>`;
         });
     }
@@ -396,8 +396,8 @@ const MigrationModule = (() => {
             list.innerHTML = `
             <div class="flex flex-col items-center justify-center text-center p-6 space-y-2 mt-12 text-slate-400">
                 <span class="text-3xl">⚠️</span>
-                <p class="text-sm font-bold">Aucun étudiant</p>
-                <p class="text-xs">Cette classe ne contient aucun étudiant actif.</p>
+                <p class="text-sm font-bold">No students</p>
+                <p class="text-xs">This classroom does not contain any active students.</p>
             </div>`;
             return;
         }
@@ -407,7 +407,7 @@ const MigrationModule = (() => {
                 data-student-id="${s.studentId}">
             <div class="flex-1 min-w-0">
                 <p class="text-sm font-bold text-slate-800 truncate">${s.fullName}</p>
-                <p class="text-xs font-semibold text-slate-400 truncate">${s.matricule || 'Sans matricule'} ${s.email ? '· ' + s.email : ''}</p>
+                <p class="text-xs font-semibold text-slate-400 truncate">${s.matricule || 'No matricule'} ${s.email ? '· ' + s.email : ''}</p>
             </div>
         </label>`).join('');
     }
@@ -416,7 +416,7 @@ const MigrationModule = (() => {
         const grid = document.getElementById('target-classrooms-grid');
         if (!grid) return;
         if (!targets?.length) {
-            grid.innerHTML = '<p class="col-span-full text-center text-slate-400 py-6 text-sm font-semibold">Aucune classe cible disponible.</p>';
+            grid.innerHTML = '<p class="col-span-full text-center text-slate-400 py-6 text-sm font-semibold">No target classrooms available.</p>';
             return;
         }
         grid.innerHTML = targets.map(c => {
@@ -432,14 +432,14 @@ const MigrationModule = (() => {
                 ${isFull ? 'disabled' : ''}>
                 <div class="flex items-center justify-between">
                     <p class="font-bold text-sm text-slate-800 truncate">${c.name}</p>
-                    <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase">Niv. ${c.level}</span>
+                    <span class="text-[10px] font-black text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-md uppercase">Lvl. ${c.level}</span>
                 </div>
                 <p class="text-xs font-semibold text-slate-400 mt-1 truncate">${c.specialityName}</p>
                 <div class="mt-2.5 flex items-center justify-between border-t border-slate-100/50 pt-2">
-                    <span class="text-[10px] font-bold text-slate-400">Places :</span>
+                    <span class="text-[10px] font-bold text-slate-400">Slots:</span>
                     <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md
                         ${isFull ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-700'}">
-                        ${isFull ? '🔴 Complet' : `🟢 ${c.availableSlots} libre(s)`}
+                        ${isFull ? '🔴 Full' : `🟢 ${c.availableSlots} free`}
                     </span>
                 </div>
             </button>`;
@@ -477,17 +477,17 @@ const MigrationModule = (() => {
 
         summary.innerHTML = `
         <div class="space-y-1.5">
-            <p><span class="font-bold">Type :</span> ${cfg.icon} ${cfg.label}</p>
-            <p><span class="font-bold">Année cible :</span>
+            <p><span class="font-bold">Type:</span> ${cfg.icon} ${cfg.label}</p>
+            <p><span class="font-bold">Target Year:</span>
                 <span class="bg-purple-100 text-purple-700 font-bold px-2 py-0.5 rounded-full text-xs">
                     📅 ${yearLabel}
                 </span>
             </p>
-            <p><span class="font-bold">De :</span> ${sourceName}</p>
-            <p><span class="font-bold">Vers :</span> ${targetName}</p>
-            <p><span class="font-bold">Étudiants :</span>
+            <p><span class="font-bold">From:</span> ${sourceName}</p>
+            <p><span class="font-bold">To:</span> ${targetName}</p>
+            <p><span class="font-bold">Students:</span>
                 <span class="bg-indigo-200 text-indigo-800 px-2.5 py-0.5 rounded-full text-xs font-bold">
-                    ${state.selectedStudents.size} sélectionné(s)
+                    ${state.selectedStudents.size} selected
                 </span>
             </p>
         </div>`;
@@ -495,7 +495,7 @@ const MigrationModule = (() => {
 
     function updateSelectedCount() {
         const el = document.getElementById('selected-count');
-        if (el) el.textContent = `${state.selectedStudents.size} sélectionné(s)`;
+        if (el) el.textContent = `${state.selectedStudents.size} selected`;
     }
 
     async function executeMigration() {
@@ -504,10 +504,10 @@ const MigrationModule = (() => {
         const icon  = document.getElementById('btn-migrate-icon');
 
         if (!state.targetClassroomId || state.selectedStudents.size === 0) {
-            showToast('Sélectionnez des étudiants et une classe cible.', 'warning'); return;
+            showToast('Select students and a target classroom.', 'warning'); return;
         }
 
-        btn.disabled = true; icon.textContent = '⏳'; label.textContent = 'Migration en cours...';
+        btn.disabled = true; icon.textContent = '⏳'; label.textContent = 'Migration in progress...';
 
         try {
             const results = await apiFetch('/api/migration/bulk', {
@@ -529,9 +529,9 @@ const MigrationModule = (() => {
             if (state.sourceClassroomId) await loadStudentsAndTargets();
 
         } catch (err) {
-            showToast('Erreur migration : ' + (err.message || 'Inconnue'), 'error');
+            showToast('Migration error: ' + (err.message || 'Unknown'), 'error');
         } finally {
-            btn.disabled = false; icon.textContent = '🚀'; label.textContent = 'Lancer la migration';
+            btn.disabled = false; icon.textContent = '🚀'; label.textContent = 'Launch Migration';
         }
     }
 
@@ -544,10 +544,10 @@ const MigrationModule = (() => {
         el.innerHTML = `
         <div class="border border-slate-100 rounded-3xl overflow-hidden shadow-sm">
             <div class="flex items-center justify-between bg-slate-50 px-4 py-3.5 border-b border-slate-100">
-                <h3 class="font-bold text-slate-700 text-sm">Résultats de la Migration</h3>
+                <h3 class="font-bold text-slate-700 text-sm">Migration Results</h3>
                 <div class="flex gap-1.5">
-                    <span class="bg-emerald-50 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg">✅ Réussis : ${ok.length}</span>
-                    ${err.length ? `<span class="bg-red-50 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-lg">❌ Échecs : ${err.length}</span>` : ''}
+                    <span class="bg-emerald-50 text-emerald-700 text-[10px] font-black px-2.5 py-1 rounded-lg">✅ Succeeded: ${ok.length}</span>
+                    ${err.length ? `<span class="bg-red-50 text-red-700 text-[10px] font-black px-2.5 py-1 rounded-lg">❌ Failed: ${err.length}</span>` : ''}
                 </div>
             </div>
             <div class="divide-y divide-slate-100 max-h-60 overflow-y-auto custom-scrollbar">
@@ -555,7 +555,7 @@ const MigrationModule = (() => {
                 <div class="flex items-start gap-3 px-4 py-3 ${r.success ? 'bg-white' : 'bg-red-50/30'}">
                     <span class="text-base">${r.success ? '✅' : '❌'}</span>
                     <div class="min-w-0">
-                        <p class="text-sm font-bold text-slate-800 truncate">${r.studentName || 'Étudiant ID: ' + r.studentId}</p>
+                        <p class="text-sm font-bold text-slate-800 truncate">${r.studentName || 'Student ID: ' + r.studentId}</p>
                         ${r.success
                             ? `<p class="text-xs font-semibold text-slate-500 mt-0.5">${r.fromClassroom} ➔ ${r.toClassroom} · ${r.message}</p>`
                             : `<p class="text-xs font-bold text-red-500 mt-0.5">${r.message}</p>`}

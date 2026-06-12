@@ -49,6 +49,8 @@ public class JustificationServiceImplTest {
     private NotificationService notificationService;
     @Mock
     private AttendanceService attendanceService;
+    @Mock
+    private org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     @InjectMocks
     private JustificationServiceImpl justificationService;

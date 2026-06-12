@@ -49,6 +49,7 @@ public class UserDto {
     private String classroomName;
     private String matricule;
     private String externalEmail;
+    private Boolean isDelegate;
 
     // Staff specific
     private Set<Integer> staffClassroomIds;

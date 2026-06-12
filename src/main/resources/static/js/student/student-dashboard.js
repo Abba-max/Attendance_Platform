@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize Dashboard (Only load active view stats and sessions)
     loadDashboardStats();
     loadGridSessions();
+    loadNotifications();
     if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 });
 
@@ -56,6 +57,7 @@ window.initializeGlobalWebSockets = function() {
                 showConfirmButton: false,
                 timer: 4000
             });
+            if (typeof loadNotifications === 'function') loadNotifications();
         });
 
         // Subscribe to session updates
@@ -857,16 +859,50 @@ function toggleJustifyModal() {
 function previewFile(input) {
     const preview = document.getElementById('camera-preview');
     const img = document.getElementById('preview-img');
+    const docPreview = document.getElementById('doc-preview-name');
 
     if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            img.src = e.target.result;
+        const file = input.files[0];
+        const isImage = file.type.startsWith('image/');
+
+        if (isImage) {
+            // Show image preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                if (docPreview) docPreview.classList.add('hidden');
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Show a file name label for non-image docs (PDF, Word, etc.)
+            img.classList.add('hidden');
             preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(input.files[0]);
+            if (docPreview) {
+                docPreview.textContent = `📎 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+                docPreview.classList.remove('hidden');
+            } else {
+                img.src = '';
+                img.alt = file.name;
+                preview.classList.remove('hidden');
+            }
+        }
+    } else {
+        preview.classList.add('hidden');
+        img.src = '';
     }
 }
+
+function clearJustifyFile() {
+    const input = document.getElementById('just-file');
+    if (input) input.value = '';
+    const preview = document.getElementById('camera-preview');
+    const img = document.getElementById('preview-img');
+    if (preview) preview.classList.add('hidden');
+    if (img) img.src = '';
+}
+
 
 document.getElementById('justification-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1205,3 +1241,127 @@ function getHaversineDistance(p1, p2) {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 }
+
+window.loadClassDocuments = async function() {
+    // Deprecated - sharing is strictly via email and notifications
+};
+
+// Notifications State & Logic
+let allNotifications = [];
+
+window.loadNotifications = function() {
+    fetch('/api/notifications/my')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            allNotifications = data || [];
+            renderNotifications();
+        })
+        .catch(err => console.error('Error fetching notifications:', err));
+};
+
+function renderNotifications() {
+    const listEl = document.getElementById('notification-list');
+    const badgeEl = document.getElementById('notif-count-badge');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+
+    if (badgeEl) {
+        if (unreadCount > 0) {
+            badgeEl.textContent = unreadCount;
+            badgeEl.style.display = 'flex';
+        } else {
+            badgeEl.style.display = 'none';
+        }
+    }
+
+    if (allNotifications.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-8 text-center text-slate-400">
+                <p class="text-xs font-bold">No new notifications</p>
+            </div>`;
+        return;
+    }
+
+    allNotifications.forEach(n => {
+        const item = document.createElement('div');
+        item.className = `p-4 flex flex-col gap-1.5 transition-colors cursor-pointer hover:bg-slate-50/50 ${n.isRead ? 'opacity-60' : 'bg-blue-50/10'}`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            markNotificationRead(n.notificationId);
+        };
+
+        // Parse notification type for icon
+        let iconHtml = '';
+        if (n.type === 'TIMETABLE') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-250">Timetable</span>';
+        } else if (n.type === 'ANNOUNCEMENT') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-250">Announcement</span>';
+        } else {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-250">Notice</span>';
+        }
+
+        item.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                ${iconHtml}
+                <span class="text-[10px] text-slate-400 font-bold">${new Date(n.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-700 leading-relaxed">${escapeHtml(n.message)}</p>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+window.markNotificationRead = function(id) {
+    fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => n.notificationId === id ? { ...n, isRead: true } : n);
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking notification as read:', err));
+};
+
+window.markAllNotificationsRead = function() {
+    fetch('/api/notifications/read-all', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => ({ ...n, isRead: true }));
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking all notifications as read:', err));
+};
+
+// Toggle Notification Dropdown
+document.addEventListener('DOMContentLoaded', () => {
+    const notifBtn = document.getElementById('notification-btn');
+    const notifPanel = document.getElementById('notification-panel');
+
+    if (notifBtn && notifPanel) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notifPanel.classList.toggle('hidden');
+            if (!notifPanel.classList.contains('hidden')) {
+                loadNotifications();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notifPanel.contains(e.target) && e.target !== notifBtn) {
+                notifPanel.classList.add('hidden');
+            }
+        });
+    }
+});
+

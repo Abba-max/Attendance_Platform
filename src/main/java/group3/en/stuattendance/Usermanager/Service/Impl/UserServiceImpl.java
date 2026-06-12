@@ -688,4 +688,30 @@ public class UserServiceImpl implements UserService {
         }
         return result;
     }
+
+    @Override
+    public void toggleStudentDelegate(Integer userId, Boolean isDelegate) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("Student not found with id: " + userId));
+
+        boolean isStudent = user.getRoles().stream()
+                .anyMatch(r -> r.getName().equalsIgnoreCase("STUDENT"));
+        if (!isStudent) {
+            throw new IllegalArgumentException("User is not a student");
+        }
+
+        if (isDelegate != null && isDelegate) {
+            if (user.getClassroom() != null) {
+                long delegateCount = userRepository.countByClassroomClassIdAndIsDelegateTrue(user.getClassroom().getClassId());
+                // If they are already a delegate, count doesn't change
+                if (delegateCount >= 2 && !user.getIsDelegate()) {
+                    throw new IllegalArgumentException("A classroom can only have up to two delegates.");
+                }
+            }
+            user.setIsDelegate(true);
+        } else {
+            user.setIsDelegate(false);
+        }
+        userRepository.save(user);
+    }
 }

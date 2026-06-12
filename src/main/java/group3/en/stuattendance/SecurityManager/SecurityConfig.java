@@ -69,6 +69,8 @@ public class SecurityConfig {
                                 "/sw.js",
                                 "/offline.html"
                         ).permitAll()
+                        // Justification document previews — accessible to authenticated users
+                        .requestMatchers("/uploads/**").authenticated()
                         .requestMatchers("/admin/classrooms/**").hasAnyRole("ADMIN", "PEDAGOG")
                         .requestMatchers("/admin/**", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/pedagog/**", "/api/pedagog/**").hasRole("PEDAGOG")

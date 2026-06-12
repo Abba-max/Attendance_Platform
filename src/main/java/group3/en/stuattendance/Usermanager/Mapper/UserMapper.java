@@ -41,6 +41,7 @@ public class UserMapper {
                 .classroomName(user.getClassroom() != null ? user.getClassroom().getName() : null)
                 .matricule(user.getMatricule())
                 .externalEmail(user.getExternalEmail())
+                .isDelegate(user.getIsDelegate())
                 .staffClassroomIds(user.getStaffClassrooms().stream().map(Classroom::getClassId).collect(Collectors.toSet()))
                 .staffCourseNames(user.getCourses().stream().map(group3.en.stuattendance.Timetablemanager.Model.Course::getCourseName).collect(Collectors.toList()))
                 .staffDepartmentNames(user.getManagedDepartments() != null ? user.getManagedDepartments().stream().map(group3.en.stuattendance.Institutionmanager.Model.Department::getName).collect(Collectors.toList()) : new java.util.ArrayList<>())
@@ -67,6 +68,7 @@ public class UserMapper {
                 .classroom(studentClassroom)
                 .matricule(dto.getMatricule())
                 .externalEmail(dto.getExternalEmail())
+                .isDelegate(dto.getIsDelegate())
                 .staffClassrooms(staffClassrooms != null ? staffClassrooms : new HashSet<>())
                 .joinCode(dto.getJoinCode())
                 .build();

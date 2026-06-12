@@ -2552,8 +2552,10 @@ window.publishTimetable = async function () {
 // =========================================================================
 
 let smAllSessions = [];
+let smVisibleCount = 10;
 
 window.loadSessionsMonitor = async function () {
+    smVisibleCount = 10;
     const tbody = document.getElementById('smTableBody');
     if (!tbody) return;
 
@@ -2622,6 +2624,8 @@ function renderSessionsTable() {
         tbody.innerHTML = '<tr><td colspan="7" style="padding:56px 20px;text-align:center">' +
             '<div style="font-size:13px;color:var(--text-3);font-weight:500">No sessions match the selected filters.</div>' +
         '</td></tr>';
+        const loadMoreContainer = document.getElementById('smLoadMoreContainer');
+        if (loadMoreContainer) loadMoreContainer.classList.add('hidden');
         return;
     }
 
@@ -2631,8 +2635,25 @@ function renderSessionsTable() {
         return d !== 0 ? d : (b.startTime || '').localeCompare(a.startTime || '');
     });
 
-    tbody.innerHTML = sessions.map(s => renderSessionRow(s)).join('');
+    const totalFiltered = sessions.length;
+    const visibleSessions = sessions.slice(0, smVisibleCount);
+
+    tbody.innerHTML = visibleSessions.map(s => renderSessionRow(s)).join('');
+
+    const loadMoreContainer = document.getElementById('smLoadMoreContainer');
+    if (loadMoreContainer) {
+        if (totalFiltered > smVisibleCount) {
+            loadMoreContainer.classList.remove('hidden');
+        } else {
+            loadMoreContainer.classList.add('hidden');
+        }
+    }
 }
+
+window.smLoadMore = function() {
+    smVisibleCount += 10;
+    renderSessionsTable();
+};
 
 function renderSessionRow(s) {
     const STATUS_STYLES = {
@@ -3081,12 +3102,52 @@ function renderJustificationQueue(list) {
                    All Hours
                </span>`;
 
-        const fileHtml = j.documentPath
-            ? `<a href="/${escapeHtml(j.documentPath)}" target="_blank" class="mt-3 flex items-center gap-1.5 text-[10px] font-bold text-[#00B0FF] hover:underline">
-                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-                   View Attachment
-               </a>`
-            : '';
+        // j.documentPath is now a web URL like /uploads/uuid_file.pdf
+        const docUrl = j.documentPath || null;
+        const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(docUrl);
+        const isPdf   = docUrl && /\.pdf$/i.test(docUrl);
+        let fileHtml = '';
+        if (docUrl) {
+            if (isImage) {
+                fileHtml = `
+                    <div class="mt-3">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Supporting Document</p>
+                        <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener">
+                            <img src="${escapeHtml(docUrl)}"
+                                 alt="Justification document"
+                                 class="w-full max-h-48 object-cover rounded-xl border border-slate-200 hover:border-[#00B0FF] transition cursor-zoom-in shadow-sm" />
+                        </a>
+                    </div>`;
+            } else if (isPdf) {
+                fileHtml = `
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener"
+                           class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-[10px] font-bold hover:bg-red-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            View PDF
+                        </a>
+                        <a href="${escapeHtml(docUrl)}" download
+                           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-bold hover:bg-slate-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download
+                        </a>
+                    </div>`;
+            } else {
+                fileHtml = `
+                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener"
+                           class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#00B0FF] border border-blue-100 rounded-xl text-[10px] font-bold hover:bg-blue-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                            View Attachment
+                        </a>
+                        <a href="${escapeHtml(docUrl)}" download
+                           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-bold hover:bg-slate-100 transition">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                            Download
+                        </a>
+                    </div>`;
+            }
+        }
 
         const dateStr = j.attendanceDate ? new Date(j.attendanceDate).toLocaleDateString() : '';
         const initials = (j.studentName || '?').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
@@ -3196,8 +3257,13 @@ window.navigateTo = function(section) {
 // REAL-TIME NOTIFICATIONS
 // ==========================================
 
+let allNotifications = [];
+
 window.initializeNotifications = function() {
     console.log("Initializing Real-Time Notifications...");
+
+    // Initial load of notifications to display the badge count immediately
+    loadNotifications();
 
     if (typeof SockJS === 'undefined' || typeof Stomp === 'undefined') {
         console.warn("WebSocket libraries not loaded yet. Retrying in 2s...");
@@ -3240,6 +3306,26 @@ window.initializeNotifications = function() {
         // Retry connection after 5s
         setTimeout(initializeNotifications, 5000);
     });
+
+    // Toggle Notification Dropdown
+    const notifBtn = document.getElementById('notification-btn');
+    const notifPanel = document.getElementById('notification-panel');
+
+    if (notifBtn && notifPanel) {
+        notifBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            notifPanel.classList.toggle('hidden');
+            if (!notifPanel.classList.contains('hidden')) {
+                loadNotifications();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!notifPanel.contains(e.target) && e.target !== notifBtn) {
+                notifPanel.classList.add('hidden');
+            }
+        });
+    }
 };
 
 function handleIncomingNotification(n) {
@@ -3256,13 +3342,96 @@ function handleIncomingNotification(n) {
         if (typeof loadSessionsMonitor === 'function') loadSessionsMonitor();
     }
 
-    // Update Badge (if any)
-    const badge = document.querySelector('.notification-badge');
-    if (badge) {
-        badge.classList.remove('hidden');
-        const count = parseInt(badge.textContent || '0');
-        badge.textContent = count + 1;
+    loadNotifications();
+}
+
+window.loadNotifications = function() {
+    fetch('/api/notifications/my')
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
+        .then(data => {
+            allNotifications = data || [];
+            renderNotifications();
+        })
+        .catch(err => console.error('Error fetching notifications:', err));
+};
+
+function renderNotifications() {
+    const listEl = document.getElementById('notification-list');
+    const badgeEl = document.getElementById('notif-count-badge');
+    if (!listEl) return;
+
+    listEl.innerHTML = '';
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+
+    if (badgeEl) {
+        if (unreadCount > 0) {
+            badgeEl.textContent = unreadCount;
+            badgeEl.style.display = 'flex';
+        } else {
+            badgeEl.style.display = 'none';
+        }
     }
+
+    if (allNotifications.length === 0) {
+        listEl.innerHTML = `
+            <div class="p-8 text-center text-slate-400">
+                <p class="text-xs font-bold">No new notifications</p>
+            </div>`;
+        return;
+    }
+
+    allNotifications.forEach(n => {
+        const item = document.createElement('div');
+        item.className = `p-4 flex flex-col gap-1.5 transition-colors cursor-pointer hover:bg-slate-50/50 ${n.isRead ? 'opacity-60' : 'bg-blue-50/10'}`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            markNotificationRead(n.notificationId);
+        };
+
+        // Parse notification type for icon
+        let iconHtml = '';
+        if (n.type === 'TIMETABLE') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 border border-emerald-250">Timetable</span>';
+        } else if (n.type === 'ANNOUNCEMENT') {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 border border-blue-250">Announcement</span>';
+        } else {
+            iconHtml = '<span class="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-50 text-slate-500 border border-slate-250">Notice</span>';
+        }
+
+        item.innerHTML = `
+            <div class="flex items-center justify-between gap-2">
+                ${iconHtml}
+                <span class="text-[10px] text-slate-400 font-bold">${new Date(n.createdAt).toLocaleDateString()}</span>
+            </div>
+            <p class="text-xs font-semibold text-slate-700 leading-relaxed">${escapeHtml(n.message)}</p>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+window.markNotificationRead = function(id) {
+    fetch(`/api/notifications/${id}/read`, { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => n.notificationId === id ? { ...n, isRead: true } : n);
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking notification as read:', err));
+};
+
+window.markAllNotificationsRead = function() {
+    fetch('/api/notifications/read-all', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                allNotifications = allNotifications.map(n => ({ ...n, isRead: true }));
+                renderNotifications();
+            }
+        })
+        .catch(err => console.error('Error marking all notifications as read:', err));
 }
 
 // ==========================================
@@ -4092,3 +4261,261 @@ window.showMigrationNotification = function (message, type = "error") {
         }
     });
 };
+
+// ==========================================
+// Delegate Toggle Logic
+// ==========================================
+window.toggleDelegate = async function (studentId, currentStatus, btnElement) {
+    try {
+        const response = await fetch('/api/pedagog/students/' + studentId + '/delegate?isDelegate=' + currentStatus, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+            }
+        });
+
+        if (response.ok) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                icon: 'success',
+                title: currentStatus ? 'Delegate assigned successfully' : 'Delegate removed successfully'
+            });
+            // Flip the status visually for the next click
+            btnElement.setAttribute('data-is-delegate', (!currentStatus).toString());
+            if (currentStatus) {
+                btnElement.classList.add('text-amber-500');
+            } else {
+                btnElement.classList.remove('text-amber-500');
+            }
+        } else {
+            const data = await response.json();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Failed to update delegate status.'
+            });
+        }
+    } catch (e) {
+        console.error('Delegate Toggle Error:', e);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'An unexpected error occurred.'
+        });
+    }
+};
+
+/**
+ * Handle Edit Student Profile
+ */
+window.openEditStudentModal = async function(studentId) {
+    try {
+        const response = await fetch(`/api/pedagog/students/${studentId}`);
+        if (!response.ok) throw new Error('Failed to fetch student details');
+        const student = await response.json();
+
+        document.getElementById('editStudentId').value = student.userId || '';
+        document.getElementById('editStudentFirstName').value = student.firstName || '';
+        document.getElementById('editStudentLastName').value = student.lastName || '';
+        document.getElementById('editStudentEmail').value = student.email || '';
+        document.getElementById('editStudentMatricule').value = student.matricule || '';
+        
+        // If student is assigned to a classroom, set the selector, otherwise empty string
+        const classroomSelect = document.getElementById('editStudentClassroom');
+        if(student.classroomId) {
+            classroomSelect.value = student.classroomId;
+        } else {
+            classroomSelect.value = '';
+        }
+
+        const modal = document.getElementById('editStudentModal');
+        const content = document.getElementById('editStudentModalContent');
+        modal.classList.remove('hidden');
+        
+        requestAnimationFrame(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+    } catch (error) {
+        console.error('Error viewing student for edit:', error);
+        Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+            icon: 'error', title: 'Could not load student details'
+        });
+    }
+};
+
+window.closeEditStudentModal = function() {
+    const modal = document.getElementById('editStudentModal');
+    const content = document.getElementById('editStudentModalContent');
+    
+    content.classList.remove('scale-100', 'opacity-100');
+    content.classList.add('scale-95', 'opacity-0');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        document.getElementById('editStudentForm').reset();
+    }, 300);
+};
+
+window.submitEditStudent = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('editStudentSubmitBtn');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="animate-spin w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> Saving...';
+
+    const studentId = document.getElementById('editStudentId').value;
+    const data = {
+        firstName: document.getElementById('editStudentFirstName').value.trim(),
+        lastName: document.getElementById('editStudentLastName').value.trim(),
+        email: document.getElementById('editStudentEmail').value.trim(),
+        matricule: document.getElementById('editStudentMatricule').value.trim(),
+        classroomId: document.getElementById('editStudentClassroom').value || null
+    };
+
+    try {
+        const response = await fetch(`/api/users/${studentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            Swal.fire({
+                toast: true, position: 'top-end', showConfirmButton: false, timer: 3000,
+                icon: 'success', title: 'Student updated successfully'
+            });
+            closeEditStudentModal();
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            const errData = await response.json();
+            throw new Error(errData.message || 'Failed to update student');
+        }
+    } catch (error) {
+        console.error('Update error:', error);
+        Swal.fire({
+            icon: 'error', title: 'Update Failed', text: error.message
+        });
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};
+
+// ==========================================
+// Announcement Logic
+// ==========================================
+let announcementFiles = [];
+
+window.handleAnnouncementFileSelection = function(input) {
+    const files = Array.from(input.files);
+    let totalSize = announcementFiles.reduce((sum, f) => sum + f.size, 0);
+
+    for (let f of files) {
+        if (totalSize + f.size > 10 * 1024 * 1024) {
+            Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'Total file size exceeds 10MB limit.', showConfirmButton: false, timer: 3000 });
+            continue;
+        }
+        announcementFiles.push(f);
+        totalSize += f.size;
+    }
+    
+    input.value = ''; // Reset input
+    renderAnnouncementFileList();
+};
+
+function renderAnnouncementFileList() {
+    const list = document.getElementById('announce-file-list');
+    if (!list) return;
+    
+    if (announcementFiles.length === 0) {
+        list.innerHTML = '';
+        return;
+    }
+
+    list.innerHTML = announcementFiles.map((file, index) => `
+        <div class="flex items-center justify-between p-2.5 bg-slate-100 rounded-xl border border-slate-200">
+            <div class="flex items-center gap-2 overflow-hidden">
+                <svg class="w-4 h-4 text-[#00B0FF] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+                <span class="text-xs font-semibold text-slate-700 truncate">${file.name}</span>
+                <span class="text-[10px] text-slate-400 font-bold">(${Math.round(file.size / 1024)} KB)</span>
+            </div>
+            <button type="button" onclick="removeAnnouncementFile(${index})" class="text-slate-400 hover:text-red-500 transition-colors p-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+    `).join('');
+}
+
+window.removeAnnouncementFile = function(index) {
+    announcementFiles.splice(index, 1);
+    renderAnnouncementFileList();
+};
+
+window.sendAnnouncement = async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('announce-submit-btn');
+    const originalText = btn.innerHTML;
+    
+    const target = document.getElementById('announce-target').value;
+    const title = document.getElementById('announce-title').value.trim();
+    const message = document.getElementById('announce-message').value.trim();
+    const classroomId = document.getElementById('announce-classroom').value || null;
+
+    if (!title || !message) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Subject and message are required.', showConfirmButton: false, timer: 3000 });
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<svg class="animate-spin w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg> Sending...`;
+
+    try {
+        const formData = new FormData();
+        formData.append('target', target);
+        formData.append('title', title);
+        formData.append('message', message);
+        if (classroomId) formData.append('classroomId', classroomId);
+        
+        announcementFiles.forEach(f => formData.append('files', f));
+
+        const response = await fetch('/api/announcements/send', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content || ''
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Announcement Sent!',
+                text: 'Your mail has been dispatched and notifications delivered.',
+                customClass: { popup: 'rounded-2xl shadow-xl' }
+            });
+            document.getElementById('announcement-form').reset();
+            announcementFiles = [];
+            renderAnnouncementFileList();
+        } else {
+            const err = await response.json();
+            Swal.fire({ icon: 'error', title: 'Failed to Send', text: err.error || 'An error occurred during dispatch.' });
+        }
+    } catch (e) {
+        console.error('Announcement Error:', e);
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Network error or server unavailable.' });
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+};
+

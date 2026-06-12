@@ -32,4 +32,16 @@ public class NotificationController {
         notificationService.markAsRead(notificationId);
         return ResponseEntity.ok(Map.of("message", "Notification marked as read."));
     }
+
+    @PostMapping("/read-all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, String>> markAllAsRead(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        java.util.List<NotificationDto> unread = notificationService.getUserNotifications(userDetails.getUserId()).stream()
+                .filter(n -> !n.getIsRead())
+                .toList();
+        for (NotificationDto dto : unread) {
+            notificationService.markAsRead(dto.getNotificationId());
+        }
+        return ResponseEntity.ok(Map.of("message", "All notifications marked as read."));
+    }
 }

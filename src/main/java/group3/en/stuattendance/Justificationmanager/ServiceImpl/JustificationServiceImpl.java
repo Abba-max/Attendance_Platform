@@ -299,10 +299,13 @@ public class JustificationServiceImpl implements JustificationService {
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
-            String fileName = UUID.randomUUID().toString() + "_" + document.getOriginalFilename();
+            // Sanitise the original filename to avoid path traversal
+            String originalName = Paths.get(document.getOriginalFilename()).getFileName().toString();
+            String fileName = UUID.randomUUID().toString() + "_" + originalName;
             Path filePath = uploadPath.resolve(fileName);
             Files.copy(document.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-            return filePath.toString();
+            // Return a web-accessible relative URL instead of an OS absolute path
+            return "/uploads/" + fileName;
         } catch (IOException e) {
             throw new RuntimeException("Failed to save document: " + e.getMessage());
         }

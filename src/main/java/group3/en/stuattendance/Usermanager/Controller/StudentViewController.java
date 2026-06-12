@@ -25,12 +25,15 @@ public class StudentViewController {
             model.addAttribute("firstName", userDetails.getFirstName());
             model.addAttribute("lastName", userDetails.getLastName());
             
-            // Fetch classroom
+            // Fetch classroom and delegate status
             userRepository.findById(userDetails.getUserId()).ifPresent(user -> {
+                model.addAttribute("isDelegate", user.getIsDelegate() != null && user.getIsDelegate());
                 if (user.getClassroom() != null) {
                     model.addAttribute("classroom", user.getClassroom().getName());
+                    model.addAttribute("classroomId", user.getClassroom().getClassId());
                 } else {
                     model.addAttribute("classroom", "N/A");
+                    model.addAttribute("classroomId", null);
                 }
             });
         }

@@ -102,6 +102,9 @@ public class User {
     @Column(name = "join_code", unique = true, length = 20)
     private String joinCode;
 
+    @Column(name = "is_delegate")
+    private Boolean isDelegate = false;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
     private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
@@ -136,7 +139,7 @@ public class User {
 
     public User() {}
 
-    public User(Integer userId, String username, String email, String password, String firstName, String lastName, Boolean isActive, Boolean passwordChanged, Set<Role> roles, Set<Permission> additionalPermissions, Set<Permission> deniedPermissions, Institution institution, Classroom classroom, String matricule, String externalEmail, Set<Classroom> staffClassrooms, String joinCode, Set<AttendanceRecord> attendanceRecords, Set<Justification> justifications, Set<Course> courses, Set<Session> sessions, Set<Notification> notifications, LocalDateTime createdAt, LocalDateTime updatedAt) {
+    public User(Integer userId, String username, String email, String password, String firstName, String lastName, Boolean isActive, Boolean passwordChanged, Set<Role> roles, Set<Permission> additionalPermissions, Set<Permission> deniedPermissions, Institution institution, Classroom classroom, String matricule, String externalEmail, Set<Classroom> staffClassrooms, String joinCode, Boolean isDelegate, Set<AttendanceRecord> attendanceRecords, Set<Justification> justifications, Set<Course> courses, Set<Session> sessions, Set<Notification> notifications, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.userId = userId;
         this.username = username;
         this.email = email;
@@ -154,6 +157,7 @@ public class User {
         this.externalEmail = externalEmail;
         this.staffClassrooms = staffClassrooms;
         this.joinCode = joinCode;
+        this.isDelegate = isDelegate != null ? isDelegate : false;
         this.attendanceRecords = attendanceRecords;
         this.justifications = justifications;
         this.courses = courses;
@@ -204,8 +208,10 @@ public class User {
     public Institution getInstitution() { return institution; }
     public void setInstitution(Institution institution) { this.institution = institution; }
 
-    public Classroom getClassroom() { return classroom; }
+    public Classroom classroom() { return classroom; }
     public void setClassroom(Classroom classroom) { this.classroom = classroom; }
+
+    public Classroom getClassroom() { return classroom; }
 
     public String getMatricule() { return matricule; }
     public void setMatricule(String matricule) { this.matricule = matricule; }
@@ -218,6 +224,9 @@ public class User {
 
     public String getJoinCode() { return joinCode; }
     public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
+
+    public Boolean getIsDelegate() { return isDelegate != null ? isDelegate : false; }
+    public void setIsDelegate(Boolean delegate) { isDelegate = delegate != null ? delegate : false; }
 
     public Set<AttendanceRecord> getAttendanceRecords() { return attendanceRecords; }
     public void setAttendanceRecords(Set<AttendanceRecord> records) { attendanceRecords = records; }
@@ -274,6 +283,7 @@ public class User {
         private String externalEmail;
         private Set<Classroom> staffClassrooms = new HashSet<>();
         private String joinCode;
+        private Boolean isDelegate = false;
         private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
         private Set<Justification> justifications = new HashSet<>();
         private Set<Course> courses = new HashSet<>();
@@ -299,6 +309,7 @@ public class User {
         public UserBuilder externalEmail(String externalEmail) { this.externalEmail = externalEmail; return this; }
         public UserBuilder staffClassrooms(Set<Classroom> classrooms) { this.staffClassrooms = classrooms; return this; }
         public UserBuilder joinCode(String joinCode) { this.joinCode = joinCode; return this; }
+        public UserBuilder isDelegate(Boolean isDelegate) { this.isDelegate = isDelegate; return this; }
         public UserBuilder attendanceRecords(Set<AttendanceRecord> records) { this.attendanceRecords = records; return this; }
         public UserBuilder justifications(Set<Justification> justifications) { this.justifications = justifications; return this; }
         public UserBuilder courses(Set<Course> courses) { this.courses = courses; return this; }
@@ -308,7 +319,7 @@ public class User {
         public UserBuilder updatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; return this; }
 
         public User build() {
-            return new User(userId, username, email, password, firstName, lastName, isActive, passwordChanged, roles, additionalPermissions, deniedPermissions, institution, classroom, matricule, externalEmail, staffClassrooms, joinCode, attendanceRecords, justifications, courses, sessions, notifications, createdAt, updatedAt);
+            return new User(userId, username, email, password, firstName, lastName, isActive, passwordChanged, roles, additionalPermissions, deniedPermissions, institution, classroom, matricule, externalEmail, staffClassrooms, joinCode, isDelegate, attendanceRecords, justifications, courses, sessions, notifications, createdAt, updatedAt);
         }
     }
 }

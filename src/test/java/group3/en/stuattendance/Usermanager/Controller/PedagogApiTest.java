@@ -33,6 +33,33 @@ public class PedagogApiTest {
     private CourseService courseService;
 
     @MockBean
+    private group3.en.stuattendance.Timetablemanager.Service.SessionService sessionService;
+
+    @MockBean
+    private group3.en.stuattendance.Attendancemanager.Service.AttendanceExportService attendanceExportService;
+
+    @MockBean
+    private group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
+
+    @MockBean
+    private group3.en.stuattendance.Justificationmanager.Service.JustificationService justificationService;
+
+    @MockBean
+    private group3.en.stuattendance.Usermanager.Service.PedagogStatsService pedagogStatsService;
+
+    @MockBean
+    private group3.en.stuattendance.Institutionmanager.Repository.DepartmentRepository departmentRepository;
+
+    @MockBean
+    private group3.en.stuattendance.Institutionmanager.Service.AcademicYearService academicYearService;
+
+    @MockBean
+    private group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository classroomRepository;
+
+    @MockBean
+    private group3.en.stuattendance.Institutionmanager.Mapper.ClassroomMapper classroomMapper;
+
+    @MockBean
     private JwtUtil jwtUtil;
 
     @MockBean

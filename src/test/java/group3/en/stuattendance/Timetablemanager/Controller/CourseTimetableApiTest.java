@@ -44,6 +44,9 @@ public class CourseTimetableApiTest {
     private EmailService emailService;
 
     @MockBean
+    private group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService;
+
+    @MockBean
     private JwtUtil jwtUtil;
 
     @MockBean

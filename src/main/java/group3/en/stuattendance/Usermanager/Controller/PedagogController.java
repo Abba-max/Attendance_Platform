@@ -102,6 +102,22 @@ public class PedagogController {
         return ResponseEntity.ok(userService.getUserDtoById(id));
     }
 
+    @PostMapping("/students/{id}/delegate")
+    public ResponseEntity<?> toggleDelegate(
+            @PathVariable Integer id,
+            @RequestParam Boolean isDelegate) {
+        try {
+            userService.toggleStudentDelegate(id, isDelegate);
+            return ResponseEntity.ok().body(new java.util.HashMap<String, String>() {{
+                put("message", "Delegate status updated successfully.");
+            }});
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new java.util.HashMap<String, String>() {{
+                put("message", e.getMessage());
+            }});
+        }
+    }
+
     @PostMapping("/courses/bulk-import")
     public ResponseEntity<BulkImportResultDto> bulkImportCourses(
             @RequestParam("file") MultipartFile file,

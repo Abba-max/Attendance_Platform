@@ -168,4 +168,62 @@ public class EmailServiceImpl implements EmailService {
             log.error("Failed to send password reset notification to {}", to, e);
         }
     }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendAnnouncementEmail(
+            String senderEmail,
+            java.util.List<String> recipients,
+            String subject,
+            String messageText,
+            java.util.List<group3.en.stuattendance.Usermanager.DTO.AttachmentDto> attachments,
+            String senderName) {
+        log.info("Sending announcement email from {} to {} recipients via BCC", senderEmail != null ? senderEmail : fromEmail, recipients.size());
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            Context context = new Context();
+            context.setVariable("subject", subject);
+            context.setVariable("messageText", messageText);
+            context.setVariable("senderName", senderName);
+            context.setVariable("baseUrl", baseUrl);
+
+            String html = templateEngine.process("mail/announcement", context);
+
+            helper.setSubject(subject);
+            helper.setBcc(recipients.toArray(new String[0]));
+            helper.setText(messageText, html);
+
+            if (senderEmail != null && !senderEmail.isEmpty()) {
+                helper.setFrom(senderName + " <" + senderEmail + ">");
+                helper.setReplyTo(senderEmail);
+            } else {
+                helper.setFrom(senderName + " <" + fromEmail + ">");
+            }
+
+            // Add attachments
+            if (attachments != null) {
+                for (group3.en.stuattendance.Usermanager.DTO.AttachmentDto attachment : attachments) {
+                    helper.addAttachment(
+                            attachment.getFilename(),
+                            new org.springframework.core.io.ByteArrayResource(attachment.getData()),
+                            attachment.getContentType()
+                    );
+                }
+            }
+
+            // Add Logo as inline resource
+            helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
+
+            mailSender.send(message);
+            log.info("Announcement email sent successfully to BCC recipients");
+
+        } catch (MessagingException e) {
+            log.error("Failed to send announcement email", e);
+        } catch (Exception e) {
+            log.error("Unexpected error while sending announcement email", e);
+        }
+    }
 }

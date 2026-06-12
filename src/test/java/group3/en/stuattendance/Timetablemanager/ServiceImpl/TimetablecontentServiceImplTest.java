@@ -26,9 +26,6 @@ import static org.mockito.Mockito.*;
 class TimetablecontentServiceImplTest {
 
     @Mock
-    private CycleRepository cycleRepository;
-
-    @Mock
     private group3.en.stuattendance.Timetablemanager.Repository.SessionRepository sessionRepository;
     @Mock
     private TimetablecontentRepository timetablecontentRepository;

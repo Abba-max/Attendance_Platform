@@ -34,4 +34,16 @@ public interface EmailService {
      * @param adminName   The name of the admin.
      */
     void sendPasswordResetNotification(String to, String newPassword, String adminEmail, String adminName);
+
+    /**
+     * Sends an announcement email to multiple recipients (BCC).
+     */
+    void sendAnnouncementEmail(
+            String senderEmail,
+            java.util.List<String> recipients,
+            String subject,
+            String messageText,
+            java.util.List<group3.en.stuattendance.Usermanager.DTO.AttachmentDto> attachments,
+            String senderName
+    );
 }

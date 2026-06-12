@@ -322,26 +322,38 @@ public class AttendanceServiceImpl implements AttendanceService {
         // Assign hour slots
         for (int i = 0; i < totalHours; i++) {
             group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus slotStatus;
+            
             if (i < checkinSlotIndex) {
-                // Preceding hour slots are marked PRESENT
-                slotStatus = group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT;
+                // For preceding hours: 
+                // If they checked in during the grace period of a late teacher launch, they get PRESENT for past hours.
+                // Otherwise (they are just late), they get ABSENT for past hours.
+                slotStatus = gracePeriodOnTime 
+                        ? group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT 
+                        : group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT;
             } else if (i == checkinSlotIndex) {
-                // Active hour slot is PRESENT if they satisfy slot deadlines
+                // Active hour slot
                 slotStatus = onTimeForActiveSlot 
                         ? group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT 
                         : group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT;
             } else {
-                // Subsequent hour slots are marked ABSENT
-                slotStatus = group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT;
+                // Subsequent hours: Assume they stay for the rest of the session.
+                slotStatus = group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT;
             }
-            updateHourSlot(record, i, slotStatus, false);
-        }
 
-        // Set overall record status based on grace period
-        if (gracePeriodOnTime) {
-            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT);
-        } else {
-            record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE);
+            // Prevent downgrading a previously earned PRESENT status if the student re-scans later
+            boolean shouldUpdate = true;
+            if (record.getHourSlots() != null) {
+                for (group3.en.stuattendance.Attendancemanager.Model.AttendanceHour h : record.getHourSlots()) {
+                    if (h.getHourIndex() == i && h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT) {
+                        shouldUpdate = false;
+                        break;
+                    }
+                }
+            }
+            
+            if (shouldUpdate) {
+                updateHourSlot(record, i, slotStatus, false);
+            }
         }
 
         updateRecordStatus(record);
