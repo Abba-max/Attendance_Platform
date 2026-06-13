@@ -615,14 +615,14 @@ async function openScanner(sessionId) {
         const geoCheck = await validateGeofence();
         Swal.close();
         if (!geoCheck.allowed) {
-            Swal.fire('Location Restriction', geoCheck.message || 'You must be in the classroom to check in.', 'error');
+            showNotification(geoCheck.message || 'You must be in the classroom to check in.', 'error');
             return;
         }
         currentCheckinContext.lat = geoCheck.lat;
         currentCheckinContext.lng = geoCheck.lng;
     } catch (e) {
         Swal.close();
-        Swal.fire('Location Error', 'Unable to determine your location. Please ensure location services are enabled.', 'error');
+        showNotification('Unable to determine your location. Please ensure location services are enabled.', 'error');
         return;
     }
 
@@ -746,18 +746,18 @@ async function submitFinalCheckin() {
 
     if (checkinMode === 'qr') {
         if (!currentCheckinContext.qrCode) {
-            Swal.fire('Scan Required', 'Veuillez scanner le QR code affiché par le professeur.', 'warning');
+            showNotification('Veuillez scanner le QR code affiché par le professeur.', 'warning');
             return;
         }
     } else if (checkinMode === 'pin') {
-        const pin = document.getElementById('pin-input').value.trim();
-        if (!pin || pin.length < 4) {
-            Swal.fire('PIN Required', 'Veuillez saisir le code PIN à 4 chiffres fourni par le professeur.', 'warning');
+        const pinVal = document.getElementById('pin-input').value.trim();
+        if (!pinVal || pinVal.length < 4) {
+            showNotification('Veuillez saisir le code PIN à 4 chiffres fourni par le professeur.', 'warning');
             return;
         }
-        currentCheckinContext.pin = pin;
+        currentCheckinContext.pin = pinVal;
     } else {
-        Swal.fire('Selection Required', 'Veuillez choisir un mode de pointage (QR ou PIN).', 'warning');
+        showNotification('Veuillez choisir un mode de pointage (QR ou PIN).', 'warning');
         return;
     }
 
@@ -785,7 +785,7 @@ async function submitFinalCheckin() {
             loadDashboardStats();
             loadCourseStats();
         } else {
-            Swal.fire('Check-In Failed', data.error || 'Code invalide. Veuillez réessayer.', 'error');
+            showNotification(data.error || 'Code invalide. Veuillez réessayer.', 'error');
             currentCheckinContext.qrCode = null;
             currentCheckinContext.pin = null;
             _showCheckinModeSelector();
@@ -796,7 +796,7 @@ async function submitFinalCheckin() {
             }
         }
     } catch (err) {
-        Swal.fire('Network Error', 'Erreur réseau. Veuillez réessayer.', 'error');
+        showNotification('Erreur réseau. Veuillez réessayer.', 'error');
         if (btn) { btn.disabled = false; btn.textContent = 'Validate Presence'; }
     }
 }
@@ -927,11 +927,11 @@ document.getElementById('justification-form').addEventListener('submit', async (
 
         if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
         
-        Swal.fire('Success', 'Justification successfully sent for review.', 'success');
+        showNotification('Justification successfully sent for review.', 'success');
         toggleJustifyModal();
         loadAttendanceHistory();
     } catch (err) {
-        Swal.fire('Error', err.message, 'error');
+        showNotification(err.message, 'error');
     }
 });
 
@@ -965,6 +965,7 @@ async function loadAttendanceHistory() {
         
         currentHistory = historyList;
         currentJustifications = justifications;
+        currentHistoryPage = 1;
         renderHistoryWithFilters();
 
     } catch (err) {
@@ -972,7 +973,13 @@ async function loadAttendanceHistory() {
     }
 }
 
-function renderHistoryWithFilters() {
+let currentHistoryPage = 1;
+const HISTORY_PAGE_SIZE = 10;
+
+function renderHistoryWithFilters(append = false) {
+    if (!append) {
+        currentHistoryPage = 1;
+    }
     const container = document.getElementById('history-list-container');
     const justFilter = document.getElementById('absence-justification-filter');
     
@@ -1004,7 +1011,10 @@ function renderHistoryWithFilters() {
         return;
     }
 
-    container.innerHTML = filtered.map(h => {
+    const paginated = filtered.slice(0, currentHistoryPage * HISTORY_PAGE_SIZE);
+    const hasMore = paginated.length < filtered.length;
+
+    const html = paginated.map(h => {
         const isAbsent = h.status === 'ABSENT';
         const hasAbsentSlots = (h.hourSlots || []).some(s => s.status === 'ABSENT');
         let statusBadge = '';
@@ -1076,6 +1086,23 @@ function renderHistoryWithFilters() {
             ${actionHtml}
         </div>`;
     }).join('');
+
+    container.innerHTML = html;
+
+    if (hasMore) {
+        const btnId = 'btn-load-more-history';
+        container.innerHTML += `
+            <div class="flex justify-center mt-6">
+                <button id="${btnId}" class="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 font-bold text-[11px] uppercase tracking-widest rounded-xl transition-colors active:scale-95 shadow-sm">
+                    Load More
+                </button>
+            </div>
+        `;
+        document.getElementById(btnId).addEventListener('click', () => {
+            currentHistoryPage++;
+            renderHistoryWithFilters(true);
+        });
+    }
 }
 
 /**

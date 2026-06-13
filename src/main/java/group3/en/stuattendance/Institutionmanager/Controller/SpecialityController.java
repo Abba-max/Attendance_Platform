@@ -9,6 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.ResponseEntity;
+import java.util.Map;
+import java.util.HashMap;
 
 import java.util.List;
 
@@ -74,12 +77,17 @@ public class SpecialityController {
 
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public String deleteSpeciality(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> deleteSpeciality(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             specialityService.deleteSpeciality(id);
-            return "success";
+            response.put("success", true);
+            response.put("message", "Speciality deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return "error";
+            response.put("success", false);
+            response.put("message", "Failed to delete speciality: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

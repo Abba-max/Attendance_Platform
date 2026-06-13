@@ -12,6 +12,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Controller for managing Classrooms
@@ -104,12 +108,17 @@ public class ClassroomController {
      */
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public String deleteClassroom(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> deleteClassroom(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             classroomService.deleteById(id);
-            return "success";
+            response.put("success", true);
+            response.put("message", "Classroom deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return "error";
+            response.put("success", false);
+            response.put("message", "Failed to delete classroom: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

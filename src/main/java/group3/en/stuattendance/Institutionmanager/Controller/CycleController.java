@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Controller for managing Cycles
@@ -82,12 +84,17 @@ public class CycleController {
      */
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public String deleteCycle(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> deleteCycle(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             cycleService.deleteById(id);
-            return "success";
+            response.put("success", true);
+            response.put("message", "Cycle deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return "error";
+            response.put("success", false);
+            response.put("message", "Failed to delete cycle: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

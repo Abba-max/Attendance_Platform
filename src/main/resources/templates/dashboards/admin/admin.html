@@ -2458,5 +2458,28 @@
     </button>
 </div>
 
+<script th:inline="javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        const successMsg = [[${success}]];
+        const errorMsg = [[${error}]];
+        
+        if (successMsg) {
+            if (typeof showNotification === 'function') {
+                showNotification(successMsg, 'success');
+            }
+        }
+        if (errorMsg) {
+            // Check if errorMsg contains raw SQL trace and sanitize it
+            let cleanError = errorMsg;
+            if (errorMsg.includes("SQL") || errorMsg.includes("ConstraintViolationException") || errorMsg.includes("DataIntegrityViolationException")) {
+                cleanError = "A database constraint was violated. Please ensure the entry is unique and valid.";
+            }
+            if (typeof showNotification === 'function') {
+                showNotification(cleanError, 'error');
+            }
+        }
+    });
+</script>
+
 </body>
 </html>

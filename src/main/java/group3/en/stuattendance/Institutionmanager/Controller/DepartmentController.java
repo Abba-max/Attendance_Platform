@@ -14,6 +14,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.util.Map;
+import java.util.HashMap;
+
 /**
  * Controller for managing Departments
  */
@@ -123,12 +126,17 @@ public class DepartmentController {
      */
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public String deleteDepartment(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> deleteDepartment(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             departmentService.deleteById(id);
-            return "success";
+            response.put("success", true);
+            response.put("message", "Department deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return "error";
+            response.put("success", false);
+            response.put("message", "Failed to delete department: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 

@@ -2270,11 +2270,12 @@ window.handleDeleteSpeciality = async function (id) {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
             }
-        }).then(response => response.text()).then(result => {
-            if (result === 'success') {
+        }).then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
                 window.location.reload();
             } else {
-                showNotification('Failed to delete speciality.', 'error');
+                showNotification(data.message || 'Failed to delete speciality.', 'error');
             }
         }).catch(err => {
             console.error('Delete error:', err);
@@ -2414,11 +2415,12 @@ window.handleDeleteCycle = async function (id) {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
             }
-        }).then(response => {
-            if (response.ok) {
+        }).then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                showNotification('Failed to delete cycle.', 'error');
+                showNotification(data.message || 'Failed to delete cycle.', 'error');
             }
         });
     }
@@ -2440,11 +2442,12 @@ window.handleDeleteDepartment = async function (id) {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
             }
-        }).then(response => {
-            if (response.ok) {
+        }).then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                showNotification('Failed to delete department.', 'error');
+                showNotification(data.message || 'Failed to delete department.', 'error');
             }
         });
     }
@@ -2466,11 +2469,12 @@ window.handleDeleteClassroom = async function (id) {
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.content
             }
-        }).then(response => {
-            if (response.ok) {
+        }).then(async response => {
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.success) {
                 window.location.href = '/admin/dashboard?section=institutions';
             } else {
-                showNotification('Failed to delete classroom.', 'error');
+                showNotification(data.message || 'Failed to delete classroom.', 'error');
             }
         });
     }
@@ -2895,6 +2899,105 @@ function updateThemeIcons(isDark) {
         }
     }
 }
+
+/**
+ * Approve / Reject Password Reset Request Logic
+ */
+let currentResetRequestId = null;
+
+function openApproveResetModal(requestId, username) {
+    currentResetRequestId = requestId;
+    const modal = document.getElementById('approveResetModal');
+    const targetUserSpan = document.getElementById('resetTargetUser');
+    const tempPasswordInput = document.getElementById('tempPassword');
+
+    if (modal && targetUserSpan && tempPasswordInput) {
+        targetUserSpan.textContent = username;
+        tempPasswordInput.value = '';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function closeApproveResetModal() {
+    const modal = document.getElementById('approveResetModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+    currentResetRequestId = null;
+}
+
+async function submitApproveReset() {
+    if (!currentResetRequestId) return;
+    
+    const tempPassword = document.getElementById('tempPassword').value;
+    if (!tempPassword || tempPassword.trim() === '') {
+        showNotification('Please enter a temporary password.', 'warning');
+        return;
+    }
+
+    const confirmBtn = document.getElementById('confirmApproveBtn');
+    const originalText = confirmBtn.innerHTML;
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>';
+
+    try {
+        const response = await fetch(`/api/admin/users/reset-requests/${currentResetRequestId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tempPassword: tempPassword })
+        });
+
+        if (response.ok) {
+            showNotification('Reset request approved and password sent.', 'success');
+            closeApproveResetModal();
+            window.location.reload();
+        } else {
+            const errorText = await response.text();
+            throw new Error(errorText || 'Failed to approve request');
+        }
+    } catch (error) {
+        console.error('Error approving reset request:', error);
+        showNotification('Failed to approve request: Endpoint may not exist yet.', 'error');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = originalText;
+    }
+}
+
+async function handleRejectRequest(requestId) {
+    const confirmed = await ModernConfirm({
+        title: "Reject Reset Request?",
+        message: "Are you sure you want to reject this password reset request?",
+        confirmText: "Reject Request",
+        type: "danger"
+    });
+    
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`/api/admin/users/reset-requests/${requestId}/reject`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            showNotification('Reset request rejected.', 'success');
+            window.location.reload();
+        } else {
+            throw new Error('Failed to reject request');
+        }
+    } catch (error) {
+        console.error('Error rejecting reset request:', error);
+        showNotification('Failed to reject request: Endpoint may not exist yet.', 'error');
+    }
+}
+
+// Export for inline HTML calls
+window.openApproveResetModal = openApproveResetModal;
+window.closeApproveResetModal = closeApproveResetModal;
+window.submitApproveReset = submitApproveReset;
+window.handleRejectRequest = handleRejectRequest;
 
 /**
  * Bulk Import Logic

@@ -13,8 +13,11 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Controller for managing Institutions
@@ -112,12 +115,17 @@ public class InstitutionController {
      */
     @PostMapping("/delete/{id}")
     @ResponseBody
-    public String deleteInstitution(@PathVariable Integer id) {
+    public ResponseEntity<Map<String, Object>> deleteInstitution(@PathVariable Integer id) {
+        Map<String, Object> response = new HashMap<>();
         try {
             institutionService.deleteById(id);
-            return "success";
+            response.put("success", true);
+            response.put("message", "Institution deleted successfully");
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return "error";
+            response.put("success", false);
+            response.put("message", "Failed to delete institution: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         }
     }
 }
