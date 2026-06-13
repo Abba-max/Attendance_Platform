@@ -153,5 +153,28 @@
             console.log('[PWA] Running in stand-alone (installed) display mode.');
             document.body.classList.add('pwa-standalone');
         }
+        
+        // 5. Offline/Online Network Indicator Banner
+        const networkBanner = document.createElement('div');
+        networkBanner.id = 'pwaNetworkBanner';
+        networkBanner.className = 'hidden fixed top-0 left-0 w-full bg-red-600 text-white text-center py-2 text-sm font-semibold z-[9999] shadow-md transition-all';
+        networkBanner.innerHTML = '<i class="ph ph-wifi-slash mr-2"></i>You are currently offline. Changes will sync later.';
+        document.body.prepend(networkBanner);
+
+        function updateNetworkStatus() {
+            if (navigator.onLine) {
+                networkBanner.classList.add('hidden');
+                networkBanner.classList.remove('block');
+            } else {
+                networkBanner.classList.remove('hidden');
+                networkBanner.classList.add('block');
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        
+        // Initialize status
+        updateNetworkStatus();
     });
 })();

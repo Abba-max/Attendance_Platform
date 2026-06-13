@@ -356,6 +356,14 @@ public class AttendanceServiceImpl implements AttendanceService {
             }
         }
 
+        // Determine if overall LATE due to missing the 10m launch grace period
+        if (session.getAttendanceLaunchedAt() != null) {
+            java.time.LocalDateTime graceDeadline = session.getAttendanceLaunchedAt().plusMinutes(10);
+            if (dtNow.isAfter(graceDeadline)) {
+                record.setStatus(group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE);
+            }
+        }
+
         updateRecordStatus(record);
 
         AttendanceRecord saved = attendanceRecordRepository.save(record);

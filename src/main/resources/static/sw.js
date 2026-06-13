@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const STATIC_CACHE_NAME = `attendee-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `attendee-dynamic-${CACHE_VERSION}`;
 
@@ -47,7 +47,56 @@ self.addEventListener('activate', event => {
 
 // Fetch Event - Route requests using customized strategies
 self.addEventListener('fetch', event => {
-    // Skip non-GET requests (POST, PUT, DELETE shouldn't be handled by cache)
+    // Handle offline queuing for POST/PUT API requests
+    if ((event.request.method === 'POST' || event.request.method === 'PUT') && event.request.url.includes('/api/')) {
+        event.respondWith(
+            fetch(event.request.clone()).catch(async (error) => {
+                console.log('[Service Worker] Network failed for POST/PUT, queuing offline...', error);
+                const reqClone = event.request.clone();
+                
+                const bodyText = await reqClone.text();
+                let bodyData = null;
+                try {
+                    bodyData = JSON.parse(bodyText);
+                } catch (e) {
+                    bodyData = bodyText;
+                }
+                
+                const headers = {};
+                for (const [key, value] of reqClone.headers.entries()) {
+                    headers[key] = value;
+                }
+                
+                const db = await openDB();
+                const tx = db.transaction('offline-queue', 'readwrite');
+                const store = tx.objectStore('offline-queue');
+                
+                await new Promise((resolve, reject) => {
+                    const req = store.add({
+                        url: reqClone.url,
+                        method: reqClone.method,
+                        headers: headers,
+                        body: bodyData,
+                        timestamp: Date.now()
+                    });
+                    req.onsuccess = () => resolve();
+                    req.onerror = () => reject(req.error);
+                });
+                
+                if ('sync' in self.registration) {
+                    await self.registration.sync.register('sync-generic-queue');
+                }
+                
+                return new Response(JSON.stringify({ offlineQueued: true, message: 'Saved locally. Will sync when online.' }), {
+                    headers: { 'Content-Type': 'application/json' },
+                    status: 202
+                });
+            })
+        );
+        return;
+    }
+
+    // Skip non-GET requests for the rest of the caching logic
     if (event.request.method !== 'GET') return;
 
     const url = new URL(event.request.url);
@@ -58,27 +107,27 @@ self.addEventListener('fetch', event => {
     }
 
     // Navigation Requests (HTML pages like /login, /dashboards/*)
+    // To prevent data leakage across users sharing the same browser offline, we DO NOT cache personalized HTML.
+    // We use Network-Only with an offline fallback.
     if (event.request.mode === 'navigate') {
         event.respondWith(
+            fetch(event.request).catch(() => caches.match('/offline.html'))
+        );
+        return;
+    }
+
+    // API Requests - Network-First Strategy (for read-only data to work offline)
+    if (url.pathname.startsWith('/api/') && event.request.method === 'GET') {
+        event.respondWith(
             fetch(event.request)
-                .then(response => {
-                    // Cache the successful dynamic page response for offline fallback browsing
-                    const responseClone = response.clone();
+                .then(networkResponse => {
+                    const responseClone = networkResponse.clone();
                     caches.open(DYNAMIC_CACHE_NAME).then(cache => {
                         cache.put(event.request, responseClone);
                     });
-                    return response;
+                    return networkResponse;
                 })
-                .catch(() => {
-                    // If offline, attempt to serve the cached page, otherwise serve offline.html
-                    return caches.match(event.request)
-                        .then(cachedResponse => {
-                            if (cachedResponse) {
-                                return cachedResponse;
-                            }
-                            return caches.match('/offline.html');
-                        });
-                })
+                .catch(() => caches.match(event.request))
         );
         return;
     }
@@ -143,11 +192,14 @@ self.addEventListener('message', event => {
 // IndexedDB Helper for Background Sync
 function openDB() {
     return new Promise((resolve, reject) => {
-        const req = indexedDB.open('attendee-offline-db', 1);
+        const req = indexedDB.open('attendee-offline-db', 2);
         req.onupgradeneeded = e => {
             const db = e.target.result;
             if (!db.objectStoreNames.contains('timetable-requests')) {
                 db.createObjectStore('timetable-requests', { autoIncrement: true, keyPath: 'id' });
+            }
+            if (!db.objectStoreNames.contains('offline-queue')) {
+                db.createObjectStore('offline-queue', { autoIncrement: true, keyPath: 'id' });
             }
         };
         req.onsuccess = () => resolve(req.result);
@@ -179,6 +231,30 @@ function removeOfflineTimetable(id) {
     });
 }
 
+function getOfflineQueue() {
+    return openDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('offline-queue', 'readonly');
+            const store = tx.objectStore('offline-queue');
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    });
+}
+
+function removeOfflineQueueItem(id) {
+    return openDB().then(db => {
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('offline-queue', 'readwrite');
+            const store = tx.objectStore('offline-queue');
+            const req = store.delete(id);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    });
+}
+
 // Background Sync Event Listener
 self.addEventListener('sync', event => {
     if (event.tag === 'sync-timetable') {
@@ -196,12 +272,48 @@ self.addEventListener('sync', event => {
                             return removeOfflineTimetable(req.id).then(() => {
                                 self.registration.showNotification('Attendee', {
                                     body: 'Your offline timetable has been successfully synced to the server!',
-                                    icon: '/image/logo.png',
+                                    icon: '/image/logo-192x192.png',
                                     vibrate: [200, 100, 200]
                                 });
                             });
                         } else {
                             throw new Error('Server returned an error during sync');
+                        }
+                    });
+                }));
+            })
+        );
+    }
+    
+    if (event.tag === 'sync-generic-queue') {
+        console.log('[Service Worker] Background Sync: sync-generic-queue triggered');
+        event.waitUntil(
+            getOfflineQueue().then(requests => {
+                return Promise.all(requests.map(req => {
+                    // Reconstruct headers if saved
+                    const headers = new Headers(req.headers || { 'Content-Type': 'application/json' });
+                    
+                    return fetch(req.url, {
+                        method: req.method,
+                        headers: headers,
+                        body: req.body ? JSON.stringify(req.body) : null
+                    }).then(res => {
+                        if (res.ok) {
+                            return removeOfflineQueueItem(req.id).then(() => {
+                                self.registration.showNotification('Attendee', {
+                                    body: 'Your offline actions have successfully synced.',
+                                    icon: '/image/logo-192x192.png',
+                                    vibrate: [200, 100, 200]
+                                });
+                            });
+                        } else {
+                            // Only throw if it's a 5xx error to keep retrying. 4xx usually means bad request, no point retrying.
+                            if (res.status >= 500) {
+                                throw new Error('Server returned 5xx error during generic sync');
+                            } else {
+                                console.warn('[Service Worker] Request failed permanently with status', res.status);
+                                return removeOfflineQueueItem(req.id); // Drop it
+                            }
                         }
                     });
                 }));

@@ -59,17 +59,16 @@ public class CourseTimetableApiTest {
     private UserRepository userRepository;
 
     @Test
-    void testGetCoursesBySpecialityAndSemester() throws Exception {
+    void testGetCoursesBySpeciality() throws Exception {
         CourseDto course = CourseDto.builder()
                 .courseId(1)
                 .courseName("Java Programming")
-                .semester(1)
                 .build();
         
-        when(courseService.getCoursesBySpecialityAndSemester(1, 1))
+        when(courseService.getCoursesBySpeciality(1))
                 .thenReturn(Collections.singletonList(course));
 
-        mockMvc.perform(get("/api/courses/speciality/1/semester/1"))
+        mockMvc.perform(get("/api/courses/speciality/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].courseName").value("Java Programming"));
     }

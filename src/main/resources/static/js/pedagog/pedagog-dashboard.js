@@ -221,7 +221,7 @@ window.openBulkImportModal = function (mode = 'STUDENT') {
         banner.className = "bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex gap-4 transition-colors duration-300";
     } else {
         title.textContent = "Bulk Course Import";
-        instruction.innerHTML = 'Ensure your CSV has these 2 columns in order:<br><code class="bg-blue-100/50 px-1.5 py-0.5 rounded text-blue-800 font-bold">courseName, code</code> <span class="text-[9px] opacity-70">(Hours and Semester are optional)</span>';
+        instruction.innerHTML = 'Ensure your CSV has these 2 columns in order:<br><code class="bg-blue-100/50 px-1.5 py-0.5 rounded text-blue-800 font-bold">courseName, code</code> <span class="text-[9px] opacity-70">(Hours is optional)</span>';
         classroomRow.classList.add('hidden');
         courseRow.classList.remove('hidden');
         header.className = "p-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white relative";
@@ -538,8 +538,8 @@ window.downloadBulkTemplate = function() {
         example = "Alice,Johnson,alice@example.com,MAT001\nBob,Wilson,bob@example.com,MAT002";
         filename = "student_import_template.csv";
     } else {
-        headers = "courseName,code,totalHours,semester\n";
-        example = "Data Structures,CS201,60,1\nAlgorithms,CS202,45,2";
+        headers = "courseName,code,totalHours\n";
+        example = "Data Structures,CS201,60\nAlgorithms,CS202,45";
         filename = "course_import_template.csv";
     }
 

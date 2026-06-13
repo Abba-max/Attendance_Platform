@@ -60,7 +60,6 @@ public class CourseServiceImpl implements CourseService {
         existing.setTotalHours(courseDto.getTotalHours());
         existing.setDescription(courseDto.getDescription());
         existing.setLevel(courseDto.getLevel());
-        existing.setSemester(courseDto.getSemester());
 
         if (courseDto.getSpecialityId() != null) {
             Speciality speciality = specialityRepository.findById(courseDto.getSpecialityId())
@@ -118,14 +117,7 @@ public class CourseServiceImpl implements CourseService {
                 .collect(Collectors.toList());
     }
  
-    @Override
-    public List<CourseDto> getCoursesBySpecialityAndSemester(Integer specialityId, Integer semester) {
-        return courseRepository.findBySpecialitySpecialityId(specialityId)
-                .stream()
-                .filter(c -> c.getSemester() != null && c.getSemester().equals(semester))
-                .map(courseMapper::toDto)
-                .collect(Collectors.toList());
-    }
+
 
     @Override
     public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
@@ -240,7 +232,6 @@ public class CourseServiceImpl implements CourseService {
                     }
 
                     Integer totalHours = (row.length > 2 && !row[2].trim().isEmpty()) ? Integer.parseInt(row[2].trim()) : 45;
-                    Integer semester = (row.length > 3 && !row[3].trim().isEmpty()) ? Integer.parseInt(row[3].trim()) : 1;
 
                     if (courseRepository.findByCourseName(courseName).isPresent()) {
                          result.getErrors().add(new group3.en.stuattendance.Usermanager.DTO.BulkImportResultDto.RowError(rowNum, courseName, "Course already exists"));
@@ -255,7 +246,6 @@ public class CourseServiceImpl implements CourseService {
                     previewRow.put("totalHours", String.valueOf(totalHours));
                     previewRow.put("level", String.valueOf(levelFromModal));
                     previewRow.put("specialityId", String.valueOf(specialityIdFromModal));
-                    previewRow.put("semester", String.valueOf(semester));
                     result.getPreviewData().add(previewRow);
 
                     if (!dryRun) {
@@ -266,7 +256,6 @@ public class CourseServiceImpl implements CourseService {
                                 .level(levelFromModal)
                                 .specialityId(specialityIdFromModal)
                                 .credits(3)
-                                .semester(semester)
                                 .build();
 
                         createCourse(dto);

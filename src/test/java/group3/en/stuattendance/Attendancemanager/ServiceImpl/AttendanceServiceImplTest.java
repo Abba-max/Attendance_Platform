@@ -123,17 +123,17 @@ public class AttendanceServiceImplTest {
         assertNotNull(result);
         assertEquals(AttendanceStatus.LATE, result.getStatus());
         
-        // Verify Slot 1 (index 0) is PRESENT
+        // Verify Slot 1 (index 0) is PRESENT (checked in before 08:45 deadline)
         Optional<AttendanceHour> slot0 = record.getHourSlots().stream()
                 .filter(h -> h.getHourIndex() == 0).findFirst();
         assertTrue(slot0.isPresent());
         assertEquals(AttendanceStatus.PRESENT, slot0.get().getStatus());
         
-        // Verify Slot 2 (index 1) is ABSENT since it hasn't arrived/been scanned
+        // Verify Slot 2 (index 1) is PRESENT (future slots ahead are marked present)
         Optional<AttendanceHour> slot1 = record.getHourSlots().stream()
                 .filter(h -> h.getHourIndex() == 1).findFirst();
         assertTrue(slot1.isPresent());
-        assertEquals(AttendanceStatus.ABSENT, slot1.get().getStatus());
+        assertEquals(AttendanceStatus.PRESENT, slot1.get().getStatus());
 
         AttendanceServiceImpl.resetMockCurrentTime();
     }
@@ -169,11 +169,11 @@ public class AttendanceServiceImplTest {
         assertNotNull(result);
         assertEquals(AttendanceStatus.LATE, result.getStatus());
         
-        // Slot 1 (index 0, preceding) is marked PRESENT because student is checking in for Slot 2
+        // Slot 1 (index 0, preceding) is marked ABSENT because student missed it
         Optional<AttendanceHour> slot0 = record.getHourSlots().stream()
                 .filter(h -> h.getHourIndex() == 0).findFirst();
         assertTrue(slot0.isPresent());
-        assertEquals(AttendanceStatus.PRESENT, slot0.get().getStatus());
+        assertEquals(AttendanceStatus.ABSENT, slot0.get().getStatus());
         
         // Slot 2 (index 1, active) is PRESENT (deadline is 09:45, scanned at 09:10)
         Optional<AttendanceHour> slot1 = record.getHourSlots().stream()

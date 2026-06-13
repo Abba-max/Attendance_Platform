@@ -25,8 +25,7 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
     boolean existsByCourseNameAndSpecialitySpecialityId(String courseName, Integer specialityId);
 
-    List<Course> findBySpecialitySpecialityIdAndLevelAndSemester(
-            Integer specialityId, Integer level, Integer semester);
+
 
     @Cacheable(value = "semesterCourses")
     @Query("SELECT DISTINCT c FROM Course c " +

@@ -128,7 +128,7 @@ public class MockDataSeeder implements CommandLineRunner {
                 .credits(4)
                 .totalHours(40)
                 .level(3)
-                .semester(1)
+
                 .speciality(speciality)
                 .build();
         mathCourse.getTeachers().add(teacher);
@@ -140,7 +140,7 @@ public class MockDataSeeder implements CommandLineRunner {
                 .credits(6)
                 .totalHours(60)
                 .level(3)
-                .semester(1)
+
                 .speciality(speciality)
                 .build();
         csCourse.getTeachers().add(teacher);

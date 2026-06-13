@@ -45,8 +45,7 @@ public class Course {
     @Column(nullable = false)
     private Integer level;
 
-    @Column(nullable = false)
-    private Integer semester;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "speciality_id", nullable = false)

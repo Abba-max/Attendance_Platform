@@ -9,8 +9,10 @@
     <meta name="apple-mobile-web-app-title" content="Attendee">
     
     <!-- PWA Icons Mapping -->
-    <link rel="apple-touch-icon" th:href="@{/image/logo.png}">
-    
+    <link rel="apple-touch-icon" th:href="@{/image/logo-192x192.png}">
+    <link rel="icon" type="image/png" sizes="192x192" th:href="@{/image/logo-192x192.png}">
+    <link rel="icon" type="image/png" sizes="512x512" th:href="@{/image/logo-512x512.png}">
+    <link rel="shortcut icon" th:href="@{/image/logo.png}">
     <!-- Centralized PWA Manager Script -->
     <script th:src="@{/js/pwa.js}" defer></script>
 </head>
