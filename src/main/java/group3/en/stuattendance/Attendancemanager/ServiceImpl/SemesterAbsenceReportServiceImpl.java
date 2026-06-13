@@ -327,7 +327,7 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
                     row.createCell(colIdx++).setCellValue(th);
                     row.createCell(colIdx++).setCellValue(hc);
                     row.createCell(colIdx++).setCellValue(th > 0 ? String.format("%.0f%%", pctH) : "-");
-                    row.createCell(colIdx++).setCellValue(sn ? "OUI" : "NON");
+                    row.createCell(colIdx++).setCellValue(sn ? "NON" : "OUI");
                     row.createCell(colIdx++).setCellValue(jh);
                     row.createCell(colIdx++).setCellValue(nj);
                     row.createCell(colIdx++).setCellValue(malus);
@@ -697,7 +697,7 @@ public class SemesterAbsenceReportServiceImpl implements SemesterAbsenceReportSe
             table.addCell(makeDataCell(pctHStr, dataF, rowBg, rowH, true));
 
             // ── SN ──
-            String snStr = sn ? "OUI" : "NON";
+            String snStr = sn ? "NON" : "OUI";
             Color snBg = sn ? RED_LIGHT : GREEN_LIGHT;
             Font snF = sn
                     ? FontFactory.getFont(FontFactory.HELVETICA_BOLD, 5f, RED_DARK)

@@ -26,7 +26,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 public class SecurityConfig {
 
-
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -52,9 +51,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
@@ -70,8 +67,8 @@ public class SecurityConfig {
                                 "/error",
                                 "/manifest.json",
                                 "/sw.js",
-                                "/offline.html"
-                        ).permitAll()
+                                "/offline.html")
+                        .permitAll()
                         // Justification document previews — accessible to authenticated users
                         .requestMatchers("/uploads/**").authenticated()
                         .requestMatchers("/admin/classrooms/**").hasAnyRole("ADMIN", "PEDAGOG")
@@ -80,7 +77,7 @@ public class SecurityConfig {
                         .requestMatchers("/teacher/**").hasRole("TEACHER")
                         .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "PEDAGOG", "ADMIN")
                         .requestMatchers("/api/attendance/**").hasAnyRole("TEACHER", "PEDAGOG")
-                        .anyRequest().authenticated()  // ← doit toujours être en dernier
+                        .anyRequest().authenticated() // ← doit toujours être en dernier
                 )
 
                 .formLogin(form -> form
@@ -98,15 +95,14 @@ public class SecurityConfig {
                                     userDetails.getFirstName(),
                                     userDetails.getLastName(),
                                     activeYearId,
-                                    userDetails.getCourseIds()
-                            );
+                                    userDetails.getCourseIds());
                             Cookie jwtCookie = new Cookie(cookieName, token);
                             jwtCookie.setHttpOnly(true);
                             jwtCookie.setSecure(false); // LAN school: allow cookie over both HTTP and HTTPS
                             jwtCookie.setPath("/");
                             jwtCookie.setMaxAge(86400);
                             response.addCookie(jwtCookie);
-                            
+
                             // Check if password change is required
                             if (!userDetails.isPasswordChanged()) {
                                 response.sendRedirect("/change-password");
@@ -118,22 +114,23 @@ public class SecurityConfig {
                                     .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
                             boolean isPedagog = authentication.getAuthorities().stream()
                                     .anyMatch(a -> a.getAuthority().equals("ROLE_PEDAGOG"));
-                                    
+
                             if (isAdmin) {
                                 response.sendRedirect("/admin/dashboard");
                             } else if (isPedagog) {
                                 response.sendRedirect("/pedagog/dashboard");
-                            } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"))) {
+                            } else if (authentication.getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_TEACHER"))) {
                                 response.sendRedirect("/teacher/dashboard");
-                            } else if (authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
+                            } else if (authentication.getAuthorities().stream()
+                                    .anyMatch(a -> a.getAuthority().equals("ROLE_STUDENT"))) {
                                 response.sendRedirect("/student/dashboard");
                             } else {
                                 response.sendRedirect("/"); // Or some default page
                             }
                         })
                         .failureUrl("/login?error")
-                        .permitAll()
-                )
+                        .permitAll())
 
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -145,8 +142,7 @@ public class SecurityConfig {
                             response.addCookie(cookie);
                         })
                         .logoutSuccessUrl("/login?logout")
-                        .permitAll()
-                )
+                        .permitAll())
 
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -156,7 +152,8 @@ public class SecurityConfig {
     @Bean
     public WebSecurityCustomizer webSecurityCustomizer() {
         return web -> web.ignoring()
-                .requestMatchers("/css/**", "/js/**", "/image/**", "/favicon.ico", "/manifest.json", "/sw.js", "/offline.html");
+                .requestMatchers("/css/**", "/js/**", "/image/**", "/favicon.ico", "/manifest.json", "/sw.js",
+                        "/offline.html");
     }
 
     @Bean
@@ -185,15 +182,14 @@ public class SecurityConfig {
      */
     @Bean
     public org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory tomcatServletWebServerFactory() {
-        org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory factory =
-                new org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory();
+        org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory factory = new org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory();
         factory.addAdditionalTomcatConnectors(createHttpConnector());
         return factory;
     }
 
     private org.apache.catalina.connector.Connector createHttpConnector() {
-        org.apache.catalina.connector.Connector connector = 
-                new org.apache.catalina.connector.Connector(org.apache.coyote.http11.Http11NioProtocol.class.getName());
+        org.apache.catalina.connector.Connector connector = new org.apache.catalina.connector.Connector(
+                org.apache.coyote.http11.Http11NioProtocol.class.getName());
         connector.setScheme("http");
         connector.setPort(httpPort);
         connector.setSecure(false);

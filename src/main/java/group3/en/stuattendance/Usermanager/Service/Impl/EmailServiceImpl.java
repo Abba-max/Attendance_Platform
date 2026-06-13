@@ -269,4 +269,30 @@ public class EmailServiceImpl implements EmailService {
             log.error("Failed to send justification decision email to {}", to, e);
         }
     }
+
+    @Override
+    @Async("taskExecutor")
+    public void sendJustificationSubmissionEmail(String to, String studentName, String courseName, String reason) {
+        log.info("Sending justification submission email to pedagog {}", to);
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
+
+            String text = String.format(
+                "Hello,\n\nStudent %s has submitted a justification for the course '%s'.\n\n" +
+                "Reason provided: %s\n\n" +
+                "Please review this justification in the system dashboard.\n\n" +
+                "Regards,\nAttendance Management Team", studentName, courseName, reason);
+
+            helper.setTo(to);
+            helper.setSubject("Attendee - New Justification Submitted");
+            helper.setText(text, text.replace("\n", "<br>"));
+            helper.setFrom("Attendance System <" + fromEmail + ">");
+
+            mailSender.send(message);
+            log.info("Justification submission email sent successfully to {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send justification submission email to {}", to, e);
+        }
+    }
 }

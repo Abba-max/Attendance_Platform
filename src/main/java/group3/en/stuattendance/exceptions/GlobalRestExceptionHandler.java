@@ -22,13 +22,18 @@ public class GlobalRestExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalRestExceptionHandler.class);
 
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponseDto> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+    @ExceptionHandler({
+        DataIntegrityViolationException.class, 
+        org.springframework.orm.jpa.JpaSystemException.class,
+        org.hibernate.exception.ConstraintViolationException.class,
+        java.sql.SQLException.class
+    })
+    public ResponseEntity<ErrorResponseDto> handleDatabaseExceptions(Exception ex) {
         logger.error("Data Integrity Violation: ", ex);
         String message = "This action cannot be completed because a related record already exists or is currently in use.";
         
-        // Simple logic to give a bit more context if it's a duplicate entry
-        if (ex.getMessage() != null && ex.getMessage().toLowerCase().contains("duplicate entry")) {
+        String exMsg = ex.getMessage() != null ? ex.getMessage().toLowerCase() : "";
+        if (exMsg.contains("duplicate entry") || exMsg.contains("duplicate key value") || exMsg.contains("unique constraint")) {
             message = "This record already exists. Please check your data and try again.";
         }
 
@@ -44,17 +49,19 @@ public class GlobalRestExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponseDto> handleValidationExceptions(MethodArgumentNotValidException ex) {
         logger.error("Validation Error: ", ex);
-        String validationErrors = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
-                .collect(Collectors.joining(", "));
+        java.util.Map<String, String> details = new java.util.HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            details.put(error.getField(), error.getDefaultMessage());
+        });
 
-        String message = "The submitted data is invalid. " + validationErrors;
+        String message = "The submitted data is invalid. Please check the highlighted fields.";
 
         ErrorResponseDto error = ErrorResponseDto.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
                 .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
                 .message(message)
+                .details(details)
                 .build();
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }

@@ -16,7 +16,8 @@ public class SessionMapper {
         if (session.getAttendanceRecords() != null) {
             present = session.getAttendanceRecords().stream()
                 .filter(r -> r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.PRESENT || 
-                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE)
+                             r.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.LATE ||
+                             (r.getHoursAttended() != null && r.getHoursAttended() > 0))
                 .count();
         }
         

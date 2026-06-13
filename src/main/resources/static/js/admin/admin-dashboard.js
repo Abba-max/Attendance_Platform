@@ -76,9 +76,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // Load initial data
     // loadDashboardData(); // Disabled as DashboardController is removed
     loadAcademicYears();
+    loadRoleAndPermissionData();
 
     // Set up auto-refresh
-    setupAutoRefresh();
+    // setupAutoRefresh(); // Disabled as DashboardController is removed
 
     // Set up user search
     setupUserSearch();
@@ -1148,6 +1149,8 @@ function showLoading(show) {
  * Setup Auto Refresh
  */
 function setupAutoRefresh() {
+    // Disabled as DashboardController is removed
+    /*
     // Clear existing timer
     if (refreshTimer) {
         clearInterval(refreshTimer);
@@ -1158,6 +1161,7 @@ function setupAutoRefresh() {
         console.log('Auto-refreshing dashboard data...');
         loadDashboardData();
     }, REFRESH_INTERVAL);
+    */
 }
 
 /**
@@ -1166,7 +1170,8 @@ function setupAutoRefresh() {
 function refreshDashboard() {
     console.log('Manually refreshing dashboard...');
     showNotification('Refreshing dashboard...', 'info');
-    loadDashboardData();
+    // loadDashboardData(); // Disabled as DashboardController is removed
+    window.location.reload(); // Reload the page to get fresh Thymeleaf model data
 }
 
 /**

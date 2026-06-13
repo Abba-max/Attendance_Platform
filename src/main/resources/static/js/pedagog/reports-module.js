@@ -65,6 +65,7 @@ async function openReportPreview(pdfUrl, excelUrl) {
     
     // Show modal
     modal.classList.remove('hidden');
+    modal.classList.add('flex');
     // Trigger reflow
     void modal.offsetWidth;
     modal.classList.remove('opacity-0');
@@ -81,6 +82,7 @@ function closeReportPreview() {
     
     setTimeout(() => {
         modal.classList.add('hidden');
+        modal.classList.remove('flex');
         frame.src = '';
         document.body.style.overflow = '';
     }, 300);

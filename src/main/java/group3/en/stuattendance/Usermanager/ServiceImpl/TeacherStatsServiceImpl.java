@@ -14,6 +14,7 @@ import group3.en.stuattendance.Usermanager.DTO.TeacherFullStudentDto;
 import group3.en.stuattendance.Usermanager.Model.User;
 import group3.en.stuattendance.Usermanager.Repository.UserRepository;
 import group3.en.stuattendance.Usermanager.Service.TeacherStatsService;
+import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -30,12 +31,15 @@ public class TeacherStatsServiceImpl implements TeacherStatsService {
     private final UserRepository userRepository;
     private final CourseRepository courseRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final ClassroomRepository classroomRepository;
 
     @Override
     public List<TeacherClassCourseDto> getTeacherClassesAndCourses(Integer teacherId) {
+        List<TeacherClassCourseDto> contexts = new ArrayList<>();
+
+        // 1. Get from scheduled sessions (Timetable)
         List<Session> sessions = sessionRepository.findByTeacherUserId(teacherId);
-        
-        return sessions.stream()
+        List<TeacherClassCourseDto> sessionContexts = sessions.stream()
                 .filter(s -> s.getClassroom() != null && s.getCourse() != null)
                 .map(s -> new TeacherClassCourseDto(
                         s.getClassroom().getClassId(),
@@ -43,8 +47,29 @@ public class TeacherStatsServiceImpl implements TeacherStatsService {
                         s.getCourse().getCourseId(),
                         s.getCourse().getCourseName()
                 ))
-                .distinct()
                 .collect(Collectors.toList());
+        contexts.addAll(sessionContexts);
+
+        // 2. Get from explicitly assigned courses (Independent of Timetable)
+        User teacher = userRepository.findById(teacherId).orElse(null);
+        if (teacher != null && teacher.getCourses() != null) {
+            for (Course course : teacher.getCourses()) {
+                if (course.getSpeciality() != null && course.getLevel() != null) {
+                    List<Classroom> classrooms = classroomRepository.findBySpeciality_SpecialityIdAndLevel(
+                            course.getSpeciality().getSpecialityId(), course.getLevel());
+                    for (Classroom classroom : classrooms) {
+                        contexts.add(new TeacherClassCourseDto(
+                                classroom.getClassId(),
+                                classroom.getName(),
+                                course.getCourseId(),
+                                course.getCourseName()
+                        ));
+                    }
+                }
+            }
+        }
+
+        return contexts.stream().distinct().collect(Collectors.toList());
     }
 
     @Override

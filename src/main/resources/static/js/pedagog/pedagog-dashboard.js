@@ -142,9 +142,14 @@ function initializeMobileMenu() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
 
-    window.toggleMobileMenu = function () {
-        sidebar.classList.toggle('-translate-x-full');
-        overlay.classList.toggle('hidden');
+    window.toggleSidebar = function () {
+        const isDesktop = window.innerWidth >= 1024;
+        if (isDesktop) {
+            sidebar.classList.toggle('-ml-80');
+        } else {
+            sidebar.classList.toggle('-translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
     };
 }
 
@@ -1487,8 +1492,10 @@ window.fetchTimetable = async function () {
         if (res.ok) {
             const data = await res.json();
             renderTimetableData(data);
-            loadTimetableHistory(classroomId, week, semester, academicYearId);
+        } else {
+            renderTimetableData(null);
         }
+        loadTimetableHistory(classroomId, week, semester, academicYearId);
     } catch (err) {
         console.error('Error fetching timetable:', err);
     }
@@ -3107,6 +3114,7 @@ window.applyJustifFilters = function() {
     const searchText = document.getElementById('justifSearch')?.value.toLowerCase() || '';
     const specFilter = document.getElementById('justifSpecFilter')?.value || '';
     const classFilter = document.getElementById('justifClassFilter')?.value || '';
+    const dateFilter = document.getElementById('justifDateFilter')?.value || '';
     
     const list = window.rawJustifications || [];
     
@@ -3115,12 +3123,14 @@ window.applyJustifFilters = function() {
         const matricule = (item.studentMatricule || '').toLowerCase();
         const className = item.className || '';
         const specialityName = item.specialityName || '';
+        const attendanceDate = item.attendanceDate || '';
         
         const matchSearch = !searchText || studentName.includes(searchText) || matricule.includes(searchText);
         const matchSpec = !specFilter || specialityName === specFilter;
         const matchClass = !classFilter || className === classFilter;
+        const matchDate = !dateFilter || attendanceDate.startsWith(dateFilter);
         
-        return matchSearch && matchSpec && matchClass;
+        return matchSearch && matchSpec && matchClass && matchDate;
     });
     
     renderJustificationQueue(filtered);
@@ -3151,35 +3161,61 @@ function renderJustificationQueue(list) {
                    All Hours
                </span>`;
 
-        // j.documentPath is now a web URL like /uploads/uuid_file.pdf
-        const docUrl = j.documentPath || null;
-        const isImage = docUrl && /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(docUrl);
-        const isPdf   = docUrl && /\.pdf$/i.test(docUrl);
+        // j.documentPath is now a web URL like /uploads/uuid_file.pdf or an HTTP URL
+        let docUrl = j.documentPath || null;
+        if (docUrl && !docUrl.startsWith('http') && !docUrl.startsWith('/')) {
+            docUrl = '/' + docUrl;
+        }
+        
+        // Better image detection that supports Cloudinary URLs and query parameters
+        const isPdf   = docUrl && (/\.pdf(\?.*)?$/i.test(docUrl) || (docUrl.includes('/raw/upload/') && docUrl.includes('.pdf')));
+        const isImage = docUrl && !isPdf && (/\.(jpg|jpeg|png|gif|webp|bmp)(\?.*)?$/i.test(docUrl) || docUrl.includes('/image/upload/'));
         let fileHtml = '';
         if (docUrl) {
             if (isImage) {
                 fileHtml = `
                     <div class="mt-3">
                         <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Supporting Document</p>
-                        <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener">
+                        <div onclick="openImageLightbox('${escapeHtml(docUrl)}')" class="relative group cursor-pointer">
                             <img src="${escapeHtml(docUrl)}"
                                  alt="Justification document"
-                                 class="w-full max-h-48 object-cover rounded-xl border border-slate-200 hover:border-[#00B0FF] transition cursor-zoom-in shadow-sm" />
-                        </a>
+                                 class="w-full h-32 md:h-40 object-cover rounded-xl border border-slate-200 group-hover:border-[#00B0FF] transition shadow-sm" />
+                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                            </div>
+                        </div>
                     </div>`;
             } else if (isPdf) {
+                let previewUrl = docUrl;
+                // If it's a Cloudinary PDF, we can use their API to get a JPG thumbnail of the first page
+                if (docUrl.includes('res.cloudinary.com')) {
+                    previewUrl = docUrl.replace('.pdf', '.jpg').replace('/raw/upload/', '/image/upload/');
+                }
+
                 fileHtml = `
-                    <div class="mt-3 flex flex-wrap items-center gap-2">
-                        <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener"
-                           class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-[10px] font-bold hover:bg-red-100 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                            View PDF
-                        </a>
-                        <a href="${escapeHtml(docUrl)}" download
-                           class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-bold hover:bg-slate-100 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            Download
-                        </a>
+                    <div class="mt-3">
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Supporting Document (PDF Preview)</p>
+                        <div onclick="openImageLightbox('${escapeHtml(previewUrl)}')" class="relative group cursor-pointer">
+                            <img src="${escapeHtml(previewUrl)}"
+                                 alt="PDF Preview"
+                                 onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\\'w-full h-32 md:h-40 flex items-center justify-center bg-slate-100 rounded-xl border border-slate-200\\\'> <span class=\\\'text-xs font-bold text-slate-500\\\'>Preview unavailable</span></div>';"
+                                 class="w-full h-32 md:h-40 object-cover object-top rounded-xl border border-slate-200 group-hover:border-red-400 transition shadow-sm" />
+                            <div class="absolute inset-0 bg-red-900/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex flex-wrap items-center gap-2">
+                            <a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener"
+                               class="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-[10px] font-bold hover:bg-red-100 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                Open PDF
+                            </a>
+                            <a href="${escapeHtml(docUrl)}" download
+                               class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl text-[10px] font-bold hover:bg-slate-100 transition">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                Download
+                            </a>
+                        </div>
                     </div>`;
             } else {
                 fileHtml = `
@@ -3222,16 +3258,28 @@ function renderJustificationQueue(list) {
 
             <!-- Actions -->
             <div class="px-5 py-4 border-t border-slate-50 flex gap-2">
-                <button onclick="processJustification(${j.justificationId}, 'APPROVED')"
-                        class="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                    Approve
-                </button>
-                <button onclick="processJustification(${j.justificationId}, 'REJECTED')"
-                        class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-rose-500/20 flex items-center justify-center gap-1.5">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
-                    Reject
-                </button>
+                ${j.status === 'PENDING' ? `
+                    <button onclick="processJustification(${j.justificationId}, 'APPROVED')"
+                            class="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        Approve
+                    </button>
+                    <button onclick="processJustification(${j.justificationId}, 'REJECTED')"
+                            class="flex-1 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-black rounded-xl transition-all active:scale-95 shadow-md shadow-rose-500/20 flex items-center justify-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Reject
+                    </button>
+                ` : `
+                    <div class="flex-1 py-2.5 ${j.status === 'ACCEPTED' || j.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'} border text-xs font-black rounded-xl flex items-center justify-center gap-1.5 uppercase tracking-widest">
+                        ${j.status === 'ACCEPTED' || j.status === 'APPROVED' ? `
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            Approved
+                        ` : `
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Rejected
+                        `}
+                    </div>
+                `}
             </div>
         </div>`;
     }).join('');
@@ -3568,6 +3616,77 @@ window.onStatsSpecChange = function() {
     }
 
     loadAttendanceStats();
+};
+
+// ==========================================
+// LIGHTBOX MODAL FOR IMAGES
+// ==========================================
+
+window.openImageLightbox = function(imageUrl) {
+    // Create lightbox container if it doesn't exist
+    let lightbox = document.getElementById('justification-lightbox');
+    if (!lightbox) {
+        lightbox = document.createElement('div');
+        lightbox.id = 'justification-lightbox';
+        lightbox.className = 'fixed inset-0 z-[9999] bg-black/90 hidden items-center justify-center backdrop-blur-sm p-4 sm:p-8 opacity-0 transition-opacity duration-300';
+        lightbox.innerHTML = `
+            <div class="relative w-full max-w-5xl max-h-full flex items-center justify-center">
+                <button onclick="closeImageLightbox()" class="absolute -top-12 right-0 sm:-right-12 sm:top-0 text-white/70 hover:text-white transition bg-white/10 hover:bg-white/20 rounded-full p-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+                <img id="lightbox-img" src="" class="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl scale-95 transition-transform duration-300" alt="Enlarged Document">
+            </div>
+        `;
+        document.body.appendChild(lightbox);
+        
+        // Close on background click
+        lightbox.addEventListener('click', (e) => {
+            if (e.target === lightbox || e.target.closest('.relative') === lightbox.firstElementChild && e.target.tagName !== 'IMG') {
+                closeImageLightbox();
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+                closeImageLightbox();
+            }
+        });
+    }
+
+    const img = document.getElementById('lightbox-img');
+    img.src = imageUrl;
+    
+    // Show and animate
+    lightbox.classList.remove('hidden');
+    lightbox.classList.add('flex');
+    
+    // Trigger reflow
+    void lightbox.offsetWidth;
+    
+    lightbox.classList.remove('opacity-0');
+    img.classList.remove('scale-95');
+    img.classList.add('scale-100');
+};
+
+window.closeImageLightbox = function() {
+    const lightbox = document.getElementById('justification-lightbox');
+    if (!lightbox) return;
+    
+    const img = document.getElementById('lightbox-img');
+    
+    // Animate out
+    lightbox.classList.add('opacity-0');
+    if (img) {
+        img.classList.remove('scale-100');
+        img.classList.add('scale-95');
+    }
+    
+    setTimeout(() => {
+        lightbox.classList.add('hidden');
+        lightbox.classList.remove('flex');
+        if (img) img.src = '';
+    }, 300);
 };
 
 window.onStatsClassChange = function() {

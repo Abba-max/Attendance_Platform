@@ -51,4 +51,9 @@ public interface EmailService {
      * Sends an email notification to a student regarding their justification decision.
      */
     void sendJustificationDecisionEmail(String to, String courseName, String decision, String reason);
+
+    /**
+     * Sends an email notification to a pedagogic assistant when a student submits a justification.
+     */
+    void sendJustificationSubmissionEmail(String to, String studentName, String courseName, String reason);
 }

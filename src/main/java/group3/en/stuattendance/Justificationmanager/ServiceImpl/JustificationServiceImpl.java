@@ -21,12 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.UUID;
+import group3.en.stuattendance.Justificationmanager.Service.CloudinaryService;
 
 @Service
 @Transactional
@@ -40,9 +36,7 @@ public class JustificationServiceImpl implements JustificationService {
     private final group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService;
     private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
     private final group3.en.stuattendance.Usermanager.Service.EmailService emailService;
-
-    @Value("${file.upload-dir}")
-    private String uploadDir;
+    private final CloudinaryService cloudinaryService;
 
     public JustificationServiceImpl(
             JustificationRepository justificationRepository,
@@ -52,7 +46,8 @@ public class JustificationServiceImpl implements JustificationService {
             group3.en.stuattendance.Notificationmanager.Service.NotificationService notificationService,
             group3.en.stuattendance.Attendancemanager.Service.AttendanceService attendanceService,
             org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate,
-            group3.en.stuattendance.Usermanager.Service.EmailService emailService) {
+            group3.en.stuattendance.Usermanager.Service.EmailService emailService,
+            CloudinaryService cloudinaryService) {
         this.justificationRepository = justificationRepository;
         this.userRepository = userRepository;
         this.attendanceRecordRepository = attendanceRecordRepository;
@@ -61,6 +56,7 @@ public class JustificationServiceImpl implements JustificationService {
         this.attendanceService = attendanceService;
         this.messagingTemplate = messagingTemplate;
         this.emailService = emailService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     @Override
@@ -81,7 +77,7 @@ public class JustificationServiceImpl implements JustificationService {
         }
 
         if (document != null && !document.isEmpty()) {
-            String documentPath = saveDocument(document);
+            String documentPath = cloudinaryService.uploadFile(document);
             justification.setDocumentPath(documentPath);
         }
 
@@ -271,7 +267,7 @@ public class JustificationServiceImpl implements JustificationService {
 
         String path = null;
         if (file != null && !file.isEmpty()) {
-            path = saveDocument(file);
+            path = cloudinaryService.uploadFile(file);
         }
 
         User user = userRepository.getReferenceById(userId);
@@ -286,6 +282,21 @@ public class JustificationServiceImpl implements JustificationService {
 
         Justification saved = justificationRepository.save(justification);
 
+        // Async Email to Pedagogic Assistants
+        try {
+            String courseName = record.getSession().getCourse() != null ? record.getSession().getCourse().getCourseName() : "N/A";
+            String studentName = user.getFirstName() + " " + user.getLastName();
+            if (record.getSession().getClassroom() != null && record.getSession().getClassroom().getStaff() != null) {
+                for (User staff : record.getSession().getClassroom().getStaff()) {
+                    if (staff.getEmail() != null) {
+                        emailService.sendJustificationSubmissionEmail(staff.getEmail(), studentName, courseName, reason);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(JustificationServiceImpl.class).error("Failed to send submission email", e);
+        }
+
         group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto responseDto = group3.en.stuattendance.Justificationmanager.DTO.JustificationResponseDto.builder()
                 .justificationId(saved.getJustificationId())
                 .attendanceId(attendanceId)
@@ -294,6 +305,7 @@ public class JustificationServiceImpl implements JustificationService {
                 .reason(saved.getReason())
                 .hourIndex(saved.getHourIndex())
                 .status(saved.getStatus())
+                .documentPath(saved.getDocumentPath())
                 .createdAt(saved.getCreatedAt())
                 .build();
 
@@ -315,26 +327,11 @@ public class JustificationServiceImpl implements JustificationService {
                         .hourIndex(j.getHourIndex())
                         .status(j.getStatus())
                         .reasonForRejection(j.getReasonForRejection())
+                        .documentPath(j.getDocumentPath())
                         .createdAt(j.getCreatedAt())
                         .build())
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    private String saveDocument(MultipartFile document) {
-        try {
-            Path uploadPath = Paths.get(uploadDir);
-            if (!Files.exists(uploadPath)) {
-                Files.createDirectories(uploadPath);
-            }
-            // Sanitise the original filename to avoid path traversal
-            String originalName = Paths.get(document.getOriginalFilename()).getFileName().toString();
-            String fileName = UUID.randomUUID().toString() + "_" + originalName;
-            Path filePath = uploadPath.resolve(fileName);
-            Files.copy(document.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-            // Return a web-accessible relative URL instead of an OS absolute path
-            return "/uploads/" + fileName;
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to save document: " + e.getMessage());
-        }
-    }
+
 }

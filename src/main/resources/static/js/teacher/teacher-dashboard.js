@@ -827,6 +827,12 @@ function renderAttendanceGrid(records) {
 
     // After rendering the grid, update the summary stats cards
     updateSummaryStats();
+    
+    // Re-apply any active filter to prevent visual jumping/resetting
+    if (window.activeStudentFilter) {
+        const btn = document.querySelector(`.status-filter-btn[onclick*="${window.activeStudentFilter}"]`);
+        if (btn) window.filterByStatus(window.activeStudentFilter, btn);
+    }
 }
 
 window.markHourStatus = async (userId, hourIndex, isPresent) => {
@@ -860,24 +866,30 @@ window.markHourStatus = async (userId, hourIndex, isPresent) => {
 };
 
 window.filterByStatus = function(status, btn) {
-    // 1. Update button styles
-    document.querySelectorAll('.status-filter-btn').forEach(b => {
-        b.classList.remove('bg-white', 'shadow-sm', 'font-semibold');
-        b.classList.add('text-slate-500');
-    });
-    btn.classList.add('bg-white', 'shadow-sm', 'font-semibold');
-    btn.classList.remove('text-slate-500');
+    if (btn) {
+        // 1. Update button styles
+        document.querySelectorAll('.status-filter-btn').forEach(b => {
+            b.classList.remove('bg-white', 'shadow-sm', 'font-semibold');
+            b.classList.add('text-slate-500');
+        });
+        btn.classList.add('bg-white', 'shadow-sm', 'font-semibold');
+        btn.classList.remove('text-slate-500');
+    }
+
+    // Persist filter state
+    window.activeStudentFilter = status;
 
     // 2. Filter the rows
     const rows = document.querySelectorAll('.student-row');
     rows.forEach(row => {
-        const rowStatusText = row.querySelector('.status-badge-cell')?.textContent?.trim() || 'ABSENT';
+        // Safe read from data attribute instead of parsing DOM text content
+        const rowStatus = row.getAttribute('data-status') || 'ABSENT';
         const isScanned = row.querySelector('.scanned-badge') !== null;
         
         if (status === 'all') {
             row.classList.remove('hidden');
         } else if (status === 'absent') {
-            row.classList.toggle('hidden', rowStatusText !== 'ABSENT');
+            row.classList.toggle('hidden', rowStatus !== 'ABSENT');
         } else if (status === 'not-marked') {
             // 'Review' filter: students who are present but not yet verified (scanned only)
             row.classList.toggle('hidden', !isScanned);

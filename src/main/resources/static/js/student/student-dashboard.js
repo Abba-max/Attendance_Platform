@@ -132,10 +132,11 @@ function switchTab(tabId) {
 async function loadDashboardStats() {
     try {
         const response = await fetch('/api/student/dashboard/stats');
-        if (!response.ok) throw new Error("Sync failed");
+        if (!response.ok) throw new Error("Stats sync failed");
         
         const stats = await response.json();
-        const score = Math.round(stats.overallAttendanceRate || 0); // Note: assuming endpoint updated name if needed, else fallback
+        const score = stats.overallAttendanceRate != null ? Math.round(stats.overallAttendanceRate) : 100;
+        
         updatePresenceRing(score);
     } catch (err) {
         console.error("Stats error:", err);
@@ -906,6 +907,22 @@ function clearJustifyFile() {
 
 document.getElementById('justification-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    
+    // Prevent double-submission and infinite spinner
+    if (submitBtn.disabled) return;
+    
+    const originalBtnHTML = submitBtn.innerHTML;
+
+    // Show preloader
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+        <svg class="w-5 h-5 animate-spin mx-auto text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+    `;
+
     const formData = new FormData();
     formData.append('attendanceId', document.getElementById('just-attendance-id').value);
     formData.append('reason', document.getElementById('just-reason').value);
@@ -925,13 +942,43 @@ document.getElementById('justification-form').addEventListener('submit', async (
             body: formData
         });
 
-        if (!response.ok) throw new Error("Upload failed. Verify file size/type.");
+        if (!response.ok) {
+            const errBody = await response.text();
+            let errMsg = "Upload failed. Verify file size/type.";
+            try {
+                const parsed = JSON.parse(errBody);
+                if (parsed.message && parsed.message.includes('missing permissions')) {
+                    errMsg = "Upload failed: The server's file storage is not configured properly (missing permissions). Please notify the administrator.";
+                } else if (parsed.message) {
+                    errMsg = "Upload failed: " + parsed.message;
+                }
+            } catch(e) {
+                // If it's not JSON, use default or raw text if short
+                if (errBody && errBody.length < 100) errMsg = errBody;
+            }
+            throw new Error(errMsg);
+        }
         
-        showNotification('Justification successfully sent for review.', 'success');
+        Swal.fire({
+            title: 'Submitted!',
+            text: 'Your justification has been sent for review.',
+            icon: 'success',
+            confirmButtonColor: '#00B0FF',
+            timer: 3000
+        });
+        
         toggleJustifyModal();
         loadAttendanceHistory();
     } catch (err) {
-        showNotification(err.message, 'error');
+        Swal.fire({
+            title: 'Submission Failed',
+            text: err.message,
+            icon: 'error',
+            confirmButtonColor: '#EF4444'
+        });
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHTML;
     }
 });
 
@@ -941,27 +988,31 @@ async function loadAttendanceHistory() {
     
     try {
         // Fetch history, justifications, and stats in parallel
-        const statusFilter = document.getElementById('absence-status-filter');
-        const status = statusFilter ? statusFilter.value : '';
         let url = '/api/student/attendance/history?size=100';
-        if (status) url += `&status=${status}`;
 
-        const [historyRes, justRes, statsRes] = await Promise.all([
+        const [historyRes, justRes] = await Promise.all([
             fetch(url),
-            fetch('/api/student/justifications'),
-            fetch('/api/student/dashboard/stats')
+            fetch('/api/student/justifications')
         ]);
         
         const historyData = await historyRes.json();
         const historyList = historyData.content || [];
         const justifications = await justRes.json();
-        const stats = await statsRes.json();
+
+        // Calculate counts based on new logic
+        let absencesCount = 0;
+        historyList.forEach(h => {
+            const isAbsent = h.status === 'ABSENT' || (h.hourSlots || []).some(s => s.status === 'ABSENT');
+            if (isAbsent) absencesCount++;
+        });
+        
+        let pendingJustCount = justifications.filter(j => j.status === 'PENDING').length;
 
         // Populate summary cards
         const totalAbsencesEl = document.getElementById('total-absences-count');
         const pendingJustificationsEl = document.getElementById('pending-justifications-count');
-        if (totalAbsencesEl) totalAbsencesEl.textContent = stats.totalAbsences || 0;
-        if (pendingJustificationsEl) pendingJustificationsEl.textContent = stats.pendingJustifications || 0;
+        if (totalAbsencesEl) totalAbsencesEl.textContent = absencesCount;
+        if (pendingJustificationsEl) pendingJustificationsEl.textContent = pendingJustCount;
         
         currentHistory = historyList;
         currentJustifications = justifications;
@@ -982,12 +1033,35 @@ function renderHistoryWithFilters(append = false) {
     }
     const container = document.getElementById('history-list-container');
     const justFilter = document.getElementById('absence-justification-filter');
+    const statusFilter = document.getElementById('absence-status-filter');
     
     if (!container) return;
     
     const justificationFilter = justFilter ? justFilter.value : '';
+    const statusValue = statusFilter ? statusFilter.value : '';
+    const dateFilter = document.getElementById('absence-date-filter') ? document.getElementById('absence-date-filter').value : '';
     
     let filtered = [...currentHistory];
+    
+    if (dateFilter) {
+        filtered = filtered.filter(h => h.date && h.date.startsWith(dateFilter));
+    }
+    
+    // Client-side filter for Attendance Status
+    if (statusValue) {
+        filtered = filtered.filter(h => {
+            const isAbsent = h.status === 'ABSENT' || (h.hourSlots || []).some(s => s.status === 'ABSENT');
+            const isLate = h.status === 'LATE' || (h.hourSlots || []).some(s => s.status === 'LATE');
+            const isExcused = h.status === 'EXCUSED' || (h.hourSlots || []).some(s => s.status === 'EXCUSED');
+            
+            let computedStatus = 'PRESENT';
+            if (isAbsent) computedStatus = 'ABSENT';
+            else if (isLate) computedStatus = 'LATE';
+            else if (isExcused) computedStatus = 'EXCUSED';
+            
+            return computedStatus === statusValue;
+        });
+    }
     
     // Client-side filter for Justification Status
     if (justificationFilter) {
@@ -1015,20 +1089,22 @@ function renderHistoryWithFilters(append = false) {
     const hasMore = paginated.length < filtered.length;
 
     const html = paginated.map(h => {
-        const isAbsent = h.status === 'ABSENT';
-        const hasAbsentSlots = (h.hourSlots || []).some(s => s.status === 'ABSENT');
+        const isAbsent = h.status === 'ABSENT' || (h.hourSlots || []).some(s => s.status === 'ABSENT');
+        const isLate = h.status === 'LATE' || (h.hourSlots || []).some(s => s.status === 'LATE');
+        const isExcused = h.status === 'EXCUSED' || (h.hourSlots || []).some(s => s.status === 'EXCUSED');
+        
         let statusBadge = '';
         let actionHtml = '';
 
-        // Status Styling
-        if (h.status === 'PRESENT') {
-            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100">PRESENT</span>';
-        } else if (h.status === 'LATE') {
+        // Status Styling priority: ABSENT > LATE > EXCUSED > PRESENT
+        if (isAbsent) {
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100">ABSENT</span>';
+        } else if (isLate) {
             statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-amber-50 text-amber-700 border border-amber-100">LATE</span>';
-        } else if (h.status === 'EXCUSED') {
+        } else if (isExcused) {
             statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-50 text-blue-700 border border-blue-100">EXCUSED</span>';
         } else {
-            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-rose-50 text-rose-700 border border-rose-100">ABSENT</span>';
+            statusBadge = '<span class="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-700 border border-emerald-100">PRESENT</span>';
         }
 
         // Hourly slot breakdown pills
@@ -1048,20 +1124,65 @@ function renderHistoryWithFilters(append = false) {
         }
 
         // Check justifications for absences
-        if (isAbsent || hasAbsentSlots || h.status === 'EXCUSED') {
+        if (isAbsent || isExcused) {
             const just = currentJustifications.find(j => j.attendanceId === h.attendanceId);
             if (just) {
                 const jStatus = just.status;
-                let jStyle = jStatus === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                let jStyle = (jStatus === 'ACCEPTED' || jStatus === 'APPROVED') ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                              jStatus === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                              'bg-amber-50 text-amber-700 border-amber-100';
                 const slotLabel = just.hourIndex != null ? `Hour ${just.hourIndex + 1}` : 'All Hours';
+                let docUrl = just.documentPath;
+                if (docUrl && !docUrl.startsWith('http') && !docUrl.startsWith('/')) {
+                    docUrl = '/' + docUrl;
+                }
                 
-                actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                <span class="text-xs text-slate-500 font-medium">Justification <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-black ml-1">${slotLabel}</span>: <span class="font-bold text-slate-700 truncate max-w-[120px] inline-block align-bottom" title="${just.reason}">${just.reason}</span></span>
-                                <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border ${jStyle}">${jStatus}</span>
+                let docHtml = '';
+                if (docUrl) {
+                    const isPdf = docUrl.match(/\.pdf(\?.*)?$/i) || (docUrl.includes('/raw/upload/') && docUrl.includes('.pdf'));
+                    const isImage = !isPdf && (docUrl.match(/\.(jpeg|jpg|gif|png|webp|bmp)(\?.*)?$/i) || docUrl.includes('/image/upload/'));
+                    
+                    let previewUrl = docUrl;
+                    if (isPdf && docUrl.includes('res.cloudinary.com')) {
+                        previewUrl = docUrl.replace('.pdf', '.jpg').replace('/raw/upload/', '/image/upload/');
+                    }
+
+                    if (isImage || (isPdf && docUrl.includes('res.cloudinary.com'))) {
+                        docHtml = `
+                            <div class="mt-3 relative w-full h-32 rounded-xl overflow-hidden border-2 border-slate-100 cursor-pointer group" onclick="openImageLightbox('${previewUrl}')">
+                                <img src="${previewUrl}" alt="Justification Attachment" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                    <div class="bg-white/90 backdrop-blur text-slate-800 p-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                                    </div>
+                                </div>
+                                ${isPdf ? '<div class="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded shadow-sm">PDF</div>' : ''}
+                            </div>
+                        `;
+                    } else if (isPdf) {
+                        docHtml = `
+                            <div class="mt-3 flex items-center gap-2">
+                                <a href="${docUrl}" target="_blank" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold border border-red-100 flex items-center gap-1.5 hover:bg-red-100 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg> Open PDF</a>
+                            </div>`;
+                    } else {
+                        docHtml = `
+                            <div class="mt-3 flex items-center gap-2">
+                                <a href="${docUrl}" target="_blank" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[10px] font-bold border border-blue-100 flex items-center gap-1.5 hover:bg-blue-100 transition-colors"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg> View Document</a>
+                            </div>`;
+                    }
+                }
+                
+                actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100 flex flex-col">
+                                <div class="flex items-start justify-between gap-2">
+                                    <span class="text-xs text-slate-500 font-medium flex flex-wrap items-center">
+                                        Justification <span class="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-black mx-1">${slotLabel}</span>: 
+                                        <span class="font-bold text-slate-700 truncate max-w-[150px] sm:max-w-[200px] inline-block align-bottom ml-1" title="${just.reason}">${just.reason}</span>
+                                    </span>
+                                    <span class="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest border flex-shrink-0 ${jStyle}">${jStatus}</span>
+                                </div>
+                                ${docHtml}
                               </div>`;
-            } else if (isAbsent || hasAbsentSlots) {
+            } else if (isAbsent) {
                 const safeName = (h.courseName || '').replace(/'/g, "\\'");
                 const slotsJson = JSON.stringify(h.hourSlots || []).replace(/"/g, '&quot;').replace(/'/g, "\\'");
                 actionHtml = `<div class="mt-3 pt-3 border-t border-slate-100">
@@ -1112,19 +1233,27 @@ async function validateGeofence() {
     try {
         // 1. Fetch Geofence Data
         const geofenceRes = await fetch('/api/student/geofence');
-        if (!geofenceRes.ok) return { allowed: true };
+        let geofencingEnabled = false;
+        let polygon = null;
         
-        const geofence = await geofenceRes.json();
-        if (!geofence || !geofence.geofencingEnabled || !geofence.geofenceData) return { allowed: true };
-        
-        const polygon = JSON.parse(geofence.geofenceData);
-        if (!polygon || polygon.length < 3) return { allowed: true };
+        if (geofenceRes.ok) {
+            const geofence = await geofenceRes.json();
+            geofencingEnabled = geofence && geofence.geofencingEnabled === true;
+            if (geofence && geofence.geofenceData) {
+                try {
+                    polygon = JSON.parse(geofence.geofenceData);
+                } catch(e) {}
+            }
+        }
 
-        // 2. Get Student Location
+        // 2. Get Student Location (Always do this to simulate check)
         let position;
         try {
             position = await getCurrentPosition();
         } catch (e) {
+            if (!geofencingEnabled) {
+                return { allowed: true };
+            }
             throw e;
         }
         
@@ -1133,13 +1262,19 @@ async function validateGeofence() {
         const accuracy = position.coords.accuracy;
         const studentPoint = [lat, lng];
         
-        console.log(`[Geofence] Student at: ${lat}, ${lng} (Accuracy: ${Math.round(accuracy)}m)`);
+        console.log(`[Geofence] Location acquired (Accuracy: ${Math.round(accuracy)}m)`);
         
         // Store for request
         currentCheckinContext.lat = lat;
         currentCheckinContext.lng = lng;
         
+        // If disabled, bypass AFTER simulating the check silently
+        if (!geofencingEnabled) {
+            return { allowed: true, lat, lng };
+        }
+
         // 3. Ray Casting Check
+        if (!polygon || polygon.length < 3) return { allowed: true, lat, lng };
         const isInside = isPointInPolygon(studentPoint, polygon);
         if (isInside) return { allowed: true, lat, lng };
 

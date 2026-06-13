@@ -17,5 +17,7 @@ public class JustificationResponseDto {
     private Integer hourIndex;
     private JustificationStatus status;
     private String reasonForRejection;
+    private String documentPath;
     private LocalDateTime createdAt;
 }
+  

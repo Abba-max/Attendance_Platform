@@ -29,6 +29,7 @@ import group3.en.stuattendance.Attendancemanager.Model.AttendanceRecord;
 import group3.en.stuattendance.Attendancemanager.Repository.AttendanceRecordRepository;
 import group3.en.stuattendance.Attendancemanager.Service.DailyAbsenceReportService;
 import group3.en.stuattendance.Institutionmanager.Model.Classroom;
+import group3.en.stuattendance.Institutionmanager.Repository.AcademicYearRepository;
 import group3.en.stuattendance.Institutionmanager.Repository.ClassroomRepository;
 import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Timetablemanager.Repository.SessionRepository;
@@ -57,6 +58,7 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final AcademicYearRepository academicYearRepository;
 
     // Muted Slate & Indigo Palette
     private static final Color PRIMARY_INDIGO = new Color(67, 56, 202); // Indigo-700
@@ -198,8 +200,12 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
             titleRow.createCell(0).setCellValue("INSTITUT UNIVERSITAIRE SAINT JEAN");
             titleRow.getCell(0).setCellStyle(titleStyle);
             
+            String academicYearStr = academicYearRepository.findActiveAcademicYear()
+                    .map(ay -> ay.getAcademicYear())
+                    .orElse((date.getYear()) + "-" + (date.getYear() + 1));
+
             Row subtitleRow = sheet.createRow(2);
-            subtitleRow.createCell(0).setCellValue("ATTENDANCE FORM SCHOOL YEAR " + (date.getYear()) + "-" + (date.getYear() + 1));
+            subtitleRow.createCell(0).setCellValue("ATTENDANCE FORM SCHOOL YEAR " + academicYearStr);
             subtitleRow.getCell(0).setCellStyle(subtitleStyle);
             
             String levelStr = classroom.getName() != null ? classroom.getName() : "";
@@ -350,8 +356,12 @@ public class DailyAbsenceReportServiceImpl implements DailyAbsenceReportService 
         
         document.add(new Paragraph("\n"));
 
+        String academicYearStr = academicYearRepository.findActiveAcademicYear()
+                .map(ay -> ay.getAcademicYear())
+                .orElse((date.getYear()) + "-" + (date.getYear() + 1));
+
         Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12f, Color.BLACK);
-        Paragraph subtitle = new Paragraph("ATTENDANCE FORM SCHOOL YEAR " + (date.getYear()) + "-" + (date.getYear() + 1), subtitleFont);
+        Paragraph subtitle = new Paragraph("ATTENDANCE FORM SCHOOL YEAR " + academicYearStr, subtitleFont);
         subtitle.setAlignment(Element.ALIGN_LEFT);
         document.add(subtitle);
 

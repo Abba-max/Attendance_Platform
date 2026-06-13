@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const STATIC_CACHE_NAME = `attendee-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `attendee-dynamic-${CACHE_VERSION}`;
 
@@ -101,8 +101,8 @@ self.addEventListener('fetch', event => {
 
     const url = new URL(event.request.url);
 
-    // Skip WebSockets, DevServer hot reloads, or Spring Actuator/H2-Console
-    if (url.pathname.includes('/ws') || url.pathname.includes('/stomp') || url.pathname.includes('/h2-console')) {
+    // Skip WebSockets, DevServer hot reloads, or Spring Actuator/H2-Console, and external media
+    if (url.pathname.includes('/ws') || url.pathname.includes('/stomp') || url.pathname.includes('/h2-console') || url.hostname.includes('cloudinary.com')) {
         return;
     }
 
@@ -177,6 +177,11 @@ self.addEventListener('fetch', event => {
                         }
 
                         return networkResponse;
+                    })
+                    .catch(error => {
+                        console.error('[Service Worker] Failed to fetch:', event.request.url, error);
+                        // Return an empty response or a fallback to prevent the Uncaught Promise Rejection
+                        return new Response('', { status: 404, statusText: 'Network error' });
                     });
             })
     );
