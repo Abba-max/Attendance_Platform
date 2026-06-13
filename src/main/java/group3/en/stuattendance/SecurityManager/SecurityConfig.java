@@ -41,6 +41,9 @@ public class SecurityConfig {
 
     @Value("${jwt.cookie-name}")
     private String cookieName;
+
+    @Value("${server.http.port:8080}")
+    private int httpPort;
     // ─────────────────────────────────────────────────────────
 
     @Bean
@@ -192,7 +195,7 @@ public class SecurityConfig {
         org.apache.catalina.connector.Connector connector = 
                 new org.apache.catalina.connector.Connector(org.apache.coyote.http11.Http11NioProtocol.class.getName());
         connector.setScheme("http");
-        connector.setPort(8080);
+        connector.setPort(httpPort);
         connector.setSecure(false);
         return connector;
     }
