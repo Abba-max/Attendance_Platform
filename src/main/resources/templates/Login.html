@@ -3,179 +3,164 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Attendee – Login</title>
+    <title>Attendee - Login</title>
 
-    <!-- PWA Integration headers -->
     <th:block th:replace="~{fragments/pwa-meta :: pwa-headers}"></th:block>
 
-    <!-- Your existing Tailwind stylesheet -->
     <link rel="stylesheet" th:href="@{/css/main.css}" />
-
-    <!-- Login-specific styles -->
-    <link rel="stylesheet" th:href="@{/css/Login.css}" />
-    <script th:src="@{/js/Login.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/Login.css(v='20260613-refine')}" />
+    <script th:src="@{/js/Login.js(v='20260613-refine')}" defer></script>
 </head>
 <body>
 
-<div class="login-card">
+<div class="login-shell" role="main" aria-labelledby="login-title">
+    <section class="brand-panel" aria-label="Attendee overview">
+        <div class="brand-shape shape-one" aria-hidden="true"></div>
+        <div class="brand-shape shape-two" aria-hidden="true"></div>
+        <div class="brand-grid" aria-hidden="true"></div>
 
-    <div class="logo-wrap">
-        <img th:src="@{/image/logo.png}" alt="Attendee Logo" />
-        <span class="brand-name">ATTENDEE</span>
-        <span class="tagline" id="tagline">Smart Attendance Management</span>
-    </div>
+        <div class="brand-content">
+            <div class="brand-lockup">
+                <img th:src="@{/image/logo.png}" alt="Attendee Logo" />
+                <div>
+                    <div class="brand-name">ATTENDEE</div>
+                    <div class="tagline" id="tagline">Smart Attendance Management</div>
+                </div>
+            </div>
 
-    <!-- Success message for password change or reset request -->
-    <div class="alert-success" style="background: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border: 1px solid #c8e6c9;" th:if="${message}">
-        <span th:text="${message}">Success message</span>
-    </div>
-    <div class="alert-success" style="background: #e8f5e9; color: #2e7d32; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; border: 1px solid #c8e6c9;" th:if="${param.passwordChanged}">
-        Password changed successfully. Please login with your new credentials.
-    </div>
+            <div class="brand-message">
+                <p class="eyebrow" id="brandEyebrow">Academic operations, simplified.</p>
+                <div class="brand-pill-row" aria-hidden="true">
+                    <span id="brandPillAttendance">Attendance</span>
+                    <span id="brandPillPlanning">Planning</span>
+                    <span id="brandPillClarity">Clarity</span>
+                </div>
+            </div>
 
-    <!-- Error message — shown on Spring Security login failure (?error) -->
-    <div class="alert-error" id="errorMsg" th:if="${param.error}">
-        Invalid username or password. Please try again.
-    </div>
-
-    <!-- Login form — posts to Spring Security's /login endpoint -->
-    <form th:action="@{/login}" method="post">
-        <div class="form-group">
-            <label for="username" id="labelUsername">Email / Username</label>
-            <div class="input-wrap">
-                <input
-                        type="text"
-                        id="username"
-                        name="username"
-                        placeholder="you@example.com"
-                        autocomplete="username"
-                        required />
+            <div class="brand-illustration" aria-hidden="true">
+                <div class="dashboard-preview">
+                    <div class="preview-header">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="preview-bars">
+                        <i></i>
+                        <i></i>
+                        <i></i>
+                    </div>
+                    <div class="preview-list">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
             </div>
         </div>
+    </section>
 
-        <!-- Password -->
-        <div class="form-group">
-            <label for="password" id="labelPassword">Password</label>
-            <div class="input-wrap">
-                <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="••••••••"
-                        autocomplete="current-password"
-                        required />
-                <button
-                        type="button"
-                        class="toggle-pw"
-                        id="toggleBtn"
-                        onclick="togglePassword()"
-                        aria-label="Show password">
-                    👁
-                </button>
+    <section class="form-panel" aria-label="Sign in">
+        <div class="form-card">
+            <div class="mobile-brand">
+                <img th:src="@{/image/logo.png}" alt="Attendee Logo" />
+                <div>
+                    <div class="brand-name">ATTENDEE</div>
+                    <div class="tagline">Smart Attendance Management</div>
+                </div>
+            </div>
+
+            <div class="form-heading">
+                <p id="welcomeText">Welcome back</p>
+                <h2 id="login-title">Sign In</h2>
+            </div>
+
+            <div class="alert-success" th:if="${message}">
+                <span th:text="${message}">Success message</span>
+            </div>
+            <div class="alert-success" th:if="${param.passwordChanged}">
+                Password changed successfully. Please login with your new credentials.
+            </div>
+
+            <div class="alert-error" id="errorMsg" th:if="${param.error}">
+                Invalid username or password. Please try again.
+            </div>
+
+            <form th:action="@{/login}" method="post" class="login-form">
+                <div class="form-group">
+                    <label for="username" id="labelUsername">Email / Username</label>
+                    <div class="input-wrap">
+                        <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="you@example.com"
+                                autocomplete="username"
+                                required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" id="labelPassword">Password</label>
+                    <div class="input-wrap">
+                        <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="••••••••"
+                                autocomplete="current-password"
+                                required />
+                        <button
+                                type="button"
+                                class="toggle-pw"
+                                id="toggleBtn"
+                                aria-label="Show password"
+                                title="Show password">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3" stroke-width="1.5"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-meta">
+                    <label class="remember-option">
+                        <input type="checkbox" name="remember-me" />
+                        <span id="rememberText">Remember me</span>
+                    </label>
+                    <a href="javascript:void(0)" onclick="openForgotModal()" class="forgot-link" id="forgotLink">
+                        Forgot Password?
+                    </a>
+                </div>
+
+                <button type="submit" class="btn-login" id="btnLogin">Login</button>
+            </form>
+
+            <div class="lang-bar" aria-label="Language selector">
+                <button type="button" class="lang-btn active" data-lang="en" aria-pressed="true">EN</button>
+                <button type="button" class="lang-btn" data-lang="fr" aria-pressed="false">FR</button>
             </div>
         </div>
-
-        <div class="form-meta">
-            <label>
-                <input type="checkbox" name="remember-me" />
-                <span id="rememberText">Remember me</span>
-            </label>
-            <a href="javascript:void(0)" onclick="openForgotModal()" class="forgot-link" id="forgotLink">
-                Forgot Password?
-            </a>
-        </div>
-
-
-        <button type="submit" class="btn-login" id="btnLogin">Login</button>
-
-    </form>
-
-    <!-- Language switcher -->
-    <div class="lang-bar">
-        <button class="lang-btn active" data-lang="en" onclick="setLang('en', event)">EN</button>
-        <button class="lang-btn"        data-lang="fr" onclick="setLang('fr', event)">FR</button>
-    </div>
-
+    </section>
 </div>
 
-<!-- Forgot Password Modal -->
-<div id="forgotModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6">
-        <div class="text-center space-y-2">
-            <h2 class="text-2xl font-bold text-slate-900">Forgot Password?</h2>
-            <p class="text-slate-500 text-sm">Enter your email and the administrator will be notified to reset your password.</p>
+<div id="forgotModal" class="forgot-modal hidden" aria-hidden="true">
+    <div class="forgot-dialog" role="dialog" aria-modal="true" aria-labelledby="forgotTitle">
+        <div class="forgot-heading">
+            <h2 id="forgotTitle">Forgot Password?</h2>
+            <p id="forgotDescription">Enter your email and the administrator will be notified to reset your password.</p>
         </div>
-        
-        <form th:action="@{/forgot-password}" method="post" class="space-y-4">
-            <div class="space-y-1">
-                <label class="text-sm font-semibold text-slate-700 ml-1">Email Address</label>
-                <input type="email" name="email" required
-                    class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#00B0FF] outline-none"
-                    placeholder="you@example.com">
+
+        <form th:action="@{/forgot-password}" method="post" class="forgot-form">
+            <div class="form-group">
+                <label for="forgotEmail" id="forgotEmailLabel">Email Address</label>
+                <div class="input-wrap">
+                    <input type="email" id="forgotEmail" name="email" required placeholder="you@example.com">
+                </div>
             </div>
-            
-            <button type="submit" 
-                class="w-full py-3 bg-[#00B0FF] text-white font-bold rounded-xl shadow-lg transition-transform active:scale-95">
-                Request Reset
-            </button>
-            
-            <button type="button" onclick="closeForgotModal()"
-                class="w-full py-3 text-slate-500 font-medium hover:bg-slate-50 rounded-xl transition-colors">
-                Cancel
-            </button>
+
+            <button type="submit" class="btn-login" id="forgotSubmit">Request Reset</button>
+            <button type="button" onclick="closeForgotModal()" class="btn-secondary" id="forgotCancel">Cancel</button>
         </form>
     </div>
 </div>
-
-<script>
-    function openForgotModal() {
-        const modal = document.getElementById('forgotModal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-    
-    function closeForgotModal() {
-        const modal = document.getElementById('forgotModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-</script>
-
-<style>
-    .fixed { position: fixed; }
-    .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-    .bg-black\/50 { background-color: rgba(0, 0, 0, 0.5); }
-    .backdrop-blur-sm { backdrop-filter: blur(4px); }
-    .hidden { display: none; }
-    .flex { display: flex; }
-    .items-center { align-items: center; }
-    .justify-center { justify-content: center; }
-    .bg-white { background-color: #ffffff; }
-    .rounded-3xl { border-radius: 1.5rem; }
-    .shadow-2xl { box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-    .max-w-md { max-width: 28rem; }
-    .w-full { width: 100%; }
-    .p-8 { padding: 2rem; }
-    .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.5rem; }
-    .text-center { text-align: center; }
-    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
-    .font-bold { font-weight: 700; }
-    .text-slate-900 { color: #0f172a; }
-    .text-slate-500 { color: #64748b; }
-    .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-    .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem; }
-    .font-semibold { font-weight: 600; }
-    .text-slate-700 { color: #334155; }
-    .px-4 { padding-left: 1rem; padding-right: 1rem; }
-    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-    .border { border-width: 1px; }
-    .border-slate-200 { border-color: #e2e8f0; }
-    .focus\:ring-2:focus { --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color); --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color); box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000); }
-    .focus\:ring-\[\#00B0FF\]:focus { --tw-ring-color: #00B0FF; }
-    .outline-none { outline: 2px solid transparent; outline-offset: 2px; }
-    .z-50 { z-index: 50; }
-</style>
-
 
 </body>
 </html>

@@ -2,11 +2,11 @@
 
 :root {
     /* Fonts */
-    --font-heading: 'Outfit', -apple-system, sans-serif;
-    --font-body: 'Inter', system-ui, sans-serif;
+    --font-heading: "Inter", "Poppins", "Segoe UI", Arial, sans-serif;
+    --font-body: "Inter", "Poppins", "Segoe UI", Arial, sans-serif;
 
     /* Light Mode - Pristine Slate */
-    --bg-page: #f8fafc;
+    --bg-page: #f6f9fc;
     --bg-sidebar: #ffffff;
     --bg-card: #ffffff;
     --bg-header: #ffffff;
@@ -25,17 +25,21 @@
     /* slate-300 */
 
     /* Institutional Accents - Sync with Logo Tones */
-    --accent-blue: #78A1BB;
-    /* Attendee Slate Blue */
-    --accent-blue-soft: rgba(120, 161, 187, 0.1);
+    --accent-blue: #00B0FF;
+    --accent-blue-strong: #0091D5;
+    --accent-teal: #14B8A6;
+    --accent-blue-soft: rgba(0, 176, 255, 0.1);
     --accent-amber: #F9B233;
     /* Attendee Gold */
     --accent-amber-soft: rgba(249, 178, 51, 0.1);
 
-    --radius-premium: 1.5rem;
-    /* 24px */
+    --radius-premium: 1.25rem;
+    --radius-card: 1.25rem;
+    --radius-control: 0.875rem;
 
-    --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    --shadow-premium: 0 18px 42px -30px rgba(15, 23, 42, 0.34), 0 8px 18px -18px rgba(15, 23, 42, 0.16);
+    --shadow-card: 0 14px 34px -28px rgba(15, 23, 42, 0.34), 0 1px 2px rgba(15, 23, 42, 0.035);
+    --shadow-control: 0 8px 18px -17px rgba(15, 23, 42, 0.26);
     --glass-bg: rgba(255, 255, 255, 0.7);
     --glass-border: rgba(255, 255, 255, 0.4);
 }
@@ -55,9 +59,10 @@
     --border-color: #1e293b;
     --border-hover: #334155;
 
-    --accent-blue: #94b8cf;
-    /* Slightly lighter for dark mode */
-    --accent-blue-soft: rgba(148, 184, 207, 0.1);
+    --accent-blue: #38bdf8;
+    --accent-blue-strong: #0ea5e9;
+    --accent-teal: #2dd4bf;
+    --accent-blue-soft: rgba(56, 189, 248, 0.14);
     --accent-amber: #fcc25d;
     --accent-amber-soft: rgba(252, 194, 93, 0.1);
 
@@ -68,9 +73,11 @@
 body {
     background-color: var(--bg-page) !important;
     color: var(--text-primary);
-    font-family: var(--font-body);
+    font-family: var(--font-body) !important;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -85,6 +92,22 @@ h6,
 .font-black {
     font-family: var(--font-heading);
     color: var(--text-primary);
+    letter-spacing: 0;
+    font-weight: 720;
+}
+
+p,
+label,
+button,
+input,
+select,
+textarea,
+table,
+.font-sans,
+.nav-item,
+.nav-desktop,
+.nav-mobile {
+    font-family: var(--font-body) !important;
 }
 
 /* Base Component Mapping */
@@ -171,6 +194,152 @@ textarea::placeholder {
 .nav-item.active {
     background-color: var(--accent-blue) !important;
     color: #ffffff !important;
+}
+
+.nav-item,
+.nav-desktop {
+    border-radius: var(--radius-control);
+    font-size: 0.9rem;
+    font-weight: 620;
+    letter-spacing: 0;
+}
+
+.nav-item svg,
+.nav-desktop svg,
+.nav-mobile svg {
+    width: 20px !important;
+    height: 20px !important;
+    flex: 0 0 20px;
+    stroke-width: 1.9;
+}
+
+.nav-item.active,
+.nav-desktop.active {
+    box-shadow: 0 12px 24px -18px rgba(0, 176, 255, 0.68) !important;
+}
+
+.nav-item:not(.active):hover,
+.nav-desktop:not(.active):hover {
+    background-color: rgba(0, 176, 255, 0.08) !important;
+    color: var(--accent-blue-strong) !important;
+    transform: translateX(2px);
+}
+
+.dashboard-icon,
+.pedagog-icon,
+.stat-icon,
+.card-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(0, 176, 255, 0.12), rgba(20, 184, 166, 0.12));
+    color: var(--accent-blue-strong);
+}
+
+.dashboard-icon svg,
+.pedagog-icon svg,
+.stat-icon svg,
+.card-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.9;
+}
+
+.action-icon,
+button svg {
+    flex-shrink: 0;
+}
+
+.dashboard-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.dashboard-brand img {
+    width: 4rem;
+    height: 4rem;
+    object-fit: contain;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 18px 32px -24px rgba(15, 23, 42, 0.45);
+}
+
+.dashboard-brand-wordmark {
+    display: block;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 820;
+    line-height: 1;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.dashboard-brand-subtitle {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-muted);
+    font-size: 0.625rem;
+    font-weight: 720;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.dashboard-theme-toggle,
+.dashboard-header-action,
+.pedagog-header-action {
+    width: 2.5rem;
+    height: 2.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-control);
+    background: var(--bg-input);
+    color: var(--text-muted);
+}
+
+.dashboard-theme-toggle:hover,
+.dashboard-header-action:hover,
+.pedagog-header-action:hover {
+    color: var(--accent-blue-strong);
+    background: var(--accent-blue-soft);
+    border-color: rgba(0, 176, 255, 0.25);
+}
+
+.dashboard-theme-toggle .theme-icon-sun,
+.dashboard-theme-toggle .theme-icon-moon,
+.pedagog-header-action .theme-icon-sun,
+.pedagog-header-action .theme-icon-moon {
+    width: 20px;
+    height: 20px;
+}
+
+.dashboard-theme-toggle .theme-icon-sun,
+.pedagog-header-action .theme-icon-sun {
+    display: none;
+}
+
+.dashboard-theme-toggle .theme-icon-moon,
+.pedagog-header-action .theme-icon-moon {
+    display: block;
+}
+
+.dark .dashboard-theme-toggle .theme-icon-sun,
+body.dark .dashboard-theme-toggle .theme-icon-sun,
+.dark .pedagog-header-action .theme-icon-sun,
+body.dark .pedagog-header-action .theme-icon-sun {
+    display: block;
+}
+
+.dark .dashboard-theme-toggle .theme-icon-moon,
+body.dark .dashboard-theme-toggle .theme-icon-moon,
+.dark .pedagog-header-action .theme-icon-moon,
+body.dark .pedagog-header-action .theme-icon-moon {
+    display: none;
 }
 
 /* Filter Chips */
@@ -267,16 +436,19 @@ textarea::placeholder {
 }
 
 .card-premium {
-    background-color: var(--bg-card);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9)),
+        var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-premium);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-premium:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-premium);
-    border-color: var(--accent-blue);
+    border-color: rgba(0, 176, 255, 0.42);
 }
 
 .rounded-premium {
@@ -284,25 +456,545 @@ textarea::placeholder {
 }
 
 .sidebar {
-    background-color: var(--bg-sidebar);
-    border-right: 1px solid var(--border-color);
+    position: relative;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 250, 253, 0.9)),
+        radial-gradient(circle at 14% 0%, rgba(0, 176, 255, 0.1), transparent 38%),
+        linear-gradient(90deg, rgba(20, 184, 166, 0.035), transparent 56%),
+        var(--bg-sidebar);
+    border-right: 1px solid rgba(0, 176, 255, 0.16);
+    box-shadow: 16px 0 42px -42px rgba(15, 23, 42, 0.54);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    isolation: isolate;
+}
+
+.sidebar::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -1px;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent, rgba(20, 184, 166, 0.3), rgba(0, 176, 255, 0.22), transparent);
+    opacity: 0.86;
+    pointer-events: none;
 }
 
 /* Specific Card Hover Effects */
 .cycle-card,
 .dept-card-hover,
-.inst-card {
-    border-radius: var(--radius-premium);
+.inst-card,
+.pedagog-card,
+.pedagog-section-shell,
+.session-card-grid,
+.target-classroom-card,
+.migration-type-btn {
+    border-radius: var(--radius-card) !important;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .cycle-card:hover,
 .dept-card-hover:hover,
 .inst-card:hover {
-    border-color: var(--accent-blue);
+    border-color: rgba(0, 176, 255, 0.42);
     box-shadow: var(--shadow-premium);
-    transform: translateY(-4px);
+    transform: translateY(-2px);
+}
+
+.pedagog-card,
+.pedagog-section-shell,
+.bg-white.rounded-3xl,
+.bg-white.rounded-2xl,
+.bg-white.rounded-xl {
+    background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+    box-shadow: var(--shadow-card);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.pedagog-card:hover,
+.pedagog-section-shell:hover,
+.bg-white.rounded-3xl:hover,
+.bg-white.rounded-2xl:hover,
+.bg-white.rounded-xl:hover {
+    box-shadow: var(--shadow-premium);
+    border-color: rgba(0, 176, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.dashboard-lang-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: rgba(248, 250, 252, 0.8);
+    box-shadow: var(--shadow-control);
+}
+
+.dashboard-lang-btn {
+    min-width: 2rem;
+    height: 2rem;
+    padding: 0 0.55rem;
+    border: 0;
+    border-radius: 999px;
+    color: var(--text-muted);
+    background: transparent;
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1;
+}
+
+.dashboard-lang-btn.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, #00B0FF, #1677f2);
+    box-shadow: 0 10px 18px -14px rgba(0, 145, 213, 0.85);
+}
+
+button,
+.btn,
+[role="button"] {
+    letter-spacing: 0;
+    font-weight: 620;
+}
+
+button:not(:disabled),
+.btn:not(:disabled) {
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+button:not(:disabled):hover,
+.btn:not(:disabled):hover {
+    box-shadow: var(--shadow-control);
+}
+
+button:not(:disabled):active,
+.btn:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+input,
+select,
+textarea {
+    border-radius: var(--radius-control) !important;
+    font-weight: 500;
+}
+
+label,
+.text-xs.uppercase {
+    letter-spacing: 0.045em;
+    font-weight: 650;
+}
+
+table {
+    color: var(--text-secondary);
+}
+
+thead,
+th {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+}
+
+td {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.content-section h1,
+.content-section h2,
+.content-section h3,
+main h1,
+main h2,
+main h3 {
+    color: var(--text-primary);
+    font-weight: 720;
+    letter-spacing: 0;
+}
+
+.content-section .text-3xl,
+.content-section .text-2xl,
+main .text-3xl,
+main .text-2xl {
+    font-weight: 720;
+}
+
+.content-section .font-black,
+main .font-black {
+    font-weight: 740;
+}
+
+.empty-state,
+[id*="placeholder"] {
+    color: var(--text-muted);
+}
+
+.dark body,
+body.dark {
+    background: var(--bg-page) !important;
+    color: var(--text-primary) !important;
+}
+
+.dark aside,
+body.dark aside,
+.dark .sidebar,
+body.dark .sidebar {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 13, 28, 0.96)),
+        radial-gradient(circle at 18% 0%, rgba(56, 189, 248, 0.12), transparent 38%),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.06), transparent 58%),
+        var(--bg-sidebar) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 16px 0 46px -42px rgba(0, 0, 0, 0.8) !important;
+}
+
+.dark .sidebar::after,
+body.dark .sidebar::after {
+    background: linear-gradient(180deg, transparent, rgba(45, 212, 191, 0.22), rgba(56, 189, 248, 0.24), transparent);
+    opacity: 0.76;
+}
+
+html body.dark aside#sidebar.sidebar,
+html body.dark aside.sidebar,
+html.dark body aside#sidebar.sidebar,
+html.dark body aside.sidebar {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 13, 28, 0.96)),
+        radial-gradient(circle at 18% 0%, rgba(56, 189, 248, 0.12), transparent 38%),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.06), transparent 58%),
+        var(--bg-sidebar) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: 16px 0 46px -42px rgba(0, 0, 0, 0.8) !important;
+}
+
+.dark header,
+body.dark header,
+.dark .glass-panel,
+body.dark .glass-panel {
+    background: rgba(15, 23, 42, 0.86) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark main,
+body.dark main,
+.dark #main-content,
+body.dark #main-content {
+    background: var(--bg-page) !important;
+}
+
+.dark .bg-white,
+body.dark .bg-white,
+.dark .pedagog-card,
+body.dark .pedagog-card,
+.dark .card-premium,
+body.dark .card-premium,
+.dark .pedagog-section-shell,
+body.dark .pedagog-section-shell {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9)),
+        var(--bg-card) !important;
+    border-color: var(--border-color) !important;
+}
+
+.dark .text-slate-900,
+body.dark .text-slate-900,
+.dark .text-slate-800,
+body.dark .text-slate-800,
+.dark .text-gray-900,
+body.dark .text-gray-900,
+.dark .text-gray-800,
+body.dark .text-gray-800 {
+    color: var(--text-primary) !important;
+}
+
+.dark .text-slate-700,
+body.dark .text-slate-700,
+.dark .text-slate-600,
+body.dark .text-slate-600,
+.dark .text-gray-700,
+body.dark .text-gray-700,
+.dark .text-gray-600,
+body.dark .text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+.dark .text-slate-500,
+body.dark .text-slate-500,
+.dark .text-slate-400,
+body.dark .text-slate-400,
+.dark .text-gray-500,
+body.dark .text-gray-500,
+.dark .text-gray-400,
+body.dark .text-gray-400 {
+    color: var(--text-muted) !important;
+}
+
+.dark .border-slate-100,
+body.dark .border-slate-100,
+.dark .border-slate-200,
+body.dark .border-slate-200,
+.dark .border-gray-100,
+body.dark .border-gray-100,
+.dark .border-gray-200,
+body.dark .border-gray-200 {
+    border-color: var(--border-color) !important;
+}
+
+.dark .nav-item:not(.active),
+body.dark .nav-item:not(.active),
+.dark .nav-desktop:not(.active),
+body.dark .nav-desktop:not(.active) {
+    color: var(--text-muted) !important;
+}
+
+.dark .nav-item:not(.active):hover,
+body.dark .nav-item:not(.active):hover,
+.dark .nav-desktop:not(.active):hover,
+body.dark .nav-desktop:not(.active):hover {
+    background: rgba(56, 189, 248, 0.12) !important;
+    color: var(--accent-blue) !important;
+}
+
+.dark .nav-item.active,
+body.dark .nav-item.active,
+.dark .nav-desktop.active,
+body.dark .nav-desktop.active {
+    background: var(--accent-blue-strong) !important;
+    color: #fff !important;
+}
+
+.dashboard-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.75rem);
+    width: min(22rem, calc(100vw - 2rem));
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 1.25rem;
+    box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.45);
+    overflow: hidden;
+    z-index: 80;
+}
+
+.dashboard-dropdown.hidden,
+.dashboard-modal.hidden {
+    display: none !important;
+}
+
+.dashboard-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.95rem 1.1rem;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(248, 250, 252, 0.72);
+}
+
+.dark .dashboard-dropdown-header,
+body.dark .dashboard-dropdown-header {
+    background: rgba(30, 41, 59, 0.72);
+}
+
+.dashboard-dropdown-title {
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.dashboard-dropdown-list {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.dashboard-notification-item,
+.dashboard-menu-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: left;
+    border: 0;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.62);
+}
+
+.dashboard-notification-item:hover,
+.dashboard-menu-item:hover {
+    background: var(--accent-blue-soft);
+    color: var(--accent-blue-strong);
+}
+
+.dashboard-notification-icon,
+.dashboard-menu-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(135deg, rgba(0, 176, 255, 0.12), rgba(20, 184, 166, 0.12));
+    color: var(--accent-blue-strong);
+    flex: 0 0 2rem;
+}
+
+.dashboard-notification-icon svg,
+.dashboard-menu-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.dashboard-notification-time {
+    margin-top: 0.15rem;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.dashboard-notification-badge {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--bg-header);
+    border-radius: 999px;
+    background: #e11d48;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.dashboard-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(8px);
+}
+
+.dashboard-modal-panel {
+    width: min(32rem, 100%);
+    max-height: min(42rem, calc(100vh - 2rem));
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 1.5rem;
+    box-shadow: 0 30px 80px -30px rgba(15, 23, 42, 0.55);
+}
+
+.dashboard-modal-panel.profile-panel {
+    width: min(56rem, 100%);
+}
+
+.dashboard-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.35rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-modal-title {
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+.dashboard-modal-body {
+    padding: 1.35rem;
+}
+
+.dashboard-field {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+}
+
+.dashboard-field label {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.dashboard-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1.1rem 1.35rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.dashboard-profile-cover {
+    min-height: 8rem;
+    border-radius: 1.25rem;
+    background:
+        linear-gradient(135deg, rgba(0, 176, 255, 0.92), rgba(20, 184, 166, 0.82)),
+        radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.36), transparent 30%);
+}
+
+.dashboard-profile-avatar {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 1.5rem;
+    border: 4px solid var(--bg-card);
+    background: #00B0FF;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-size: 2rem;
+    font-weight: 900;
+    box-shadow: 0 20px 45px -24px rgba(15, 23, 42, 0.5);
+}
+
+.dashboard-profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dashboard-profile-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.8fr);
+    gap: 1rem;
+}
+
+.dashboard-profile-card {
+    border: 1px solid var(--border-color);
+    border-radius: 1.25rem;
+    padding: 1rem;
+    background: rgba(248, 250, 252, 0.58);
+}
+
+.dark .dashboard-profile-card,
+body.dark .dashboard-profile-card {
+    background: rgba(30, 41, 59, 0.44);
+}
+
+@media (max-width: 768px) {
+    .dashboard-profile-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Modals */
@@ -396,4 +1088,587 @@ mark {
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: var(--border-color);
+}
+
+/* Admin dashboard scoped refinement: shared chrome + Overview-only insight cards */
+body[data-dashboard-role="admin"] {
+    background:
+        radial-gradient(circle at top left, rgba(0, 176, 255, 0.09), transparent 34rem),
+        linear-gradient(180deg, #f3f8fd 0%, #f8fbff 48%, #f4f8fc 100%) !important;
+    color: #0f172a;
+    font-family: "Inter", "Poppins", "Segoe UI", Arial, sans-serif !important;
+}
+
+body[data-dashboard-role="admin"] #sidebar.sidebar {
+    background:
+        linear-gradient(180deg, rgba(231, 247, 255, 0.98) 0%, rgba(220, 245, 247, 0.96) 52%, rgba(239, 250, 255, 0.98) 100%),
+        radial-gradient(circle at 12% 2%, rgba(0, 176, 255, 0.18), transparent 42%),
+        linear-gradient(90deg, rgba(20, 184, 166, 0.12), rgba(255, 255, 255, 0.36) 70%),
+        var(--bg-sidebar) !important;
+    border-right: 1px solid rgba(0, 145, 213, 0.24);
+    box-shadow: 18px 0 44px -34px rgba(15, 23, 42, 0.42);
+}
+
+body[data-dashboard-role="admin"] #main-content {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(20, 184, 166, 0.06), transparent 30rem),
+        linear-gradient(180deg, #f4f8fc 0%, #f8fbff 52%, #f5f9fd 100%) !important;
+}
+
+body[data-dashboard-role="admin"] main#main-content > header.glass-panel {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(203, 213, 225, 0.76) !important;
+    border-radius: 1.2rem !important;
+    box-shadow: 0 20px 42px -30px rgba(15, 23, 42, 0.34), 0 1px 0 rgba(255, 255, 255, 0.86) inset !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+body[data-dashboard-role] .admin-header-title-lockup {
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+}
+
+body[data-dashboard-role] .admin-institution-badge {
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 3rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(0, 176, 255, 0.18);
+    background: linear-gradient(135deg, rgba(226, 242, 255, 0.98), rgba(214, 245, 241, 0.96));
+    color: #0091D5;
+    box-shadow: 0 14px 28px -22px rgba(0, 145, 213, 0.5);
+}
+
+body[data-dashboard-role] .admin-institution-badge svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex: 0 0 1.25rem;
+    stroke-width: 2;
+}
+
+body[data-dashboard-role="admin"] main#main-content > header.glass-panel h1,
+body[data-dashboard-role="admin"] .content-section h2,
+body[data-dashboard-role="admin"] .content-section h3 {
+    color: #0f172a !important;
+    font-weight: 760 !important;
+    letter-spacing: 0;
+}
+
+body[data-dashboard-role="admin"] main#main-content > header.glass-panel p,
+body[data-dashboard-role="admin"] .content-section p,
+body[data-dashboard-role="admin"] label,
+body[data-dashboard-role="admin"] td {
+    color: #64748b;
+}
+
+body[data-dashboard-role="admin"] .nav-item {
+    color: #24364b !important;
+    font-weight: 620;
+}
+
+body[data-dashboard-role="admin"] .nav-item:not(.active):hover {
+    background: rgba(255, 255, 255, 0.58) !important;
+    border-color: rgba(0, 145, 213, 0.18);
+    color: var(--accent-blue-strong) !important;
+    transform: translateX(2px);
+}
+
+body[data-dashboard-role="admin"] .nav-item.active {
+    background: linear-gradient(135deg, #00B0FF, #1677f2) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 28px -20px rgba(0, 145, 213, 0.82) !important;
+}
+
+body[data-dashboard-role="admin"] button,
+body[data-dashboard-role="admin"] .btn,
+body[data-dashboard-role="admin"] [role="button"] {
+    font-weight: 620;
+    letter-spacing: 0;
+}
+
+body[data-dashboard-role="admin"] input,
+body[data-dashboard-role="admin"] select,
+body[data-dashboard-role="admin"] textarea {
+    color: #0f172a;
+    border-color: rgba(203, 213, 225, 0.8) !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+body[data-dashboard-role="admin"] input:focus,
+body[data-dashboard-role="admin"] select:focus,
+body[data-dashboard-role="admin"] textarea:focus {
+    border-color: rgba(0, 176, 255, 0.48) !important;
+    box-shadow: 0 0 0 4px rgba(0, 176, 255, 0.1);
+}
+
+body[data-dashboard-role="admin"] th {
+    color: #64748b !important;
+    font-size: 0.72rem;
+    font-weight: 700 !important;
+    letter-spacing: 0.045em;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .card-premium,
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 252, 255, 0.95)),
+        radial-gradient(circle at 100% 0%, rgba(20, 184, 166, 0.08), transparent 34%) !important;
+    border: 1px solid rgba(214, 226, 238, 0.9) !important;
+    border-top: 3px solid rgba(0, 176, 255, 0.9) !important;
+    box-shadow: 0 18px 42px -30px rgba(15, 23, 42, 0.34), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group:nth-child(even) {
+    border-top-color: rgba(20, 184, 166, 0.9) !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .card-premium:hover,
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group:hover {
+    border-color: rgba(0, 176, 255, 0.32) !important;
+    border-top-color: rgba(0, 145, 213, 0.96) !important;
+    box-shadow: 0 24px 56px -34px rgba(15, 23, 42, 0.42), 0 10px 20px -18px rgba(0, 176, 255, 0.2) !important;
+    transform: translateY(-2px);
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .text-amber-900,
+body[data-dashboard-role="admin"] #section-dashboard .text-blue-900,
+body[data-dashboard-role="admin"] #section-dashboard .text-slate-800 {
+    color: #0f172a !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .text-amber-700\/70,
+body[data-dashboard-role="admin"] #section-dashboard .text-blue-700\/70,
+body[data-dashboard-role="admin"] #section-dashboard .text-slate-500 {
+    color: #64748b !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .bg-amber-500,
+body[data-dashboard-role="admin"] #section-dashboard .bg-blue-600,
+body[data-dashboard-role="admin"] #section-dashboard .bg-blue-100\/50,
+body[data-dashboard-role="admin"] #section-dashboard .bg-amber-100\/50 {
+    background: linear-gradient(135deg, rgba(226, 242, 255, 0.98), rgba(214, 245, 241, 0.96)) !important;
+    color: #0091D5 !important;
+    box-shadow: 0 14px 28px -22px rgba(0, 145, 213, 0.48) !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group [class*="bg-amber-"],
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group [class*="group-hover:bg-amber-"] {
+    background-color: rgba(0, 176, 255, 0.08) !important;
+    color: #0091D5 !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group svg.text-white {
+    color: #0091D5 !important;
+}
+
+body[data-dashboard-role="admin"] #section-dashboard .text-amber-600,
+body[data-dashboard-role="admin"] #section-dashboard .text-blue-600,
+body[data-dashboard-role="admin"] #section-dashboard .text-amber-400,
+body[data-dashboard-role="admin"] #section-dashboard .text-blue-400 {
+    color: #0f9f8f !important;
+}
+
+.dark body[data-dashboard-role="admin"],
+body.dark[data-dashboard-role="admin"] {
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 34rem),
+        radial-gradient(circle at 100% 0%, rgba(45, 212, 191, 0.08), transparent 30rem),
+        linear-gradient(180deg, #020617 0%, #08111f 52%, #020617 100%) !important;
+    color: #f8fafc;
+}
+
+.dark body[data-dashboard-role="admin"] #main-content,
+body.dark[data-dashboard-role="admin"] #main-content {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(45, 212, 191, 0.08), transparent 32rem),
+        radial-gradient(circle at 0% 18%, rgba(56, 189, 248, 0.07), transparent 28rem),
+        linear-gradient(180deg, #06101f 0%, #08111f 54%, #030712 100%) !important;
+}
+
+.dark body[data-dashboard-role="admin"] #main-content > div,
+body.dark[data-dashboard-role="admin"] #main-content > div {
+    background: transparent !important;
+}
+
+.dark body[data-dashboard-role="admin"] #sidebar.sidebar,
+body.dark[data-dashboard-role="admin"] #sidebar.sidebar {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.99), rgba(8, 13, 28, 0.98)),
+        radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.16), transparent 38%),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.08), transparent 58%),
+        var(--bg-sidebar) !important;
+    border-right-color: rgba(56, 189, 248, 0.22);
+    box-shadow: 18px 0 48px -38px rgba(0, 0, 0, 0.86);
+}
+
+.dark body[data-dashboard-role="admin"] main#main-content > header.glass-panel,
+body.dark[data-dashboard-role="admin"] main#main-content > header.glass-panel {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82)),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 34%) !important;
+    border-color: rgba(56, 189, 248, 0.2) !important;
+    box-shadow: 0 24px 52px -34px rgba(0, 0, 0, 0.72), 0 1px 0 rgba(148, 163, 184, 0.12) inset !important;
+}
+
+.dark body[data-dashboard-role="admin"] #section-dashboard .card-premium,
+body.dark[data-dashboard-role="admin"] #section-dashboard .card-premium,
+.dark body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group,
+body.dark[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92)),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.11), transparent 34%) !important;
+    border-color: rgba(51, 65, 85, 0.86) !important;
+    border-top-color: rgba(56, 189, 248, 0.88) !important;
+    box-shadow: 0 22px 52px -36px rgba(0, 0, 0, 0.78), 0 1px 2px rgba(15, 23, 42, 0.6) !important;
+}
+
+.dark body[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group:nth-child(even),
+body.dark[data-dashboard-role="admin"] #section-dashboard .grid.grid-cols-1.md\:grid-cols-2.lg\:grid-cols-4.gap-6 > .group:nth-child(even) {
+    border-top-color: rgba(45, 212, 191, 0.88) !important;
+}
+
+.dark body[data-dashboard-role="admin"] main#main-content > header.glass-panel h1,
+body.dark[data-dashboard-role="admin"] main#main-content > header.glass-panel h1,
+.dark body[data-dashboard-role="admin"] .content-section h2,
+body.dark[data-dashboard-role="admin"] .content-section h2,
+.dark body[data-dashboard-role="admin"] .content-section h3,
+body.dark[data-dashboard-role="admin"] .content-section h3,
+.dark body[data-dashboard-role="admin"] #section-dashboard .text-amber-900,
+body.dark[data-dashboard-role="admin"] #section-dashboard .text-amber-900,
+.dark body[data-dashboard-role="admin"] #section-dashboard .text-blue-900,
+body.dark[data-dashboard-role="admin"] #section-dashboard .text-blue-900,
+.dark body[data-dashboard-role="admin"] #section-dashboard .text-slate-800,
+body.dark[data-dashboard-role="admin"] #section-dashboard .text-slate-800,
+.dark body[data-dashboard-role="admin"] .text-slate-800,
+body.dark[data-dashboard-role="admin"] .text-slate-800,
+.dark body[data-dashboard-role="admin"] .text-gray-800,
+body.dark[data-dashboard-role="admin"] .text-gray-800 {
+    color: #f8fafc !important;
+}
+
+.dark body[data-dashboard-role="admin"] main#main-content > header.glass-panel p,
+body.dark[data-dashboard-role="admin"] main#main-content > header.glass-panel p,
+.dark body[data-dashboard-role="admin"] .content-section p,
+body.dark[data-dashboard-role="admin"] .content-section p,
+.dark body[data-dashboard-role="admin"] label,
+body.dark[data-dashboard-role="admin"] label,
+.dark body[data-dashboard-role="admin"] td,
+body.dark[data-dashboard-role="admin"] td,
+.dark body[data-dashboard-role="admin"] .text-slate-500,
+body.dark[data-dashboard-role="admin"] .text-slate-500,
+.dark body[data-dashboard-role="admin"] .text-gray-600,
+body.dark[data-dashboard-role="admin"] .text-gray-600,
+.dark body[data-dashboard-role="admin"] #section-dashboard .text-amber-700\/70,
+body.dark[data-dashboard-role="admin"] #section-dashboard .text-amber-700\/70,
+.dark body[data-dashboard-role="admin"] #section-dashboard .text-blue-700\/70,
+body.dark[data-dashboard-role="admin"] #section-dashboard .text-blue-700\/70 {
+    color: #94a3b8 !important;
+}
+
+.dark body[data-dashboard-role] .admin-institution-badge,
+body.dark[data-dashboard-role] .admin-institution-badge,
+.dark body[data-dashboard-role="admin"] #section-dashboard .bg-amber-500,
+body.dark[data-dashboard-role="admin"] #section-dashboard .bg-amber-500,
+.dark body[data-dashboard-role="admin"] #section-dashboard .bg-blue-600,
+body.dark[data-dashboard-role="admin"] #section-dashboard .bg-blue-600,
+.dark body[data-dashboard-role="admin"] #section-dashboard .bg-blue-100\/50,
+body.dark[data-dashboard-role="admin"] #section-dashboard .bg-blue-100\/50,
+.dark body[data-dashboard-role="admin"] #section-dashboard .bg-amber-100\/50,
+body.dark[data-dashboard-role="admin"] #section-dashboard .bg-amber-100\/50 {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.2), rgba(45, 212, 191, 0.16)) !important;
+    border-color: rgba(56, 189, 248, 0.24);
+    color: #67e8f9 !important;
+    box-shadow: 0 16px 32px -24px rgba(56, 189, 248, 0.52) !important;
+}
+
+.dark body[data-dashboard-role="admin"] .dashboard-theme-toggle,
+body.dark[data-dashboard-role="admin"] .dashboard-theme-toggle,
+.dark body[data-dashboard-role="admin"] .dashboard-header-action,
+body.dark[data-dashboard-role="admin"] .dashboard-header-action,
+.dark body[data-dashboard-role="admin"] #profile-btn,
+body.dark[data-dashboard-role="admin"] #profile-btn {
+    background: rgba(15, 23, 42, 0.78) !important;
+    border-color: rgba(56, 189, 248, 0.18) !important;
+    color: #cbd5e1 !important;
+    box-shadow: 0 12px 28px -24px rgba(0, 0, 0, 0.7);
+}
+
+.dark body[data-dashboard-role="admin"] .dashboard-theme-toggle:hover,
+body.dark[data-dashboard-role="admin"] .dashboard-theme-toggle:hover,
+.dark body[data-dashboard-role="admin"] .dashboard-header-action:hover,
+body.dark[data-dashboard-role="admin"] .dashboard-header-action:hover,
+.dark body[data-dashboard-role="admin"] #profile-btn:hover,
+body.dark[data-dashboard-role="admin"] #profile-btn:hover {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.34) !important;
+    color: #7dd3fc !important;
+}
+
+.dark body[data-dashboard-role="admin"] #profile-btn p:first-child,
+body.dark[data-dashboard-role="admin"] #profile-btn p:first-child {
+    color: #f8fafc !important;
+}
+
+.dark body[data-dashboard-role="admin"] #profile-btn p:last-child,
+body.dark[data-dashboard-role="admin"] #profile-btn p:last-child {
+    color: #94a3b8 !important;
+}
+
+.dark body[data-dashboard-role="admin"] main#main-content > header.glass-panel .w-px,
+body.dark[data-dashboard-role="admin"] main#main-content > header.glass-panel .w-px {
+    background: rgba(148, 163, 184, 0.28) !important;
+}
+
+.dark body[data-dashboard-role="admin"] .nav-item:not(.active),
+body.dark[data-dashboard-role="admin"] .nav-item:not(.active) {
+    color: #cbd5e1 !important;
+}
+
+.dark body[data-dashboard-role="admin"] .nav-item:not(.active):hover,
+body.dark[data-dashboard-role="admin"] .nav-item:not(.active):hover {
+    background: rgba(56, 189, 248, 0.12) !important;
+    border-color: rgba(56, 189, 248, 0.2);
+    color: #7dd3fc !important;
+}
+
+/* Shared role dashboard chrome: Admin visual system reused across all dashboards */
+body[data-dashboard-role="pedagog"],
+body[data-dashboard-role="teacher"],
+body[data-dashboard-role="student"],
+body[data-dashboard-role="supervisor"] {
+    background:
+        radial-gradient(circle at top left, rgba(0, 176, 255, 0.09), transparent 34rem),
+        linear-gradient(180deg, #f3f8fd 0%, #f8fbff 48%, #f4f8fc 100%) !important;
+    color: #0f172a;
+    font-family: "Inter", "Poppins", "Segoe UI", Arial, sans-serif !important;
+}
+
+body[data-dashboard-role="pedagog"] #sidebar.sidebar,
+body[data-dashboard-role="teacher"] #sidebar.sidebar,
+body[data-dashboard-role="student"] #sidebar.sidebar,
+body[data-dashboard-role="supervisor"] #sidebar.sidebar {
+    background:
+        linear-gradient(180deg, rgba(231, 247, 255, 0.98) 0%, rgba(220, 245, 247, 0.96) 52%, rgba(239, 250, 255, 0.98) 100%),
+        radial-gradient(circle at 12% 2%, rgba(0, 176, 255, 0.18), transparent 42%),
+        linear-gradient(90deg, rgba(20, 184, 166, 0.12), rgba(255, 255, 255, 0.36) 70%),
+        var(--bg-sidebar) !important;
+    border-right: 1px solid rgba(0, 145, 213, 0.24) !important;
+    box-shadow: 18px 0 44px -34px rgba(15, 23, 42, 0.42) !important;
+}
+
+body[data-dashboard-role="pedagog"] #main-content,
+body[data-dashboard-role="teacher"] #main-content,
+body[data-dashboard-role="student"] #main-content,
+body[data-dashboard-role="supervisor"] #main-content {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(20, 184, 166, 0.06), transparent 30rem),
+        linear-gradient(180deg, #f4f8fc 0%, #f8fbff 52%, #f5f9fd 100%) !important;
+}
+
+body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel,
+body[data-dashboard-role="teacher"] main#main-content > header.glass-panel,
+body[data-dashboard-role="student"] main#main-content > header.glass-panel,
+body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel {
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(203, 213, 225, 0.76) !important;
+    border-radius: 1.2rem !important;
+    box-shadow: 0 20px 42px -30px rgba(15, 23, 42, 0.34), 0 1px 0 rgba(255, 255, 255, 0.86) inset !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel h1,
+body[data-dashboard-role="teacher"] main#main-content > header.glass-panel h1,
+body[data-dashboard-role="student"] main#main-content > header.glass-panel h1,
+body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel h1,
+body[data-dashboard-role="pedagog"] .content-section h2,
+body[data-dashboard-role="teacher"] .content-section h2,
+body[data-dashboard-role="student"] .content-section h2,
+body[data-dashboard-role="supervisor"] .content-section h2,
+body[data-dashboard-role="pedagog"] .content-section h3,
+body[data-dashboard-role="teacher"] .content-section h3,
+body[data-dashboard-role="student"] .content-section h3,
+body[data-dashboard-role="supervisor"] .content-section h3 {
+    color: #0f172a !important;
+    font-weight: 760 !important;
+    letter-spacing: 0;
+}
+
+body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel p,
+body[data-dashboard-role="teacher"] main#main-content > header.glass-panel p,
+body[data-dashboard-role="student"] main#main-content > header.glass-panel p,
+body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel p,
+body[data-dashboard-role="pedagog"] .content-section p,
+body[data-dashboard-role="teacher"] .content-section p,
+body[data-dashboard-role="student"] .content-section p,
+body[data-dashboard-role="supervisor"] .content-section p {
+    color: #64748b;
+}
+
+body[data-dashboard-role="pedagog"] .nav-item.active,
+body[data-dashboard-role="teacher"] .nav-desktop.active,
+body[data-dashboard-role="student"] .nav-desktop.active,
+body[data-dashboard-role="supervisor"] .nav-item.active,
+body[data-dashboard-role="supervisor"] .nav-desktop.active {
+    background: linear-gradient(135deg, #00B0FF, #1677f2) !important;
+    color: #ffffff !important;
+    box-shadow: 0 14px 28px -20px rgba(0, 145, 213, 0.82) !important;
+}
+
+body[data-dashboard-role="pedagog"] .card-premium,
+body[data-dashboard-role="teacher"] .card-premium,
+body[data-dashboard-role="student"] .card-premium,
+body[data-dashboard-role="supervisor"] .card-premium,
+body[data-dashboard-role="teacher"] main .bg-white.rounded-2xl,
+body[data-dashboard-role="student"] main .bg-white.rounded-2xl,
+body[data-dashboard-role="pedagog"] main .bg-white.rounded-2xl,
+body[data-dashboard-role="supervisor"] main .bg-white.rounded-2xl {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(249, 252, 255, 0.95)),
+        radial-gradient(circle at 100% 0%, rgba(20, 184, 166, 0.08), transparent 34%) !important;
+    border-color: rgba(214, 226, 238, 0.9) !important;
+    border-top: 3px solid rgba(0, 176, 255, 0.9) !important;
+    box-shadow: 0 18px 42px -30px rgba(15, 23, 42, 0.34), 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+.dark body[data-dashboard-role="pedagog"],
+.dark body[data-dashboard-role="teacher"],
+.dark body[data-dashboard-role="student"],
+.dark body[data-dashboard-role="supervisor"],
+body.dark[data-dashboard-role="pedagog"],
+body.dark[data-dashboard-role="teacher"],
+body.dark[data-dashboard-role="student"],
+body.dark[data-dashboard-role="supervisor"] {
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 34rem),
+        radial-gradient(circle at 100% 0%, rgba(45, 212, 191, 0.08), transparent 30rem),
+        linear-gradient(180deg, #020617 0%, #08111f 52%, #020617 100%) !important;
+    color: #f8fafc;
+}
+
+.dark body[data-dashboard-role="pedagog"] #main-content,
+.dark body[data-dashboard-role="teacher"] #main-content,
+.dark body[data-dashboard-role="student"] #main-content,
+.dark body[data-dashboard-role="supervisor"] #main-content,
+body.dark[data-dashboard-role="pedagog"] #main-content,
+body.dark[data-dashboard-role="teacher"] #main-content,
+body.dark[data-dashboard-role="student"] #main-content,
+body.dark[data-dashboard-role="supervisor"] #main-content {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(45, 212, 191, 0.08), transparent 32rem),
+        radial-gradient(circle at 0% 18%, rgba(56, 189, 248, 0.07), transparent 28rem),
+        linear-gradient(180deg, #06101f 0%, #08111f 54%, #030712 100%) !important;
+}
+
+.dark body[data-dashboard-role="pedagog"] #sidebar.sidebar,
+.dark body[data-dashboard-role="teacher"] #sidebar.sidebar,
+.dark body[data-dashboard-role="student"] #sidebar.sidebar,
+.dark body[data-dashboard-role="supervisor"] #sidebar.sidebar,
+body.dark[data-dashboard-role="pedagog"] #sidebar.sidebar,
+body.dark[data-dashboard-role="teacher"] #sidebar.sidebar,
+body.dark[data-dashboard-role="student"] #sidebar.sidebar,
+body.dark[data-dashboard-role="supervisor"] #sidebar.sidebar {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.99), rgba(8, 13, 28, 0.98)),
+        radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.16), transparent 38%),
+        linear-gradient(90deg, rgba(45, 212, 191, 0.08), transparent 58%),
+        var(--bg-sidebar) !important;
+    border-right-color: rgba(56, 189, 248, 0.22) !important;
+    box-shadow: 18px 0 48px -38px rgba(0, 0, 0, 0.86) !important;
+}
+
+.dark body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel,
+.dark body[data-dashboard-role="teacher"] main#main-content > header.glass-panel,
+.dark body[data-dashboard-role="student"] main#main-content > header.glass-panel,
+.dark body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel,
+body.dark[data-dashboard-role="pedagog"] main#main-content > header.glass-panel,
+body.dark[data-dashboard-role="teacher"] main#main-content > header.glass-panel,
+body.dark[data-dashboard-role="student"] main#main-content > header.glass-panel,
+body.dark[data-dashboard-role="supervisor"] main#main-content > header.glass-panel {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82)),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1), transparent 34%) !important;
+    border-color: rgba(56, 189, 248, 0.2) !important;
+    box-shadow: 0 24px 52px -34px rgba(0, 0, 0, 0.72), 0 1px 0 rgba(148, 163, 184, 0.12) inset !important;
+}
+
+.dark body[data-dashboard-role="pedagog"] .card-premium,
+.dark body[data-dashboard-role="teacher"] .card-premium,
+.dark body[data-dashboard-role="student"] .card-premium,
+.dark body[data-dashboard-role="supervisor"] .card-premium,
+.dark body[data-dashboard-role="teacher"] main .bg-white.rounded-2xl,
+.dark body[data-dashboard-role="student"] main .bg-white.rounded-2xl,
+.dark body[data-dashboard-role="pedagog"] main .bg-white.rounded-2xl,
+.dark body[data-dashboard-role="supervisor"] main .bg-white.rounded-2xl,
+body.dark[data-dashboard-role="pedagog"] .card-premium,
+body.dark[data-dashboard-role="teacher"] .card-premium,
+body.dark[data-dashboard-role="student"] .card-premium,
+body.dark[data-dashboard-role="supervisor"] .card-premium {
+    background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92)),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.11), transparent 34%) !important;
+    border-color: rgba(51, 65, 85, 0.86) !important;
+    border-top-color: rgba(56, 189, 248, 0.88) !important;
+    box-shadow: 0 22px 52px -36px rgba(0, 0, 0, 0.78), 0 1px 2px rgba(15, 23, 42, 0.6) !important;
+}
+
+.dark body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel h1,
+.dark body[data-dashboard-role="teacher"] main#main-content > header.glass-panel h1,
+.dark body[data-dashboard-role="student"] main#main-content > header.glass-panel h1,
+.dark body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel h1,
+.dark body[data-dashboard-role="pedagog"] .text-slate-900,
+.dark body[data-dashboard-role="teacher"] .text-slate-900,
+.dark body[data-dashboard-role="student"] .text-slate-900,
+.dark body[data-dashboard-role="supervisor"] .text-slate-900,
+.dark body[data-dashboard-role="pedagog"] .text-slate-800,
+.dark body[data-dashboard-role="teacher"] .text-slate-800,
+.dark body[data-dashboard-role="student"] .text-slate-800,
+.dark body[data-dashboard-role="supervisor"] .text-slate-800,
+body.dark[data-dashboard-role="pedagog"] main#main-content > header.glass-panel h1,
+body.dark[data-dashboard-role="teacher"] main#main-content > header.glass-panel h1,
+body.dark[data-dashboard-role="student"] main#main-content > header.glass-panel h1,
+body.dark[data-dashboard-role="supervisor"] main#main-content > header.glass-panel h1 {
+    color: #f8fafc !important;
+}
+
+.dark body[data-dashboard-role="pedagog"] main#main-content > header.glass-panel p,
+.dark body[data-dashboard-role="teacher"] main#main-content > header.glass-panel p,
+.dark body[data-dashboard-role="student"] main#main-content > header.glass-panel p,
+.dark body[data-dashboard-role="supervisor"] main#main-content > header.glass-panel p,
+.dark body[data-dashboard-role="pedagog"] .text-slate-500,
+.dark body[data-dashboard-role="teacher"] .text-slate-500,
+.dark body[data-dashboard-role="student"] .text-slate-500,
+.dark body[data-dashboard-role="supervisor"] .text-slate-500,
+body.dark[data-dashboard-role="pedagog"] main#main-content > header.glass-panel p,
+body.dark[data-dashboard-role="teacher"] main#main-content > header.glass-panel p,
+body.dark[data-dashboard-role="student"] main#main-content > header.glass-panel p,
+body.dark[data-dashboard-role="supervisor"] main#main-content > header.glass-panel p {
+    color: #94a3b8 !important;
+}
+
+.dark body[data-dashboard-role] .dashboard-theme-toggle,
+.dark body[data-dashboard-role] .dashboard-header-action,
+.dark body[data-dashboard-role] #profile-btn,
+body.dark[data-dashboard-role] .dashboard-theme-toggle,
+body.dark[data-dashboard-role] .dashboard-header-action,
+body.dark[data-dashboard-role] #profile-btn {
+    background: rgba(15, 23, 42, 0.78) !important;
+    border-color: rgba(56, 189, 248, 0.18) !important;
+    color: #cbd5e1 !important;
+}
+
+.dark body[data-dashboard-role] #profile-btn p:first-child,
+body.dark[data-dashboard-role] #profile-btn p:first-child {
+    color: #f8fafc !important;
+}
+
+.dark body[data-dashboard-role] #profile-btn p:last-child,
+body.dark[data-dashboard-role] #profile-btn p:last-child {
+    color: #94a3b8 !important;
 }

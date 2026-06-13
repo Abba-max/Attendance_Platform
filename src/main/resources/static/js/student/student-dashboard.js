@@ -1233,27 +1233,19 @@ async function validateGeofence() {
     try {
         // 1. Fetch Geofence Data
         const geofenceRes = await fetch('/api/student/geofence');
-        let geofencingEnabled = false;
-        let polygon = null;
+        if (!geofenceRes.ok) return { allowed: true };
         
-        if (geofenceRes.ok) {
-            const geofence = await geofenceRes.json();
-            geofencingEnabled = geofence && geofence.geofencingEnabled === true;
-            if (geofence && geofence.geofenceData) {
-                try {
-                    polygon = JSON.parse(geofence.geofenceData);
-                } catch(e) {}
-            }
-        }
+        const geofence = await geofenceRes.json();
+        if (!geofence || !geofence.geofencingEnabled || !geofence.geofenceData) return { allowed: true };
+        
+        const polygon = JSON.parse(geofence.geofenceData);
+        if (!polygon || polygon.length < 3) return { allowed: true };
 
-        // 2. Get Student Location (Always do this to simulate check)
+        // 2. Get Student Location
         let position;
         try {
             position = await getCurrentPosition();
         } catch (e) {
-            if (!geofencingEnabled) {
-                return { allowed: true };
-            }
             throw e;
         }
         
@@ -1262,19 +1254,13 @@ async function validateGeofence() {
         const accuracy = position.coords.accuracy;
         const studentPoint = [lat, lng];
         
-        console.log(`[Geofence] Location acquired (Accuracy: ${Math.round(accuracy)}m)`);
+        console.log(`[Geofence] Student at: ${lat}, ${lng} (Accuracy: ${Math.round(accuracy)}m)`);
         
         // Store for request
         currentCheckinContext.lat = lat;
         currentCheckinContext.lng = lng;
         
-        // If disabled, bypass AFTER simulating the check silently
-        if (!geofencingEnabled) {
-            return { allowed: true, lat, lng };
-        }
-
         // 3. Ray Casting Check
-        if (!polygon || polygon.length < 3) return { allowed: true, lat, lng };
         const isInside = isPointInPolygon(studentPoint, polygon);
         if (isInside) return { allowed: true, lat, lng };
 
