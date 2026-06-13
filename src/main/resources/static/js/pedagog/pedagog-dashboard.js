@@ -1516,11 +1516,13 @@ window.populateVersionDropdown = function () {
         select.innerHTML = '<option value="latest">Latest Active</option>';
         select.disabled = true;
         select.classList.add('cursor-not-allowed', 'bg-slate-100');
+        select.classList.remove('bg-white');
         return;
     }
 
     select.disabled = false;
     select.classList.remove('cursor-not-allowed', 'bg-slate-100');
+    select.classList.add('bg-white');
 
     select.innerHTML = window.timetableHistoryVersionMap.map(tt => {
         const isCurrent = tt.isActive ? ' (Active)' : '';
@@ -1535,8 +1537,10 @@ window.populateVersionDropdown = function () {
 };
 
 window.fetchTimetableByVersion = function () {
-    const version = document.getElementById('ttVersionSelect').value;
-    const tt = window.timetableHistoryVersionMap.find(t => t.version.toString() === version);
+    const versionStr = document.getElementById('ttVersionSelect').value;
+    if (versionStr === 'latest') return;
+    const versionInt = parseInt(versionStr, 10);
+    const tt = window.timetableHistoryVersionMap.find(t => t.version === versionInt);
     if (!tt) return;
     renderTimetableData(tt);
 };
