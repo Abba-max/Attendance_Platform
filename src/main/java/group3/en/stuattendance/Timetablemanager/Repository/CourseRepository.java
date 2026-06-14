@@ -28,13 +28,12 @@ public interface CourseRepository extends JpaRepository<Course, Integer> {
 
 
     @Cacheable(value = "semesterCourses")
-    @Query("SELECT DISTINCT c FROM Course c " +
-           "JOIN TimetableEntry te ON te.course.id = c.id " +
-           "JOIN Timetablecontent tc ON te.timetablecontent.id = tc.id " +
-           "WHERE tc.classroom.id = :classroomId " +
-           "AND tc.academicYear.id = :academicYearId " +
-           "AND tc.semester = :semester " +
-           "AND tc.isActive = true")
+    @Query("SELECT DISTINCT te.course FROM TimetableEntry te " +
+           "WHERE te.timetablecontent.classroom.classId = :classroomId " +
+           "AND te.timetablecontent.academicYear.id = :academicYearId " +
+           "AND te.timetablecontent.semester = :semester " +
+           "AND te.timetablecontent.isActive = true " +
+           "AND te.course IS NOT NULL")
     List<Course> findActualCoursesForClassroomAndSemester(
             @Param("classroomId") Integer classroomId,
             @Param("academicYearId") Long academicYearId,

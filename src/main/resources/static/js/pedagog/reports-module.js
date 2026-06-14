@@ -12,7 +12,14 @@ function getMondayOfISOWeek(week) {
     };
     
     const [currYear, currWeek] = getWeekNumber(today);
-    const diff = week - currWeek;
+    
+    // Parse '2024-W20' format
+    let targetWeek = week;
+    if (typeof week === 'string' && week.includes('-W')) {
+        targetWeek = parseInt(week.split('-W')[1], 10);
+    }
+    
+    const diff = targetWeek - currWeek;
     
     const monday = new Date();
     monday.setDate(today.getDate() + (diff * 7) - (today.getDay() === 0 ? 6 : today.getDay() - 1));
@@ -58,6 +65,14 @@ async function openReportPreview(pdfUrl, excelUrl) {
     // Reset state
     loading.classList.remove('hidden');
     frame.src = pdfUrl;
+    
+    // Safety fallback: hide loader after 8 seconds if onload doesn't fire
+    // (e.g. if the browser downloads the PDF instead of rendering it inline)
+    setTimeout(() => {
+        if (!loading.classList.contains('hidden')) {
+            loading.classList.add('hidden');
+        }
+    }, 8000);
     
     // Set download button actions
     btnPdf.onclick = () => window.open(pdfUrl, '_blank');
