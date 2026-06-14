@@ -779,6 +779,19 @@ body.dark .nav-desktop.active {
     z-index: 80;
 }
 
+@media (max-width: 640px) {
+    .dashboard-dropdown {
+        position: fixed;
+        top: 5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        width: calc(100vw - 2rem);
+        max-width: 24rem;
+        z-index: 100;
+    }
+}
+
 .dashboard-dropdown.hidden,
 .dashboard-modal.hidden {
     display: none !important;

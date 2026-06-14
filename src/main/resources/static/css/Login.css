@@ -621,6 +621,14 @@ input {
 
   .mobile-brand {
     display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .form-heading {
+    text-align: center;
   }
 
   .form-heading h2 {
@@ -643,7 +651,7 @@ input {
   }
 
   .form-panel {
-    align-items: start;
+    align-items: center;
     padding: 28px 18px;
   }
 

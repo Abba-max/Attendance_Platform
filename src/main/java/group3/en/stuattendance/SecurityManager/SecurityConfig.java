@@ -79,6 +79,22 @@ public class SecurityConfig {
                         .requestMatchers("/api/attendance/**").hasAnyRole("TEACHER", "PEDAGOG")
                         .anyRequest().authenticated() // ← doit toujours être en dernier
                 )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                            } else {
+                                response.sendRedirect("/login");
+                            }
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            if (request.getRequestURI().startsWith("/api/")) {
+                                response.sendError(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+                            } else {
+                                response.sendRedirect("/login");
+                            }
+                        })
+                )
 
                 .formLogin(form -> form
                         .loginPage("/login")

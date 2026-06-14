@@ -205,12 +205,7 @@
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo" class="w-8 h-8 sm:w-12 sm:h-12 flex-shrink-0 object-contain md:hidden rounded-lg sm:rounded-xl shadow-sm">
                 <div class="admin-header-title-lockup min-w-0">
-                    <span class="admin-institution-badge hidden sm:flex" aria-hidden="true">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M12 10h.01M15 10h.01"></path>
-                        </svg>
-                    </span>
+
                     <div class="min-w-0">
                         <h1 class="text-sm sm:text-lg md:text-xl font-black text-slate-900 tracking-tight truncate">Welcome, <span th:text="${firstName + ' ' + lastName}">Instructor</span></h1>
                         <p class="text-slate-500 text-[10px] sm:text-sm font-medium mt-0.5 flex items-center gap-1 sm:gap-2 truncate">
