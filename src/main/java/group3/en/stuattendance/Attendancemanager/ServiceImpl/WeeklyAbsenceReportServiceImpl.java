@@ -580,10 +580,10 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             table.addCell(createSpannedHeaderCell(courseName, 1, span, headerFont));
         }
 
-        table.addCell(createVerticalHeaderCell("Total H.", headerFont));
-        table.addCell(createVerticalHeaderCell("Total J.", headerFont));
-        table.addCell(createVerticalHeaderCell("Total NJ.", headerFont));
-        table.addCell(createVerticalHeaderCell("Nbre de RETARDS HEBDO", headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Total H.", 2, 1, headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Total J.", 2, 1, headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Total NJ.", 2, 1, headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Nbre de RETARDS HEBDO", 2, 1, headerFont));
 
         // Header Row 2
         for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
@@ -705,6 +705,12 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
 
     private PdfPCell createVerticalHeaderCell(String text, Font font) {
         PdfPCell cell = createSpannedHeaderCell(text, 1, 1, font);
+        cell.setRotation(90);
+        return cell;
+    }
+
+    private PdfPCell createVerticalSpannedHeaderCell(String text, int rowspan, int colspan, Font font) {
+        PdfPCell cell = createSpannedHeaderCell(text, rowspan, colspan, font);
         cell.setRotation(90);
         return cell;
     }
