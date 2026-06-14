@@ -19,8 +19,11 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.core.annotation.Order;
+
 @Component
 @RequiredArgsConstructor
+@Order(1)
 public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;

@@ -38,9 +38,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.springframework.context.annotation.Profile;
+
 @Slf4j
 @Component
 @Order(2) // Run after AdminDataInitialiser and DataInitializer
+@Profile("!prod") // Disable in production
 @RequiredArgsConstructor
 public class MockDataSeeder implements CommandLineRunner {
 

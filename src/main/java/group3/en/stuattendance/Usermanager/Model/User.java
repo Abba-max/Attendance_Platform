@@ -54,24 +54,24 @@ public class User {
     @ManyToMany
     @JoinTable(
         name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
+        joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "role_id", referencedColumnName = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
 
     @ManyToMany
     @JoinTable(
         name = "user_additional_permissions",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
+        joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id", referencedColumnName = "permission_id")
     )
     private Set<Permission> additionalPermissions = new HashSet<>();
 
     @ManyToMany
     @JoinTable(
         name = "user_denied_permissions",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "permission_id")
+        joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id", referencedColumnName = "permission_id")
     )
     private Set<Permission> deniedPermissions = new HashSet<>();
 
