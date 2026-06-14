@@ -72,18 +72,19 @@
         .session-card-grid { margin: 1px 4px; z-index: 10; }
 
         .day-tab {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .day-tab.active {
             background-color: #00B0FF !important;
             color: #FFFFFF !important;
             border-color: #00B0FF !important;
-            box-shadow: 0 8px 20px rgba(0, 176, 255, 0.3) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .day-tab.active {
+            background-color: #007BB5 !important;
+            border-color: #007BB5 !important;
+            box-shadow: 0 8px 20px rgba(0, 176, 255, 0.4) !important;
+            transform: scale(1.05);
         }
         .day-tab:hover:not(.active) {
-            background-color: #F0F9FF !important;
-            color: #00B0FF !important;
-            border-color: #00B0FF !important;
+            background-color: #0091D5 !important;
         }
         @keyframes shimmer {
             0% { transform: translateX(-100%); }
@@ -323,12 +324,12 @@
                     <!-- Mobile List View -->
                     <div class="md:hidden space-y-4">
                         <div id="mobile-day-picker" class="flex gap-2 overflow-x-auto pb-2 custom-scrollbar sticky -top-1 bg-slate-50 pt-4 z-20" style="scrollbar-width:none;">
-                            <button onclick="setMobileDay('MONDAY')" id="tab-MONDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Mon</button>
-                            <button onclick="setMobileDay('TUESDAY')" id="tab-TUESDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Tue</button>
-                            <button onclick="setMobileDay('WEDNESDAY')" id="tab-WEDNESDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Wed</button>
-                            <button onclick="setMobileDay('THURSDAY')" id="tab-THURSDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Thu</button>
-                            <button onclick="setMobileDay('FRIDAY')" id="tab-FRIDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Fri</button>
-                            <button onclick="setMobileDay('SATURDAY')" id="tab-SATURDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-200 bg-white shadow-sm shrink-0 transition-all">Sat</button>
+                            <button onclick="setMobileDay('MONDAY')" id="tab-MONDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Mon</button>
+                            <button onclick="setMobileDay('TUESDAY')" id="tab-TUESDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Tue</button>
+                            <button onclick="setMobileDay('WEDNESDAY')" id="tab-WEDNESDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Wed</button>
+                            <button onclick="setMobileDay('THURSDAY')" id="tab-THURSDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Thu</button>
+                            <button onclick="setMobileDay('FRIDAY')" id="tab-FRIDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Fri</button>
+                            <button onclick="setMobileDay('SATURDAY')" id="tab-SATURDAY" class="day-tab px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm shrink-0 transition-all">Sat</button>
                         </div>
                         <div id="student-schedule-stack" class="grid grid-cols-1 gap-3">
                             <p class="text-slate-500 text-sm italic col-span-full py-6 text-center">Loading schedule...</p>

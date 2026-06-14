@@ -427,8 +427,11 @@ function renderSessionCard(s, isGrid = false) {
     }
     
     // Mobile layout
-    const statusLabel = isLive ? 'LIVE' : (isMissed ? 'MISSED' : s.status);
-    const statusBg = isLive ? 'bg-blue-600 text-white animate-pulse' : (isMissed ? 'bg-slate-200 text-slate-500' : (isDone ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'));
+    const statusLabel = isLive ? 'LIVE' : (isMissed ? 'MISSED' : (isDone ? 'DONE' : 'WAIT'));
+    let statusBg = 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+    if (isLive) statusBg = 'bg-[#00B0FF] text-white shadow-md shadow-blue-500/30 animate-pulse';
+    else if (isDone) statusBg = 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30';
+    else if (isMissed) statusBg = 'bg-rose-100 text-rose-600 border border-rose-200';
 
     return `
         <div onclick="handleSessionClick(${s.sessionId}, '${s.status}')" class="bg-white p-5 rounded-2xl border-2 ${isLive ? 'border-[#00B0FF] shadow-lg shadow-blue-500/10' : 'border-slate-100'} ${isMissed ? 'opacity-60' : ''} hover:border-[#00B0FF]/30 cursor-pointer transition-all flex items-center justify-between group">

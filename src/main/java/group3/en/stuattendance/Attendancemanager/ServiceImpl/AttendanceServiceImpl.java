@@ -104,7 +104,9 @@ public class AttendanceServiceImpl implements AttendanceService {
         // Calculate total hours in session safely
         int totalHours = 1;
         if (session.getStartTime() != null && session.getEndTime() != null) {
-            totalHours = Math.max(1, (int) java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours());
+            long hours = java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours();
+            if (session.getEndTime().isBefore(session.getStartTime())) hours += 24;
+            totalHours = Math.max(1, (int) hours);
         }
         final int finalTotalHours = totalHours;
 
@@ -270,7 +272,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         int totalHours = 1;
         if (sessionStart != null && sessionEnd != null) {
-            totalHours = (int) ChronoUnit.HOURS.between(sessionStart, sessionEnd);
+            long hours = ChronoUnit.HOURS.between(sessionStart, sessionEnd);
+            if (sessionEnd.isBefore(sessionStart)) hours += 24;
+            totalHours = (int) hours;
         }
         if (totalHours < 1) totalHours = 1;
 
@@ -390,7 +394,9 @@ public class AttendanceServiceImpl implements AttendanceService {
         } else {
             int totalHours = 1;
             if (session.getStartTime() != null && session.getEndTime() != null) {
-                totalHours = (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+                long hours = ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime());
+                if (session.getEndTime().isBefore(session.getStartTime())) hours += 24;
+                totalHours = (int) hours;
             }
             if (totalHours < 1) totalHours = 1;
 
@@ -515,7 +521,9 @@ public class AttendanceServiceImpl implements AttendanceService {
 
         int totalHours = 1;
         if (session.getStartTime() != null && session.getEndTime() != null) {
-            totalHours = (int) java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours();
+            long hours = java.time.Duration.between(session.getStartTime(), session.getEndTime()).toHours();
+            if (session.getEndTime().isBefore(session.getStartTime())) hours += 24;
+            totalHours = (int) hours;
         }
         if (totalHours < 1) totalHours = 1;
 

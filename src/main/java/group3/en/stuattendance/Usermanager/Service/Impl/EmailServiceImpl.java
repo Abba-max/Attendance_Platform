@@ -111,7 +111,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(messageText, html);
             
             if (assistantEmail != null && !assistantEmail.isEmpty()) {
-                helper.setFrom(senderName + " <" + assistantEmail + ">");
+                helper.setFrom(senderName + " <" + fromEmail + ">");
                 helper.setReplyTo(assistantEmail);
             } else {
                 helper.setFrom("Attendance System <" + fromEmail + ">");
@@ -157,7 +157,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setTo(to);
             helper.setSubject("Attendee - Your Password Has Been Reset");
             helper.setText(text, html);
-            helper.setFrom(adminName + " <" + adminEmail + ">");
+            helper.setFrom(adminName + " <" + fromEmail + ">");
             helper.setReplyTo(adminEmail);
 
             helper.addInline("logo", new ClassPathResource("static/image/logo.png"));
@@ -197,7 +197,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(messageText, html);
 
             if (senderEmail != null && !senderEmail.isEmpty()) {
-                helper.setFrom(senderName + " <" + senderEmail + ">");
+                helper.setFrom(senderName + " <" + fromEmail + ">");
                 helper.setReplyTo(senderEmail);
             } else {
                 helper.setFrom(senderName + " <" + fromEmail + ">");

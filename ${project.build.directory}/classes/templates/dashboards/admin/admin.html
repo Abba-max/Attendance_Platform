@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendee - Administrator Dashboard</title>
+
+    <!-- PWA Integration headers -->
+    <th:block th:replace="~{fragments/pwa-meta :: pwa-headers}"></th:block>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-dashboard.css(v='20260613-dashboard-consistency')}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Leaflet for Geofencing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+</head>
+
+<body class="font-sans antialiased text-slate-800" data-dashboard-role="admin" th:attr="data-dashboard-name=${adminName ?: 'Administrator'},data-dashboard-email=${username ?: 'Account'}">
+    <div class="flex h-screen overflow-hidden relative">
+        <!-- Sidebar Overlay (Mobile) -->
+        <div id="sidebar-overlay" onclick="toggleMobileMenu()"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="sidebar glass-panel fixed lg:static left-0 top-0 h-screen w-80 flex-shrink-0 shadow-lg transition-all duration-300 z-[60]">
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center justify-between">
+                    <div class="dashboard-brand">
+                        <img th:src="@{/image/logo.png}" src="/image/logo.png" alt="Attendee Logo"
+                            class="w-16 h-16 object-contain rounded-2xl shadow-indigo-100/50 shadow-xl border border-white/20">
+                        <div>
+                            <span class="dashboard-brand-wordmark">ATTENDEE</span>
+                            <span class="dashboard-brand-subtitle">Management</span>
+                        </div>
+                    </div>
+                    <!-- Sidebar Close Button (Mobile Only) -->
+                    <button onclick="toggleMobileMenu()"
+                        class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 rounded-xl transition-all border border-slate-200 shadow-sm"
+                        aria-label="Close menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <nav class="p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <a href="#"
+                            class="nav-item active flex items-center gap-4 px-6 py-4 rounded-2xl text-white transition-all duration-300"
+                            data-section="dashboard">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                            <span class="font-medium">Overview</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="institutions">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Manage Institutions</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="academic-year">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Academic Year</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="access">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Manage Users</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="roles">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Roles & Permissions</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="#"
+                            class="nav-item flex items-center gap-4 px-6 py-4 rounded-xl text-gray-700 hover:bg-[#0091D5] transition-all duration-200"
+                            data-section="audit">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                </path>
+                            </svg>
+                            <span class="font-medium">Audit Logs</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content (Glass scroll container) -->
+        <main id="main-content" class="flex-1 overflow-y-auto custom-scrollbar relative">
+            <!-- Header (Floating Glass) -->
+            <header class="sticky top-4 mx-4 my-4 rounded-premium glass-panel z-50 px-8 py-4 flex items-center justify-between shadow-premium border border-white/30">
+                <div class="flex items-center justify-between w-full">
+                    <div class="flex items-center gap-4">
+                        <!-- Mobile Menu Toggle -->
+                        <button onclick="toggleMobileMenu()"
+                            class="lg:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-xl transition-all">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+
+                        <div class="admin-header-title-lockup">
+                            <span class="admin-institution-badge" aria-hidden="true">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M12 10h.01M15 10h.01">
+                                    </path>
+                                </svg>
+                            </span>
+                            <div>
+                            <h1 class="text-2xl font-black text-slate-800 tracking-tight">Saint Jean Ingenieur</h1>
+                            <p class="text-slate-500 text-sm font-medium mt-0.5 flex items-center gap-2">
+                                <span th:text="${institution != null ? institution : 'Central Institution'}">Admin
+                                    name</span>
+                                <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                <span class="text-emerald-600">Active Session</span>
+                            </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <!-- Theme Toggle -->
+                        <button id="theme-toggle" onclick="toggleTheme()"
+                            class="dashboard-theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+                            <svg id="theme-toggle-light-icon" class="theme-icon-sun hidden" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 3v1m0 16v1m9-9h1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.343l-.707-.707M12 5a7 7 0 100 14 7 7 0 000-14z">
+                                </path>
+                            </svg>
+                            <svg id="theme-toggle-dark-icon" class="theme-icon-moon hidden" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                                </path>
+                            </svg>
+                        </button>
+
+                        <!-- Notifications -->
+                        <div class="relative">
+                            <button
+                                class="dashboard-header-action relative" data-dashboard-notification-button title="Notifications" aria-label="Notifications">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9">
+                                    </path>
+                                </svg>
+                                <span th:if="${notifications != null and notifications > 0}"
+                                    class="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
+                            </button>
+                        </div>
+
+                        <!-- Settings (Previously Gear) -->
+                        <button
+                            class="dashboard-header-action" data-dashboard-modal="settings" title="Settings" aria-label="Settings">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                </path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+
+                        <div class="w-px h-6 bg-slate-200 mx-1"></div>
+
+                        <!-- Profile Dropdown -->
+                        <div class="relative group" id="profile-dropdown">
+                            <input type="file" id="avatarInput" accept="image/*" class="hidden">
+                            <button id="profile-btn"
+                                class="flex items-center gap-3 p-1.5 pr-4 pl-1.5 border border-slate-200 bg-slate-50 hover:bg-white hover:border-slate-300 hover:shadow-sm rounded-2xl transition-all duration-300 group" data-dashboard-profile-button>
+                                <div id="avatarContainer"
+                                    class="w-9 h-9 bg-blue-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-all duration-300 overflow-hidden">
+                                    <img id="userAvatar" src="" class="w-full h-full object-cover hidden">
+                                    <svg id="avatarPlaceholder" class="w-5 h-5" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                        </path>
+                                    </svg>
+                                </div>
+                                <div class="text-left hidden md:block">
+                                    <p class="text-[13px] font-bold text-slate-800 leading-none"
+                                        th:text="${adminName ?: 'Administrator'}">Administrator</p>
+                                    <p class="text-[11px] text-slate-500 font-medium mt-0.5">System Admin</p>
+                                </div>
+                                <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div id="profile-menu"
+                                class="absolute right-0 mt-3 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl shadow-slate-200/50 py-2 hidden z-50 transform origin-top-right transition-all duration-200">
+                                <div class="px-4 py-2 mb-1 border-b border-slate-50">
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Account Control
+                                    </p>
+                                </div>
+                                <a href="#" onclick="document.getElementById('avatarInput').click(); return false;"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                                        </path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Change Photo
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z">
+                                        </path>
+                                    </svg>
+                                    My Profile
+                                </a>
+                                <a href="#"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z">
+                                        </path>
+                                    </svg>
+                                    Settings
+                                </a>
+                                <div class="my-1 border-t border-slate-50"></div>
+                                <a th:href="@{/logout}" href="/logout"
+                                    class="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors font-semibold">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                                        </path>
+                                    </svg>
+                                    Sign Out
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+
+            <!-- Content Area -->
+            <div class="p-8">
+                <!-- Dashboard Overview Section -->
+                <section id="section-dashboard" class="content-section">
+                    <div class="mb-8">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-2" data-i18n="adminDashboardOverview">Dashboard Overview</h2>
+                        <p class="text-gray-600" data-i18n="adminOverviewSubtitle">Welcome back! Here's what's happening with your system today.</p>
+                    </div>
+
+                    <!-- Password Reset Requests Section -->
+                    <div th:if="${pendingResets != null and !pendingResets.isEmpty()}" class="mb-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <span class="w-2 h-8 bg-amber-500 rounded-full"></span>
+                                Security Requests
+                                <span class="ml-2 px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-bold rounded-full" th:text="${pendingResets.size()}">0</span>
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="request : ${pendingResets}" 
+                                 class="bg-white border-2 border-amber-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 font-bold">
+                                            <span th:text="${#strings.substring(request.user.username, 0, 1).toUpperCase()}">U</span>
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-slate-800" th:text="${request.user.username}">Username</div>
+                                            <div class="text-xs text-slate-500" th:text="${request.user.email}">user@example.com</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-[10px] font-bold text-amber-500 uppercase bg-amber-50 px-2 py-1 rounded-lg">Pending</div>
+                                </div>
+                                <div class="text-xs text-slate-500 mb-4 flex items-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Requested <span th:text="${#temporals.format(request.createdAt, 'MMM dd, HH:mm')}">Time</span>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button th:onclick="'openApproveResetModal(' + ${request.id} + ', \'' + ${request.user.username} + '\')'"
+                                            class="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all">
+                                        Approve
+                                    </button>
+                                    <button th:onclick="'handleRejectRequest(' + ${request.id} + ')'"
+                                            class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-all">
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Statistics -->
+                    <div class="mb-10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <span class="w-2 h-8 bg-[#00B0FF] rounded-full"></span>
+                                <span data-i18n="systemInsights">System Insights</span>
+                            </h3>
+                            <div class="text-xs font-medium text-slate-500 uppercase tracking-wider">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <!-- Stat Card: Users -->
+                            <div class="card-premium p-6 group relative overflow-hidden">
+                                <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors"></div>
+                                <div class="flex items-start justify-between mb-6 relative z-10">
+                                    <div class="space-y-1">
+                                        <p class="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]" data-i18n="totalUsers">Total Users</p>
+                                        <div class="flex items-baseline gap-2">
+                                            <p class="text-4xl font-black text-slate-800 tracking-tight" id="totalUsers"
+                                                th:text="${stats != null and stats.totalUsers != null ? #numbers.formatInteger(stats.totalUsers, 1, 'COMMA') : '0'}">
+                                                0</p>
+                                            <span class="text-[10px] font-black text-blue-600 bg-blue-100/50 px-2.5 py-1 rounded-full uppercase tracking-wider"
+                                                id="userGrowth"
+                                                th:text="${stats != null and stats.userGrowth != null ? stats.userGrowth : '+0%'}"></span>
+                                        </div>
+                                    </div>
+                                    <div class="w-12 h-12 bg-blue-100/50 text-blue-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 relative z-10 pt-4 border-t border-slate-100">
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] uppercase font-black text-slate-400 tracking-wider" data-i18n="students">Students</span>
+                                        <span class="text-sm font-black text-slate-700" id="studentCount" th:text="${stats?.studentCount ?: 0}">0</span>
+                                    </div>
+                                    <div class="flex flex-col">
+                                        <span class="text-[9px] uppercase font-black text-slate-400 tracking-wider" data-i18n="admins">Admins</span>
+                                        <span class="text-sm font-black text-slate-700" id="adminCount" th:text="${stats?.adminCount ?: 0}">0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Sessions Card (Light Yellow) -->
+                            <div
+                                class="group bg-amber-50/60 backdrop-blur-md border border-amber-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                <div
+                                    class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors">
+                                </div>
+                                <div class="flex items-start justify-between mb-6 relative z-10">
+                                    <div class="space-y-1">
+                                        <p class="text-amber-700/70 text-sm font-semibold uppercase tracking-tight">
+                                            <span data-i18n="activeSessions">Active Sessions</span></p>
+                                        <div class="flex items-baseline gap-2">
+                                            <p class="text-4xl font-black text-amber-900 tracking-tight"
+                                                id="activeSessions" th:text="${stats?.activeSessions ?: 0}">0</p>
+                                            <span
+                                                class="text-xs font-bold text-amber-600 bg-amber-100/50 px-2 py-0.5 rounded-full"></span>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-500">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Departments Card (Blue) -->
+                            <div
+                                class="group bg-blue-50/60 backdrop-blur-md border border-blue-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                <div
+                                    class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-colors">
+                                </div>
+                                <div class="flex items-start justify-between mb-6 relative z-10">
+                                    <div class="space-y-1">
+                                        <p class="text-blue-700/70 text-sm font-semibold uppercase tracking-tight">
+                                            <span data-i18n="departments">Departments</span></p>
+                                        <div class="flex items-baseline gap-2">
+                                            <p class="text-4xl font-black text-blue-900 tracking-tight"
+                                                id="departmentCount" th:text="${stats?.departmentCount ?: 0}">0</p>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/30 group-hover:scale-110 transition-transform duration-500">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="relative z-10 pt-2 border-t border-blue-100/50 flex items-center gap-2">
+                                    <span class="text-[10px] uppercase font-bold text-blue-400" data-i18n="totalStructures">Total Structures</span>
+                                </div>
+                            </div>
+
+                            <!-- Staff Card (Light Yellow) -->
+                            <div
+                                class="group bg-amber-50/60 backdrop-blur-md border border-amber-200/50 rounded-3xl p-6 shadow-md hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden relative">
+                                <div
+                                    class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-colors">
+                                </div>
+                                <div class="flex items-start justify-between mb-6 relative z-10">
+                                    <div class="space-y-1">
+                                        <p class="text-amber-700/70 text-sm font-semibold uppercase tracking-tight">
+                                            <span data-i18n="activeStaff">Active Staff</span></p>
+                                        <div class="flex items-baseline gap-2">
+                                            <p class="text-4xl font-black text-amber-900 tracking-tight" id="staffCount"
+                                                th:text="${stats?.staffCount ?: 0}">0</p>
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform duration-500">
+                                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div
+                                    class="relative z-10 pt-2 border-t border-amber-100/50 flex items-center justify-between">
+                                    <span class="text-[10px] uppercase font-bold text-amber-400"></span>
+                                    <span class="flex items-center gap-1">
+                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                                        <span class="text-[10px] font-bold text-amber-600 uppercase"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
+
+                <section id="section-institutions" class="content-section hidden px-4">
+                    <!-- Breadcrumb -->
+                    <div class="mb-6">
+                        <div id="breadcrumb" class="flex items-center text-sm text-slate-500 mb-2 font-medium">
+                            <span class="text-blue-500 cursor-pointer hover:text-blue-600 transition-colors"
+                                onclick="resetToAll()">Institutions</span>
+                            <span class="breadcrumb-sep mx-2 text-slate-300">/</span>
+                            <span class="text-slate-400"
+                                th:text="${!institutions.isEmpty() ? institutions[0].name : 'Central Institution'}">Central
+                                Institution</span>
+                        </div>
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <h2 class="text-2xl font-black text-slate-800 tracking-tight">Manage Hierarchy</h2>
+                                <p class="text-slate-500 text-sm">Organize cycles, departments, and classrooms for your
+                                    institution.</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button th:if="${!institutions.isEmpty()}"
+                                    th:onclick="'openGeofenceModal(' + ${institutions[0].institutionId} + ')'"
+                                    class="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Manage Geofence
+                                </button>
+                                <button onclick="openCreateCycleModal()"
+                                    class="flex items-center gap-2 px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Add New Cycle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search + Tabs + Sort -->
+                    <div class="bg-white rounded-3xl border border-slate-100 p-4 mb-2 shadow-sm">
+                        <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+                            <div class="relative flex-1 group">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors"
+                                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input id="manageSearchInput" type="text"
+                                    placeholder="Search cycles, departments, classrooms..."
+                                    class="w-full pl-9 pr-4 py-2.5 text-sm border border-slate-100 bg-slate-50/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all"
+                                    onkeyup="applyManageSearch()">
+                            </div>
+                            <div class="flex gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                                <button onclick="switchManageTab('cycles')"
+                                    class="main-tab active px-5 py-2 rounded-xl text-sm font-bold transition-all"
+                                    id="tab-cycles">Cycles</button>
+                                <button onclick="switchManageTab('departments')"
+                                    class="main-tab px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+                                    id="tab-departments">Departments</button>
+                                <button onclick="switchManageTab('specialities')"
+                                    class="main-tab px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+                                    id="tab-specialities">Specialities</button>
+                                <button onclick="switchManageTab('classrooms')"
+                                    class="main-tab px-5 py-2 rounded-xl text-sm font-bold text-slate-500 hover:text-slate-700 transition-all"
+                                    id="tab-classrooms">Classrooms</button>
+                            </div>
+                            <select id="manageSortSel" onchange="applyManageSearch()"
+                                class="px-4 py-2.5 text-sm border border-slate-100 bg-slate-50/50 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all font-bold text-slate-700">
+                                <option value="name">Sort: Name A→Z</option>
+                                <option value="name-desc">Sort: Name Z→A</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchical Filter Chips -->
+                    <div id="manageSubFilters" class="mb-8 space-y-3 hidden">
+                        <!-- Cycle Filters -->
+                        <div id="cycleFilterContainer" class="flex flex-wrap gap-2 items-center">
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Cycle:</span>
+                            <button onclick="setManageFilter('cycle', 'all')"
+                                class="cycle-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
+                                data-cycle-id="all">All Cycles</button>
+                            <button th:each="c : ${cycles}"
+                                th:onclick="'setManageFilter(\'cycle\', \'' + ${c.cycleId} + '\')'"
+                                class="cycle-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
+                                th:data-cycle-id="${c.cycleId}" th:text="${c.name}">Cycle</button>
+                        </div>
+                        <!-- Department Filters -->
+                        <div id="deptFilterContainer" class="flex flex-wrap gap-2 items-center hidden">
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Dept:</span>
+                            <button onclick="setManageFilter('dept', 'all')"
+                                class="dept-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
+                                data-dept-id="all">All Depts</button>
+                            <button th:each="d : ${allDepartments}"
+                                th:onclick="'setManageFilter(\'dept\', \'' + ${d.departmentId} + '\')'"
+                                class="dept-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
+                                th:data-dept-id="${d.departmentId}" th:data-cycle-id="${d.cycle?.cycleId}"
+                                th:text="${d.name}">Dept</button>
+                        </div>
+                        <!-- Speciality Filters -->
+                        <div id="specFilterContainer" class="flex flex-wrap gap-2 items-center hidden">
+                            <span
+                                class="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-2">Spec:</span>
+                            <button onclick="setManageFilter('spec', 'all')"
+                                class="spec-chip active px-4 py-1.5 rounded-full text-xs font-bold border-2 border-transparent transition-all"
+                                data-spec-id="all">All Specs</button>
+                            <button th:each="s : ${allSpecialities}"
+                                th:onclick="'setManageFilter(\'spec\', \'' + ${s.specialityId} + '\')'"
+                                class="spec-chip px-4 py-1.5 rounded-full text-xs font-bold border-2 border-slate-100 text-slate-500 bg-white hover:border-blue-200 transition-all"
+                                th:data-spec-id="${s.specialityId}" th:data-dept-id="${s.departmentId}"
+                                th:text="${s.name}">Spec</button>
+                        </div>
+                    </div>
+
+                    <!-- Content Panels -->
+                    <div id="view-cycles" class="view-panel space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="cycle : ${cycles}"
+                                class="cycle-card bg-white rounded-3xl border-2 border-slate-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${cycle.name}">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-black text-slate-800 tracking-tight"
+                                                th:text="${cycle.name}">Cycle Name</h3>
+                                            <p class="text-xs text-slate-500 font-medium"
+                                                th:text="${cycle.description}">Description</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:onclick="'handleViewCycle(' + ${cycle.cycleId} + ')'"
+                                            class="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                            title="View Details">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </button>
+                                        <button th:data-id="${cycle.cycleId}" th:data-name="${cycle.name}"
+                                            th:data-description="${cycle.description}"
+                                            onclick="openEditCycleModal(this.dataset.id, this.dataset.name, this.dataset.description)"
+                                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg></button>
+                                        <button th:data-id="${cycle.cycleId}"
+                                            onclick="handleDeleteCycle(this.dataset.id)"
+                                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg></button>
+                                    </div>
+                                </div>
+                                <div class="mt-6 pt-6 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex flex-col">
+                                            <span
+                                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Departments</span>
+                                            <span class="text-sm font-black text-slate-700"
+                                                th:text="${#sets.size(cycle.departments)}">0</span>
+                                        </div>
+                                    </div>
+                                    <button th:data-cycle-id="${cycle.cycleId}"
+                                        th:data-institution-id="${!institutions.isEmpty() ? institutions[0].institutionId : 'null'}"
+                                        onclick="openCreateDepartmentModal(this.dataset.cycleId, this.dataset.institutionId)"
+                                        class="text-blue-500 hover:text-blue-600 text-xs font-bold flex items-center gap-1 group/btn"><svg
+                                            class="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>Add Dept</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-departments" class="view-panel hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="dept : ${allDepartments}"
+                                class="dept-card bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${dept.name}" th:data-cycle-id="${dept.cycle?.cycleId}">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-black text-slate-800 tracking-tight"
+                                                th:text="${dept.name}">Department Name</h3>
+                                            <p class="text-xs text-slate-500 font-medium tracking-tight">Cycle: <span
+                                                    class="text-blue-500 font-bold"
+                                                    th:text="${dept.cycle?.name ?: 'None'}">Cycle</span></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:onclick="'handleViewDepartment(' + ${dept.departmentId} + ')'"
+                                            class="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                            title="View Details">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </button>
+                                        <button th:data-id="${dept.departmentId}" th:data-name="${dept.name}"
+                                            th:data-chief="${dept.chief != null ? dept.chief : ''}"
+                                            th:data-cycle-id="${dept.cycle != null ? dept.cycle.cycleId : 'null'}"
+                                            th:data-institution-id="${dept.institution != null ? dept.institution.institutionId : 'null'}"
+                                            th:data-pa-ids="${dept.pedagogicAssistants != null ? '[' + #strings.listJoin(dept.pedagogicAssistants.![userId], ',') + ']' : '[]'}"
+                                            th:data-supervisors="${dept.supervisors != null ? '[' + #strings.listJoin(dept.supervisors.![userId], ',') + ']' : '[]'}"
+                                            onclick="openEditDepartmentModal(this.dataset.id, this.dataset.name, this.dataset.chief, this.dataset.cycleId, this.dataset.institutionId, JSON.parse(this.dataset.paIds), JSON.parse(this.dataset.supervisors))"
+                                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Edit Settings"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg></button>
+                                        <button th:data-dept-id="${dept.departmentId}"
+                                            onclick="handleDeleteDepartment(this.dataset.deptId)"
+                                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg></button>
+                                    </div>
+                                </div>
+                                <div class="space-y-3 mb-6">
+                                    <div
+                                        class="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Chief</span>
+                                        <span class="text-xs font-black text-slate-700"
+                                            th:text="${dept.chief ?: 'Unassigned'}">Chief</span>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">P.A</span>
+                                        <span class="text-xs font-black text-blue-600"
+                                            th:text="${dept.pedagogicAssistants != null and !dept.pedagogicAssistants.isEmpty() ? dept.pedagogicAssistants.size() + ' assigned' : 'Unassigned'}">Assistant</span>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Specialities</span>
+                                        <span class="text-sm font-black text-slate-700"
+                                            th:text="${dept.specialities != null ? dept.specialities.size() : 0}">0</span>
+                                    </div>
+                                    <button th:data-dept-id="${dept.departmentId}"
+                                        onclick="openCreateSpecialityModal(this.dataset.deptId)"
+                                        class="text-blue-500 hover:text-blue-600 text-xs font-bold flex items-center gap-1 group/btn"><svg
+                                            class="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>Add Speciality</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-specialities" class="view-panel hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div th:each="spec : ${allSpecialities}"
+                                class="spec-card bg-white rounded-3xl border-2 border-blue-200 p-6 shadow-md hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${spec.name}" th:data-dept-id="${spec.departmentId}">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-4">
+                                        <div
+                                            class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a2 2 0 00-1.96 1.414l-.477 2.387a2 2 0 00.547 1.022l1.414 1.414a2 2 0 001.022.547l2.387.477a2 2 0 001.96-1.414l.477-2.387a2 2 0 00-.547-1.022l-1.414-1.414z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-black text-slate-800 tracking-tight"
+                                                th:text="${spec.name}">Speciality Name</h3>
+                                            <p class="text-xs text-slate-500 font-medium tracking-tight"
+                                                th:text="${spec.description}">Description</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:onclick="'handleViewSpeciality(' + ${spec.specialityId} + ')'"
+                                            class="p-2 text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all"
+                                            title="View Details">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
+                                        </button>
+                                        <button th:data-id="${spec.specialityId}" th:data-name="${spec.name}"
+                                            th:data-description="${spec.description}"
+                                            th:data-dept-id="${spec.departmentId}"
+                                            onclick="openEditSpecialityModal(this.dataset.id, this.dataset.name, this.dataset.description, this.dataset.deptId)"
+                                            class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-xl transition-all"
+                                            title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg></button>
+                                        <button th:data-id="${spec.specialityId}"
+                                            onclick="handleDeleteSpeciality(this.dataset.id)"
+                                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg></button>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <div class="flex flex-col">
+                                        <span
+                                            class="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Specialities</span>
+                                        <span class="text-sm font-black text-slate-700"
+                                            th:text="${#sets.size(spec.classrooms)}">0</span>
+                                    </div>
+                                    <button th:data-spec-id="${spec.specialityId}"
+                                        onclick="openCreateClassroomModalFromSpec(this.dataset.specId)"
+                                        class="text-blue-500 hover:text-blue-600 text-xs font-bold flex items-center gap-1 group/btn"><svg
+                                            class="w-3.5 h-3.5 group-hover/btn:rotate-90 transition-transform"
+                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4" />
+                                        </svg>New Room</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="view-classrooms" class="view-panel hidden space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div th:each="room : ${classrooms}"
+                                class="class-card bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 relative group"
+                                th:data-name="${room.name}" th:data-spec-id="${room.specialityId}"
+                                th:data-dept-id="${room.departmentId}">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h3 class="text-md font-black text-slate-800 tracking-tight"
+                                                th:text="${room.name}">Room Name</h3>
+                                            <p class="text-[10px] text-slate-400 font-bold uppercase tracking-tight"
+                                                th:text="${room.specialityName ?: 'No Speciality'}">Speciality</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button th:data-id="${room.classId}" th:data-name="${room.name}"
+                                            th:data-level="${room.level}" th:data-capacity="${room.capacity}"
+                                            th:data-spec-id="${room.specialityId}"
+                                            onclick="openEditClassroomModal(this.dataset.id, this.dataset.name, this.dataset.level, this.dataset.capacity, this.dataset.specId)"
+                                            class="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all"
+                                            title="Edit"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg></button>
+                                        <button th:data-id="${room.classId}"
+                                            onclick="handleDeleteClassroom(this.dataset.id)"
+                                            class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                            title="Delete"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M6 18L18 6M6 6l12 12" />
+                                            </svg></button>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-bold text-slate-400 uppercase tracking-wider">Level</span>
+                                        <span class="font-black text-slate-700" th:text="${room.level}">1</span>
+                                    </div>
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="font-bold text-slate-400 uppercase tracking-wider">Students</span>
+                                        <span class="font-black text-slate-700"><span
+                                                th:text="${room.studentCount ?: 0}">0</span>/<span
+                                                th:text="${room.capacity}">30</span></span>
+                                    </div>
+                                    <div
+                                        class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden shadow-inner">
+                                        <div class="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                            th:style="'width: ' + (${room.capacity != null and room.capacity > 0 ? ((room.studentCount ?: 0) * 100 / room.capacity) : 0}) + '%'">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Empty State (Should normally not happen if seeded) -->
+                        <div th:if="${institutions == null or #lists.isEmpty(institutions)}" class="col-span-full">
+                            <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center">
+                                <div class="flex flex-col items-center gap-4">
+                                    <div class="w-20 h-20 rounded-full bg-gray-50 flex items-center justify-center">
+                                        <svg class="w-10 h-10 text-gray-300" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-xl font-bold text-gray-800 mb-2">No institutions found</h3>
+                                        <p class="text-gray-500">The system requires at least one institution to be
+                                            seeded in the database.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                </section>
+
+                <section id="section-academic-year" class="content-section hidden px-4">
+                    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <h2 class="text-3xl font-black text-slate-800 tracking-tight">Academic Year Scheduling</h2>
+                            <p class="text-slate-500 text-sm font-medium">Manage hierarchical start/end dates for
+                                cycles, departments, and classes.</p>
+                        </div>
+                        <button onclick="openAddScheduleModal()"
+                            class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] hover:bg-[#0091D5] text-white rounded-2xl text-sm font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 group">
+                            <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300 text-white"
+                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add New Schedule
+                        </button>
+                    </div>
+
+                    <!-- Scheduling Grid -->
+                    <div
+                        class="group bg-white border border-slate-200 shadow-xl shadow-slate-200/50 rounded-[2rem] overflow-hidden transition-all duration-500">
+                        <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-blue-100 text-[#00B0FF] rounded-xl flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-slate-800 tracking-tight">Active Schedules</h3>
+                                    <p class="text-slate-500 text-xs font-semibold uppercase tracking-wider">
+                                        Hierarchical Date Overrides</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="loadScheduleGrid()"
+                                    class="p-2 text-slate-400 hover:text-[#00B0FF] hover:bg-blue-50 rounded-xl transition-all"
+                                    title="Refresh">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-50/50 border-b border-slate-100">
+                                    <tr>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">
+                                            Academic Year</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] w-1/4">
+                                            Scope / Target</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            Start Date</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                                            End Date</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                                            Status</th>
+                                        <th
+                                            class="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="scheduleGridBody" class="divide-y divide-slate-100">
+                                    <tr id="scheduleGridLoading">
+                                        <td colspan="6" class="px-4 py-16 text-center text-slate-500">
+                                            <div class="flex flex-col items-center gap-3">
+                                                <div
+                                                    class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin">
+                                                </div>
+                                                <span class="text-sm font-bold tracking-tight">Fetching
+                                                    schedules...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Add Schedule Modal -->
+                <div id="addScheduleModal"
+                    class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-300"
+                        id="addScheduleModalContent">
+                        <div
+                            class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                            <div class="flex items-center gap-3">
+                                <div
+                                    class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor"
+                                        viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-white text-white tracking-tight">Add Scoped Schedule</h3>
+                                    <p class="text-white/70 text-[10px] font-bold uppercase tracking-wider">Configure
+                                        Academic Period</p>
+                                </div>
+                            </div>
+                            <button onclick="closeAddScheduleModal()"
+                                class="text-white/80 hover:text-white transition-all bg-white/10 p-2 rounded-xl hover:bg-white/20">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="p-6 space-y-5">
+                            <div class="grid grid-cols-1 gap-5">
+                                <!-- Academic Year Input -->
+                                <div class="space-y-1.5">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Academic
+                                        Year</label>
+                                    <div class="relative group">
+                                        <div
+                                            class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#00B0FF] transition-colors">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                        <input type="text" id="schedAcademicYearName" placeholder="e.g., 2025-2026"
+                                            class="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] focus:bg-white transition-all outline-none">
+                                    </div>
+                                </div>
+
+                                <!-- Scope Type -->
+                                <div class="space-y-1.5">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Scope
+                                        Level</label>
+                                    <select id="schedScopeType" onchange="handleSchedScopeChange()"
+                                        class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] focus:bg-white transition-all outline-none appearance-none">
+                                        <option value="default">Global (Institution-wide)</option>
+                                        <option value="cycle_direct">Specific Cycle(s)</option>
+                                        <option value="cycle">Relational: Departments by Cycle</option>
+                                        <option value="department">Relational: Specialities by Department</option>
+                                        <option value="speciality">Relational: Classrooms by Speciality</option>
+                                    </select>
+                                </div>
+
+                                <!-- Relational Selection Flow -->
+
+                                <!-- Step for Direct Cycle Scope -->
+                                <div id="schedCycleDirectStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-3">
+                                    <label
+                                        class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                        Cycle(s)</label>
+                                    <div id="schedCycleCheckboxes" class="grid grid-cols-2 gap-3">
+                                        <th:block th:each="cycle : ${cycles}">
+                                            <div
+                                                class="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-100 rounded-xl hover:border-blue-200 transition-all cursor-pointer">
+                                                <input type="checkbox" name="schedDirectCycleIds"
+                                                    th:value="${cycle.cycleId}" th:id="'scd_' + ${cycle.cycleId}"
+                                                    class="rounded text-[#00B0FF] focus:ring-[#00B0FF]">
+                                                <label th:for="'scd_' + ${cycle.cycleId}"
+                                                    class="text-xs font-bold text-slate-700 cursor-pointer truncate"
+                                                    th:text="${cycle.name}"></label>
+                                            </div>
+                                        </th:block>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Cycle Scope: Select Cycle -->
+                                <div id="schedCycleStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Cycle</label>
+                                        <select id="schedCycleSelector" onchange="handleCycleSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Cycle --</option>
+                                            <th:block th:each="cycle : ${cycles}">
+                                                <option th:value="${cycle.cycleId}" th:text="${cycle.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedDeptListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Departments</label>
+                                        <div id="schedDeptCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Department Scope: Select Dept -->
+                                <div id="schedDeptStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Department</label>
+                                        <select id="schedDeptSelector" onchange="handleDeptSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Department --</option>
+                                            <th:block th:each="dept : ${allDepartments}">
+                                                <option th:value="${dept.departmentId}" th:text="${dept.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedSpecListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Specialities</label>
+                                        <div id="schedSpecCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Step 1 for Speciality Scope: Select Speciality -->
+                                <div id="schedSpecStep"
+                                    class="hidden animate-in slide-in-from-top-2 duration-300 space-y-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Select
+                                            Speciality</label>
+                                        <select id="schedSpecSelector" onchange="handleSpecSelectionChange()"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                            <option value="">-- Choose a Speciality --</option>
+                                            <th:block th:each="spec : ${allSpecialities}">
+                                                <option th:value="${spec.specialityId}" th:text="${spec.name}"></option>
+                                            </th:block>
+                                        </select>
+                                    </div>
+                                    <div id="schedClassBySpecListWrapper" class="hidden space-y-2">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Target
+                                            Classrooms</label>
+                                        <div id="schedClassBySpecCheckboxes"
+                                            class="grid grid-cols-2 gap-2 p-4 bg-slate-50/50 border border-slate-100 rounded-2xl max-h-40 overflow-y-auto custom-scrollbar">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Date Range -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">Start
+                                            Date</label>
+                                        <input type="date" id="schedStartDate"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                    </div>
+                                    <div class="space-y-1.5">
+                                        <label
+                                            class="block text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">End
+                                            Date</label>
+                                        <input type="date" id="schedEndDate"
+                                            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-blue-500/10 focus:border-[#00B0FF] transition-all outline-none">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p id="schedErrorMsg"
+                                class="text-rose-500 text-xs font-bold hidden flex items-center gap-2 bg-rose-50 p-3 rounded-xl border border-rose-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                <span id="schedErrorText">Details required</span>
+                            </p>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-3 p-6 border-t border-slate-100 bg-slate-50/50">
+                            <button onclick="closeAddScheduleModal()"
+                                class="px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-100 rounded-2xl transition-all">Discard</button>
+                            <button onclick="saveSchedule()"
+                                class="px-8 py-3 bg-[#00B0FF] hover:bg-[#0091D5] text-white text-sm font-black rounded-2xl shadow-lg shadow-blue-500/25 transition-all active:scale-95">
+                                Confirm & Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <section id="section-access" class="content-section hidden">
+                    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Manage Users</h2>
+                            <p class="text-gray-600">View, manage, and audit all system users.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <input type="text" id="userSearch" placeholder="Search users..."
+                                    class="pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] w-64 lg:w-80">
+                                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                            </div>
+                            <button onclick="openStaffModal()"
+                                class="flex items-center gap-2 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                <span>Add Staff</span>
+                            </button>
+                            <button onclick="openBulkImportModal()"
+                                class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-all font-medium shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span>Bulk Import</span>
+                            </button>
+                            <button onclick="refreshUsers()"
+                                class="p-2 text-[#00B0FF] hover:bg-[#00B0FF] hover:bg-opacity-10 rounded-xl transition-all">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                    </path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 flex flex-wrap gap-2">
+                        <button onclick="setRoleFilter('ALL')"
+                            class="role-filter-btn active px-4 py-2 rounded-xl text-sm font-bold bg-[#00B0FF] text-white transition-all shadow-sm">
+                            All
+                        </button>
+                        <button onclick="setRoleFilter('TEACHER')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Teachers
+                        </button>
+                        <button onclick="setRoleFilter('SUPERVISOR')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Supervisors
+                        </button>
+                        <button onclick="setRoleFilter('PEDAGOG')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Pedagogic Assistants
+                        </button>
+                        <button onclick="setRoleFilter('ADMIN')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Admins
+                        </button>
+                        <button onclick="setRoleFilter('STUDENT')"
+                            class="role-filter-btn px-4 py-2 rounded-xl text-sm font-bold bg-white text-slate-600 hover:bg-slate-50 transition-all border border-slate-100">
+                            Students
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left">
+                                <thead class="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th
+                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+                                            ID</th>
+                                        <th
+                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                            User</th>
+                                        <th
+                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                            Roles</th>
+
+                                        <th
+                                            class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">
+                                            Status</th>
+<!--                                        <th-->
+<!--                                                class="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center ">-->
+<!--                                            Speciality</th>-->
+                                        <th
+                                            class="px-8 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">
+                                            Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="userTableBody" class="divide-y divide-gray-100">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <div
+                                                    class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin">
+                                                </div>
+                                                <span>Loading users...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="section-roles" class="content-section hidden">
+
+                    <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Role & Permission Settings</h2>
+                            <p class="text-gray-600">Configure system roles and their associated permissions.</p>
+                        </div>
+                        <button onclick="openManagePermissionsModal()"
+                            class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 flex items-center gap-2 transition-colors shadow-sm">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4">
+                                </path>
+                            </svg>
+                            <span>Manage Permissions</span>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8" id="rolesGrid">
+                        <!-- Roles and their permissions will be rendered here -->
+                        <div class="col-span-1 lg:col-span-2 flex justify-center py-12">
+                            <div class="flex flex-col items-center gap-2 text-gray-500">
+                                <div
+                                    class="w-8 h-8 border-4 border-[#00B0FF] border-t-transparent rounded-full animate-spin">
+                                </div>
+                                <span>Loading roles and permissions...</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <section id="section-audit" class="content-section hidden">
+                    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-3xl font-bold text-gray-800 mb-2">Audit Logs</h2>
+                            <p class="text-gray-600">Complete record of system activities and security events.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="exportAuditLogs()"
+                                class="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-slate-900 transition-all font-medium shadow-sm">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm p-6 mb-6">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="flex-1 relative">
+                                <input type="text" id="auditSearchInput" placeholder="Search by user, action, target..."
+                                    class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                                <svg class="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none"
+                                    stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="auditCategoryFilter"
+                                    class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium text-gray-600">
+                                    <option value="">All Categories</option>
+                                    <option value="USER_MANAGEMENT">User Management</option>
+                                    <option value="INSTITUTION_MANAGEMENT">Institution Management</option>
+                                    <option value="ATTENDANCE">Attendance</option>
+                                    <option value="SESSION_MANAGEMENT">Session Management</option>
+                                    <option value="JUSTIFICATION">Justification Management</option>
+                                    <option value="SECURITY">Security</option>
+                                </select>
+                                <select id="auditSeverityFilter"
+                                    class="px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium text-gray-600">
+                                    <option value="">All Severities</option>
+                                    <option value="INFO">Info</option>
+                                    <option value="WARNING">Warning</option>
+                                    <option value="ERROR">Error</option>
+                                </select>
+                                <button onclick="loadAuditLogs(0)"
+                                    class="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                                        </path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-100">
+                        <div class="overflow-x-auto custom-scrollbar">
+                            <table class="w-full text-left">
+                                <thead
+                                    class="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4">Timestamp</th>
+                                        <th class="px-6 py-4">User & Role</th>
+                                        <th class="px-6 py-4">Action</th>
+                                        <th class="px-6 py-4">Target</th>
+                                        <th class="px-6 py-4">Category & Severity</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="auditLogsTableBody" class="divide-y divide-slate-100">
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12 text-center text-slate-500">
+                                            <div class="flex flex-col items-center gap-2">
+                                                <div
+                                                    class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin">
+                                                </div>
+                                                <span>Loading data...</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div
+                            class="bg-slate-50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100">
+                            <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                Showing <span id="auditEntriesStart" class="text-slate-600">0</span> to <span
+                                    id="auditEntriesEnd" class="text-slate-600">0</span> of <span id="auditTotalEntries"
+                                    class="text-slate-600">0</span> logs
+                            </div>
+                            <div class="flex items-center gap-2" id="auditPaginationControls">
+                                <button id="auditPrevBtn"
+                                    class="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M15 19l-7-7 7-7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                                <div id="auditPageNumbers" class="flex gap-1 text-sm font-bold"></div>
+                                <button id="auditNextBtn"
+                                    class="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path d="M9 5l7 7-7 7" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Staff Registration Modal -->
+    <div id="staffModal" class="fixed inset-0   z-50 hidden flex items-center justify-center p-4 ">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="staffModalContent">
+            <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+                <h3 class="text-xl font-bold">Register New Staff Member</h3>
+                <button onclick="closeStaffModal()"
+                    class="p-1 hover:bg-[#0091D5] hover:bg-opacity-20 rounded-lg transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="staffForm" class="p-6 space-y-4 w-auto h-auto ">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">First Name</label>
+                        <input type="text" name="firstName" required
+                            class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                            placeholder="e.g. John">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Last Name</label>
+                        <input type="text" name="lastName" required
+                            class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                            placeholder="e.g. Smith">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Email Address</label>
+                    <input type="email" name="email" required
+                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                        placeholder="e.g. john.smith@institution.com">
+                </div>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <div class="flex gap-3">
+                        <svg class="w-5 h-5 text-blue-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="text-xs text-blue-700 leading-relaxed">
+                            <strong>Automatic Setup:</strong>
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Assigned Role</label>
+                    <select name="roleNames" required multiple
+                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all min-h-[100px]">
+                        <!-- Roles will be populated here -->
+                    </select>
+                    <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple roles.</p>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeStaffModal()"
+                        class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-md flex items-center justify-center gap-2">
+                        <span>Create Account</span>
+                        <div id="staffSubmitLoader"
+                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Role Modal -->
+    <div id="roleModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="roleModalContent">
+            <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
+                <h3 class="text-xl font-bold">Create New Role</h3>
+                <button onclick="closeCreateRoleModal()"
+                    class="p-1 hover:bg-[#0091D5] hover:bg-opacity-20 rounded-lg transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="roleForm" onsubmit="handleCreateRole(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Role Name</label>
+                    <input type="text" name="name" required
+                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                        placeholder="e.g. LAB_MANAGER">
+                    <p class="text-xs text-gray-500 mt-1">Use uppercase letters and underscores.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3"
+                        class="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00B0FF] transition-all"
+                        placeholder="Describe the responsibilities of this role..."></textarea>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeCreateRoleModal()"
+                        class="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 transition-all font-medium">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 px-4 py-2 bg-[#00B0FF] text-white rounded-xl hover:bg-[#0091D5] transition-all font-medium shadow-md flex items-center justify-center gap-2">
+                        <span>Create Role</span>
+                        <div id="roleSubmitLoader"
+                            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                        </div>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Manage Permissions Modal -->
+    <div id="permissionsModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-95 opacity-0 duration-300 flex flex-col max-h-[90vh]"
+            id="permissionsModalContent">
+            <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center flex-shrink-0">
+                <h3 class="text-xl font-bold bg-[#00B0FF] text-white">Manage Permissions</h3>
+                <button onclick="closeManagePermissionsModal()"
+                    class="p-1 hover:bg-gray-700 rounded-lg transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                <!-- Create Form -->
+                <form onsubmit="handleCreatePermission(event)"
+                    class="mb-8 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <h4 class="text-sm font-bold text-gray-700 uppercase tracking-wider mb-4">Create New Permission</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="md:col-span-1">
+                            <input type="text" name="name" required
+                                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00B0FF] text-sm"
+                                placeholder="Name (e.g. USER_READ)">
+                        </div>
+                        <div class="md:col-span-2 flex gap-2">
+                            <input type="text" name="description"
+                                class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00B0FF] text-sm"
+                                placeholder="Description">
+                            <button type="submit"
+                                class="px-4 py-2 bg-[#00B0FF] text-white rounded-lg hover:bg-[#0091D5] transition-colors text-sm font-medium whitespace-nowrap">
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- List -->
+                <div class="space-y-2" id="permissionsList">
+                    <!-- Dynamic Content -->
+                    <div class="text-center py-8 text-gray-500">Loading permissions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Year Modal -->
+    <div id="academicYearModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
+            id="academicYearModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-cyan-600 text-white">
+                <h3 class="text-xl font-bold">Launch Academic Year</h3>
+                <button onclick="closeAcademicYearModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="academicYearForm" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Academic Year Name</label>
+                    <input type="text" id="ay_name" required placeholder="e.g., 2024/2025"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Start Date</label>
+                        <input type="date" id="ay_startDate" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">End Date</label>
+                        <input type="date" id="ay_endDate" required
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                    <input type="checkbox" id="ay_isActive"
+                        class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-slate-300" checked>
+                    <label for="ay_isActive" class="text-sm font-medium text-blue-800">Set as current active
+                        year</label>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeAcademicYearModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">
+                        Launch Year
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Institution Modals -->
+    <!-- Edit Institution Modal -->
+    <div id="editInstitutionModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="editInstitutionModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold">Edit Institution</h3>
+                <button onclick="closeEditInstitutionModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editInstitutionForm" th:action="@{/admin/institutions/edit/0}" method="post"
+                class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editInstId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Institution Name</label>
+                    <input type="text" name="name" id="editInstName" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Location</label>
+                    <input type="text" name="location" id="editInstLocation" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditInstitutionModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Cycle Modal -->
+    <div id="cycleModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="cycleModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold">Create New Cycle</h3>
+                <button onclick="closeCreateCycleModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form th:action="@{/admin/cycles/create}" method="post" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Cycle Name</label>
+                    <input type="text" name="name" required placeholder="e.g., Bachelor, Master, Engineering"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]-500/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]-500/20 focus:border-[#00B0FF] transition outline-none"
+                        placeholder="Brief description of this cycle"></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateCycleModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create
+                        Cycle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- Edit Cycle Modal -->
+    <div id="editCycleModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="editCycleModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Edit Cycle</h3>
+                <button onclick="closeEditCycleModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editCycleForm" action="" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editCycleId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Cycle Name</label>
+                    <input type="text" name="name" id="editCycleName" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" id="editCycleDescription" rows="3"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none"
+                        placeholder="Brief description of this cycle"></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditCycleModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Department Modal -->
+    <div id="departmentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="departmentModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Create New Department</h3>
+                <button onclick="closeCreateDepartmentModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="departmentForm" th:action="@{/admin/departments/create}" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="cycleId" id="deptCycleId">
+                <input type="hidden" name="institutionId" id="deptInstitutionId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Name</label>
+                    <input type="text" name="name" required placeholder="e.g., Computer Science"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Chief</label>
+                    <input type="text" name="chief" placeholder="Name of department chief"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <!-- Custom Multi-select for PAs -->
+                <div class="relative multi-select-dropdown" id="paCreateDropdown">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Pedagogic Assistants</label>
+                    <button type="button" onclick="toggleMultiSelect('paCreateDropdown')"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between hover:border-blue-400 transition outline-none">
+                        <span class="selected-text text-sm text-slate-500">Select PAs...</span>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        class="dropdown-content absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] hidden max-h-60 overflow-y-auto p-2 space-y-1">
+                        <div class="p-2 border-b border-slate-50 mb-1">
+                            <input type="text" placeholder="Search assistants..." onkeyup="filterMultiSelect(this)"
+                                class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-100 rounded-md focus:outline-none">
+                        </div>
+                        <div th:each="pa : ${pedagogicAssistants}"
+                            class="flex items-center px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer group"
+                            th:onclick="'toggleOption(this, \'paCreateDropdown\', \'' + ${pa.userId} + '\')'">
+                            <div
+                                class="w-4 h-4 border-2 border-slate-200 rounded flex items-center justify-center transition-colors group-hover:border-blue-400 checkbox-indicator">
+                                <svg class="w-3 h-3 text-white hidden" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                </svg>
+                            </div>
+                            <span class="ml-3 text-xs text-slate-600 font-medium" th:text="${pa.username}">PA
+                                Name</span>
+                            <input type="checkbox" name="pedagogicAssistantIds" th:value="${pa.userId}" class="hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Multi-select for Supervisors -->
+                <div class="relative multi-select-dropdown" id="supCreateDropdown">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Supervisors</label>
+                    <button type="button" onclick="toggleMultiSelect('supCreateDropdown')"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between hover:border-blue-400 transition outline-none">
+                        <span class="selected-text text-sm text-slate-500">Select Supervisors...</span>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        class="dropdown-content absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] hidden max-h-60 overflow-y-auto p-2 space-y-1">
+                        <div class="p-2 border-b border-slate-50 mb-1">
+                            <input type="text" placeholder="Search supervisors..." onkeyup="filterMultiSelect(this)"
+                                class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-100 rounded-md focus:outline-none">
+                        </div>
+                        <div th:each="sup : ${supervisors}"
+                            class="flex items-center px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer group"
+                            th:onclick="'toggleOption(this, \'supCreateDropdown\', \'' + ${sup.userId} + '\')'">
+                            <div
+                                class="w-4 h-4 border-2 border-slate-200 rounded flex items-center justify-center transition-colors group-hover:border-blue-400 checkbox-indicator">
+                                <svg class="w-3 h-3 text-white hidden" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                </svg>
+                            </div>
+                            <span class="ml-3 text-xs text-slate-600 font-medium"
+                                th:text="${sup.username}">Supervisor</span>
+                            <input type="checkbox" name="supervisorIds" th:value="${sup.userId}" class="hidden">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateDepartmentModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create
+                        Department</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Department Modal -->
+    <div id="editDepartmentModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="editDepartmentModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Edit Department</h3>
+                <button onclick="closeEditDepartmentModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editDepartmentForm" action="" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editDeptId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Cycle</label>
+                    <select name="cycleId" id="editDeptCycleId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                        <option th:each="c : ${cycles}" th:value="${c.cycleId}" th:text="${c.name}">Cycle Name</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Institution</label>
+                    <select name="institutionId" id="editDeptInstitutionId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                        <option th:each="i : ${institutions}" th:value="${i.institutionId}" th:text="${i.name}">
+                            Institution Name</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Name</label>
+                    <input type="text" name="name" id="editDeptName" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department Chief</label>
+                    <input type="text" name="chief" id="editDeptChief" placeholder="Name of department chief"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <!-- Custom Multi-select for PAs (Edit) -->
+                <div class="relative multi-select-dropdown" id="paEditDropdown">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Pedagogic Assistants</label>
+                    <button type="button" onclick="toggleMultiSelect('paEditDropdown')"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between hover:border-blue-400 transition outline-none">
+                        <span class="selected-text text-sm text-slate-500">Select PAs...</span>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        class="dropdown-content absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] hidden max-h-60 overflow-y-auto p-2 space-y-1">
+                        <div class="p-2 border-b border-slate-50 mb-1">
+                            <input type="text" placeholder="Search assistants..." onkeyup="filterMultiSelect(this)"
+                                class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-100 rounded-md focus:outline-none">
+                        </div>
+                        <div th:each="pa : ${pedagogicAssistants}"
+                            class="flex items-center px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer group"
+                            th:onclick="'toggleOption(this, \'paEditDropdown\', \'' + ${pa.userId} + '\')'">
+                            <div
+                                class="w-4 h-4 border-2 border-slate-200 rounded flex items-center justify-center transition-colors group-hover:border-blue-400 checkbox-indicator">
+                                <svg class="w-3 h-3 text-white hidden" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                </svg>
+                            </div>
+                            <span class="ml-3 text-xs text-slate-600 font-medium" th:text="${pa.username}">PA
+                                Name</span>
+                            <input type="checkbox" name="pedagogicAssistantIds" th:value="${pa.userId}" class="hidden">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Multi-select for Supervisors (Edit) -->
+                <div class="relative multi-select-dropdown" id="supEditDropdown">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Supervisors</label>
+                    <button type="button" onclick="toggleMultiSelect('supEditDropdown')"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between hover:border-blue-400 transition outline-none">
+                        <span class="selected-text text-sm text-slate-500">Select Supervisors...</span>
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7">
+                            </path>
+                        </svg>
+                    </button>
+                    <div
+                        class="dropdown-content absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-xl z-[60] hidden max-h-60 overflow-y-auto p-2 space-y-1">
+                        <div class="p-2 border-b border-slate-50 mb-1">
+                            <input type="text" placeholder="Search supervisors..." onkeyup="filterMultiSelect(this)"
+                                class="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-100 rounded-md focus:outline-none">
+                        </div>
+                        <div th:each="sup : ${supervisors}"
+                            class="flex items-center px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer group"
+                            th:onclick="'toggleOption(this, \'supEditDropdown\', \'' + ${sup.userId} + '\')'">
+                            <div
+                                class="w-4 h-4 border-2 border-slate-200 rounded flex items-center justify-center transition-colors group-hover:border-blue-400 checkbox-indicator">
+                                <svg class="w-3 h-3 text-white hidden" fill="currentColor" viewBox="0 0 20 20">
+                                    <path
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                                </svg>
+                            </div>
+                            <span class="ml-3 text-xs text-slate-600 font-medium"
+                                th:text="${sup.username}">Supervisor</span>
+                            <input type="checkbox" name="supervisorIds" th:value="${sup.userId}" class="hidden">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditDepartmentModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Classroom Modal -->
+    <div id="classroomModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="classroomModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Create New Classroom</h3>
+                <button onclick="closeCreateClassroomModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="classroomForm" th:action="@{/admin/classrooms/create}" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="specialityId" id="classroomSpecialityId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Speciality</label>
+                    <select id="classroomSpecialitySelect"
+                        class="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-500 cursor-not-allowed"
+                        disabled>
+                        <option value="">Select Speciality</option>
+                        <option th:each="s : ${allSpecialities}" th:value="${s.specialityId}" th:text="${s.name}">Spec
+                        </option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Classroom Name</label>
+                    <input type="text" name="name" required placeholder="e.g., CS-101"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Level</label>
+                        <input type="number" name="level" required min="1"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Capacity</label>
+                        <input type="number" name="capacity" required min="1"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateClassroomModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create
+                        Classroom</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Classroom Modal -->
+    <div id="editClassroomModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="editClassroomModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl  text-white">Edit Classroom</h3>
+                <button onclick="closeEditClassroomModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editClassroomForm" action="" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editClassroomId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Speciality</label>
+                    <select name="specialityId" id="editClassroomSpecId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                        <option th:each="s : ${allSpecialities}" th:value="${s.specialityId}" th:text="${s.name}">
+                            Speciality Name</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Classroom Name</label>
+                    <input type="text" name="name" id="editClassroomName" required placeholder="e.g., CS-101"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Level</label>
+                        <input type="number" name="level" id="editClassroomLevel" required min="1"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Capacity</label>
+                        <input type="number" name="capacity" id="editClassroomCapacity" required min="1"
+                            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition outline-none">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditClassroomModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Speciality Modal -->
+    <div id="specialityModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="specialityModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Create New Speciality</h3>
+                <button onclick="closeCreateSpecialityModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="specialityForm" th:action="@{/admin/specialities/create}" method="post" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department</label>
+                    <select name="departmentId" id="specialityDeptId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                        <option value="">Select Department</option>
+                        <option th:each="d : ${allDepartments}" th:value="${d.departmentId}" th:text="${d.name}">Dept
+                        </option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Speciality Name</label>
+                    <input type="text" name="name" required placeholder="e.g., Software Engineering"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none"
+                        placeholder="Brief description of the speciality..."></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeCreateSpecialityModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Create
+                        Speciality</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Speciality Modal -->
+    <div id="editSpecialityModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            id="editSpecialityModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Edit Speciality</h3>
+                <button onclick="closeEditSpecialityModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <form id="editSpecialityForm" action="" method="post" class="p-6 space-y-4">
+                <input type="hidden" name="id" id="editSpecialityId">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Department</label>
+                    <select name="departmentId" id="editSpecialityDeptId" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                        <option th:each="d : ${allDepartments}" th:value="${d.departmentId}" th:text="${d.name}">Dept
+                        </option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Speciality Name</label>
+                    <input type="text" name="name" id="editSpecialityName" required
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Description</label>
+                    <textarea name="description" id="editSpecialityDescription" rows="3"
+                        class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#00B0FF]/20 focus:border-[#00B0FF] transition outline-none"></textarea>
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button type="button" onclick="closeEditSpecialityModal()"
+                        class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                    <button type="submit"
+                        class="flex-1 py-2.5 bg-[#00B0FF] hover:bg-[#0091D5] text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition">Save
+                        Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Approve Password Reset Modal -->
+    <div id="approveResetModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-amber-500 text-white">
+                <h3 class="text-xl font-bold text-white">Approve Reset Request</h3>
+                <button onclick="closeApproveResetModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-sm text-slate-600">
+                    You are approving a password reset for <span id="resetTargetUser" class="font-bold text-slate-800"></span>. 
+                    Please provide a temporary password that will be sent to the user via email.
+                </p>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Temporary Password</label>
+                    <input type="text" id="tempPassword" placeholder="Enter temporary password"
+                           class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:bg-white transition-all outline-none">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeApproveResetModal()"
+                            class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition">Cancel</button>
+                    <button id="confirmApproveBtn" onclick="submitApproveReset()"
+                            class="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-2xl shadow-lg shadow-amber-500/20 transition-all active:scale-95">
+                        Send Notification
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Geofence Modal -->
+    <div th:replace="~{fragments/ui :: geofenceModal}"></div>
+
+    <script>
+        // Inline setup for dynamic role injection in modal if needed before main JScutes
+    </script>
+
+    <!-- Bulk Import Modal -->
+    <div id="bulkImportModal" class="fixed inset-0 bg-slate-900/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300 max-h-[90vh] overflow-y-auto"
+            id="bulkImportModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <h3 class="text-xl font-bold text-white">Bulk Staff Import</h3>
+                <button onclick="closeBulkImportModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-6">
+                <!-- Step 1: Info & Template -->
+                <div id="bulkImportStep1" class="space-y-4">
+                    <div class="bg-blue p-4 rounded-xl border border-emerald-100">
+                        <h4 class="text-sm font-bold text-emerald-800 mb-2">Instructions</h4>
+                        <ul class="text-xs text-emerald-700 space-y-1">
+                            <li>• File must be in CSV format.</li>
+                            <li>• Header row is required: <b>firstname,lastname,email,role</b></li>
+                            <li>• Role must be <b>PEDAGOG</b>, <b>TEACHER</b> or <b>SUPERVISOR</b>.</li>
+                            <li>• Unique passwords will be emailed to each user.</li>
+                        </ul>
+                    </div>
+                    <div class="flex justify-center">
+                        <button onclick="downloadCsvTemplate()"
+                            class="text-blue-500 hover:text-blue-600 text-sm font-bold flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download CSV Template
+                        </button>
+                    </div>
+                    <div class="mt-4">
+                        <label
+                            class="block w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/30 transition-all">
+                            <input type="file" id="csvFileInput" class="hidden" accept=".csv"
+                                onchange="handleFileSelection(event)">
+                            <div class="flex flex-col items-center gap-2">
+                                <div
+                                    class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                </div>
+                                <span class="text-sm font-bold text-slate-700" id="selectedFileName">Choose CSV
+                                    file</span>
+                                <span class="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Max size:
+                                    5MB</span>
+                            </div>
+                        </label>
+                    </div>
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="closeBulkImportModal()"
+                            class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Cancel</button>
+                        <button id="startImportBtn" onclick="startImport()" disabled
+                            class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <span>Start Import</span>
+                            <div id="importLoader"
+                                class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin hidden">
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 1.5: Preview -->
+                <div id="bulkImportPreview" class="hidden space-y-4">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest">Data Preview</h4>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold uppercase">Ready to Import</span>
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl bg-slate-50/30">
+                        <table class="w-full text-left text-[11px]">
+                            <thead class="bg-slate-100 sticky top-0 z-10">
+                                <tr>
+                                    <th class="px-3 py-2 font-bold text-slate-600">First Name</th>
+                                    <th class="px-3 py-2 font-bold text-slate-600">Last Name</th>
+                                    <th class="px-3 py-2 font-bold text-slate-600">Email</th>
+                                    <th class="px-3 py-2 font-bold text-slate-600">Role</th>
+                                </tr>
+                            </thead>
+                            <tbody id="previewTableBody" class="divide-y divide-slate-100 bg-white">
+                                <!-- Data injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pt-4 flex gap-3">
+                        <button onclick="backToUpload()"
+                            class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg transition">Back</button>
+                        <button id="confirmImportBtn" onclick="confirmImport()"
+                            class="flex-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-md transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Confirm & Save
+                        </button>
+                    </div>
+                </div>
+                <div id="bulkImportStep2" class="hidden space-y-4">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                            <span class="block text-xs font-bold text-slate-400 uppercase">Total</span>
+                            <span id="res_total" class="text-xl font-black text-slate-800">0</span>
+                        </div>
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-center">
+                            <span class="block text-xs font-bold text-emerald-400 uppercase">Success</span>
+                            <span id="res_success" class="text-xl font-black text-emerald-600">0</span>
+                        </div>
+                        <div class="bg-rose-50 p-3 rounded-xl border border-rose-100 text-center">
+                            <span class="block text-xs font-bold text-rose-400 uppercase">Failed</span>
+                            <span id="res_failed" class="text-xl font-black text-rose-600">0</span>
+                        </div>
+                    </div>
+
+                    <div id="errorListContainer" class="hidden">
+                        <h4 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Error Details</h4>
+                        <div class="max-h-48 overflow-y-auto custom-scrollbar border border-slate-100 rounded-xl">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 font-bold text-slate-500">Row</th>
+                                        <th class="px-3 py-2 font-bold text-slate-500">Target</th>
+                                        <th class="px-3 py-2 font-bold text-slate-500">Issue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="importErrorTable" class="divide-y divide-slate-50">
+                                    <!-- Errors injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="pt-4">
+                        <button onclick="closeBulkImportModal()"
+                            class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition">Finish
+                            & Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Generic Detail View Modal -->
+    <div id="detailViewModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+            id="detailViewModalContent">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-[#00B0FF] text-white">
+                <div>
+                    <h3 class="text-xl font-bold text-white" id="detailModalTitle">Entity Details</h3>
+                    <p class="text-blue-100 text-xs mt-1" id="detailModalSubtitle">Viewing detailed information</p>
+                </div>
+                <button onclick="closeDetailModal()" class="text-white/80 hover:text-white transition">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="p-8 max-h-[80vh] overflow-y-auto custom-scrollbar" id="detailModalBody">
+                <!-- Content injected via JS -->
+                <div class="animate-pulse space-y-4">
+                    <div class="h-4 bg-slate-100 rounded w-3/4"></div>
+                    <div class="h-4 bg-slate-100 rounded"></div>
+                    <div class="h-4 bg-slate-100 rounded w-5/6"></div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-50 bg-slate-50/50 flex justify-end">
+                <button onclick="closeDetailModal()"
+                    class="px-6 py-2.5 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition active:scale-95 shadow-sm">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shared UI Components -->
+    <div th:replace="~{fragments/ui :: modernConfirm}"></div>
+    <div th:replace="~{fragments/ui :: modernPrompt}"></div>
+    <div th:replace="~{fragments/ui :: geofenceModal}"></div>
+
+    <script th:src="@{/js/admin/admin-dashboard.js}"></script>
+    <script th:src="@{/js/admin/audit.js}"></script>
+    <script th:src="@{/js/admin/geofence-manager.js}"></script>
+    <script th:src="@{/js/dashboard-interactions.js(v='20260613-dropdowns')}"></script>
+    <script th:src="@{/js/dashboard-i18n.js(v='20260613-i18n')}"></script>
+<!-- Custom Install PWA Banner (Floating) -->
+<div class="pwa-install-btn hidden fixed bottom-24 right-6 md:bottom-10 md:right-10 z-[200] bg-gradient-to-r from-blue-600 to-blue-800 border border-yellow-400/20 px-4 py-3 rounded-full shadow-2xl shadow-blue-500/30 flex items-center gap-3 text-white transition-all hover:scale-105 cursor-pointer" style="display: none;">
+    <img src="/image/logo.png" alt="Attendee Logo" class="w-6 h-6 object-contain">
+    <span class="text-sm font-bold tracking-wide">Install App</span>
+    <button class="ml-2 px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-blue-950 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md transition-all">
+        Install
+    </button>
+    <button onclick="event.stopPropagation(); this.parentElement.style.display='none'" class="ml-1 text-blue-200 hover:text-white p-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+</div>
+
+</body>
+</html>

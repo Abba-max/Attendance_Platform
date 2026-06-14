@@ -382,10 +382,10 @@ function renderSessionCard(s, isGrid = false) {
     const isMissed = s.status === 'MISSED';
     const isValid = s.isValidated === true;
 
-    let statusClasses = 'bg-slate-100 text-slate-500 border border-slate-200';
-    if (isActive) statusClasses = 'bg-blue-600 text-white shadow-md shadow-blue-500/20';
-    else if (isDone) statusClasses = isValid ? 'bg-emerald-500 text-white' : 'bg-slate-900 text-white';
-    else if (isMissed) statusClasses = 'bg-slate-200 text-slate-500';
+    let statusClasses = 'bg-indigo-100 text-indigo-700 border border-indigo-200';
+    if (isActive) statusClasses = 'bg-[#00B0FF] text-white shadow-md shadow-blue-500/30 animate-pulse';
+    else if (isDone) statusClasses = isValid ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/30' : 'bg-slate-800 text-white shadow-md';
+    else if (isMissed) statusClasses = 'bg-rose-100 text-rose-600 border border-rose-200';
 
     const clickAction = isDone ? `viewAttendancePdf(${s.sessionId})` : `handleSessionAction(${s.sessionId})`;
 

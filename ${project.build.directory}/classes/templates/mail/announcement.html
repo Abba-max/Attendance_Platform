@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Announcement - Student Attendance System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: #00B0FF;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .message-box {
+            background-color: #f8fafc;
+            border-left: 4px solid #00B0FF;
+            padding: 20px;
+            border-radius: 4px;
+            margin: 25px 0;
+            white-space: pre-wrap;
+            color: #1e293b;
+        }
+
+        .footer {
+            background-color: #f1f5f9;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="cid:logo" alt="Attendee Logo"
+                style="width: 80px; height: 80px; margin-bottom: 10px; border-radius: 12px;">
+            <h1 style="color: #ffffff;" th:text="${subject}">Important Announcement</h1>
+        </div>
+        <div class="content">
+            <p>Hello,</p>
+            <p>You have received an important update/announcement from the administration.</p>
+
+            <div class="message-box" th:text="${messageText}">
+                Announcement message text...
+            </div>
+
+            <p style="margin-top: 30px;">Regards,<br><span th:text="${senderName}">Attendance Management Team</span></p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 Attendee. All rights reserved.</p>
+            <p>This is an automated message, please do not reply.</p>
+        </div>
+    </div>
+</body>
+
+</html>

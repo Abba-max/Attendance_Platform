@@ -61,7 +61,9 @@ public class SessionMapper {
                 .isValidated(session.getIsValidated())
                 .isActive(session.isActive())
                 .totalHours(session.getStartTime() != null && session.getEndTime() != null ? 
-                    (int) ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 0)
+                    (int) (session.getEndTime().isBefore(session.getStartTime()) ? 
+                        24 + ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime()) : 
+                        ChronoUnit.HOURS.between(session.getStartTime(), session.getEndTime())) : 0)
                 .presentCount((int) present)
                 .totalStudents(totalEnrolled)
                 .attendanceRate(totalEnrolled > 0 ? (double) present / totalEnrolled * 100.0 : 0.0)

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- Modern Confirmation Modal Fragment -->
+<div th:fragment="modernConfirm" id="modern-confirm-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md opacity-0 transition-opacity duration-500" id="mc-backdrop"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative bg-white/90 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden transform scale-90 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]" id="mc-content">
+        <!-- Icon/Header Area -->
+        <div class="p-8 pb-4 text-center">
+            <div class="w-20 h-20 mx-auto rounded-3xl flex items-center justify-center mb-6 shadow-lg rotate-3 group" id="mc-icon-bg">
+                <div id="mc-icon" class="text-white w-10 h-10 transition-transform group-hover:scale-110"></div>
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 tracking-tight mb-2 font-display" id="mc-title">Are you sure?</h3>
+            <p class="text-slate-500 font-medium text-sm leading-relaxed" id="mc-message">This action cannot be undone. Please confirm to proceed.</p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="p-6 pt-2 flex flex-col gap-3">
+            <button id="mc-confirm-btn" class="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-white shadow-xl active:scale-[0.97] transition-all">
+                Confirm Action
+            </button>
+            <button id="mc-cancel-btn" class="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">
+                Nevermind
+            </button>
+        </div>
+    </div>
+
+    <!-- Global Helper Logic -->
+    <script th:inline="javascript">
+        window.ModernConfirm = function({ title = "Are you sure?", message = "Action cannot be undone.", confirmText = "Confirm", type = "info" }) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modern-confirm-modal');
+                const backdrop = document.getElementById('mc-backdrop');
+                const content = document.getElementById('mc-content');
+                const titleEl = document.getElementById('mc-title');
+                const messageEl = document.getElementById('mc-message');
+                const confirmBtn = document.getElementById('mc-confirm-btn');
+                const cancelBtn = document.getElementById('mc-cancel-btn');
+                const iconBg = document.getElementById('mc-icon-bg');
+                const iconWrapper = document.getElementById('mc-icon');
+
+                // Configuration based on type
+                const configs = {
+                    danger: {
+                        bg: 'bg-rose-500',
+                        shadow: 'shadow-rose-500/30',
+                        confirmClass: 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/25',
+                        icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'
+                    },
+                    warning: {
+                        bg: 'bg-amber-500',
+                        shadow: 'shadow-amber-500/30',
+                        confirmClass: 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25',
+                        icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'
+                    },
+                    info: {
+                        bg: 'bg-blue-500',
+                        shadow: 'shadow-blue-500/30',
+                        confirmClass: 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/25',
+                        icon: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z"/></svg>'
+                    }
+                };
+
+                const config = configs[type] || configs.info;
+
+                // Setup UI
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                confirmBtn.textContent = confirmText;
+                confirmBtn.className = `w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest text-white shadow-xl active:scale-[0.97] transition-all ${config.confirmClass}`;
+                iconBg.className = `w-20 h-20 mx-auto rounded-3xl flex items-center justify-center mb-6 shadow-lg rotate-3 group ${config.bg} ${config.shadow}`;
+                iconWrapper.innerHTML = config.icon;
+
+                const close = (result) => {
+                    content.classList.add('scale-90', 'opacity-0');
+                    backdrop.classList.add('opacity-0');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        resolve(result);
+                    }, 300);
+                };
+
+                confirmBtn.onclick = () => close(true);
+                cancelBtn.onclick = () => close(false);
+                backdrop.onclick = () => close(false);
+
+                // Show Modal
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    backdrop.classList.remove('opacity-0');
+                    content.classList.remove('scale-90', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                });
+            });
+        };
+    </script>
+</div>
+
+<!-- Modern Prompt Modal Fragment -->
+<div th:fragment="modernPrompt" id="modern-prompt-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md opacity-0 transition-opacity duration-500" id="mp-backdrop"></div>
+    
+    <div class="relative bg-white/90 backdrop-blur-xl border border-white/40 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] w-full max-w-sm overflow-hidden transform scale-90 opacity-0 transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]" id="mp-content">
+        <div class="p-8 pb-4 text-center">
+            <h3 class="text-xl font-black text-slate-800 tracking-tight mb-2 font-display" id="mp-title">Enter Value</h3>
+            <p class="text-slate-500 font-medium text-sm leading-relaxed mb-6" id="mp-message">Please provide the required information.</p>
+            
+            <input type="text" id="mp-input" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 transition" placeholder="Type here...">
+        </div>
+        
+        <div class="p-6 pt-2 flex gap-3">
+            <button id="mp-cancel-btn" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl font-black text-sm tracking-widest text-slate-600 transition-colors">
+                Cancel
+            </button>
+            <button id="mp-confirm-btn" class="flex-1 py-3 bg-blue-500 hover:bg-blue-600 rounded-2xl font-black text-sm tracking-widest text-white shadow-xl shadow-blue-500/25 active:scale-[0.97] transition-all">
+                Submit
+            </button>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        window.ModernPrompt = function({ title = "Enter Value", message = "", placeholder = "Type here...", type = "text" }) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('modern-prompt-modal');
+                const backdrop = document.getElementById('mp-backdrop');
+                const content = document.getElementById('mp-content');
+                const titleEl = document.getElementById('mp-title');
+                const messageEl = document.getElementById('mp-message');
+                const inputEl = document.getElementById('mp-input');
+                const confirmBtn = document.getElementById('mp-confirm-btn');
+                const cancelBtn = document.getElementById('mp-cancel-btn');
+
+                titleEl.textContent = title;
+                messageEl.textContent = message;
+                inputEl.placeholder = placeholder;
+                inputEl.type = type;
+                inputEl.value = '';
+
+                const close = (result) => {
+                    content.classList.add('scale-90', 'opacity-0');
+                    backdrop.classList.add('opacity-0');
+                    setTimeout(() => {
+                        modal.classList.add('hidden');
+                        resolve(result);
+                    }, 300);
+                };
+
+                confirmBtn.onclick = () => close(inputEl.value);
+                cancelBtn.onclick = () => close(null);
+                backdrop.onclick = () => close(null);
+                
+                inputEl.onkeydown = (e) => {
+                    if (e.key === 'Enter') close(inputEl.value);
+                    if (e.key === 'Escape') close(null);
+                };
+
+                modal.classList.remove('hidden');
+                requestAnimationFrame(() => {
+                    backdrop.classList.remove('opacity-0');
+                    content.classList.remove('scale-90', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                    inputEl.focus();
+                });
+            });
+        };
+    </script>
+</div>
+
+    </script>
+</div>
+
+<!-- Geofence Manager Modal Fragment -->
+<div th:fragment="geofenceModal" id="geofence-modal" class="fixed inset-0 z-[10000] hidden flex items-center justify-center p-4">
+    <!-- Backdrop -->
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-md opacity-0 transition-opacity duration-500" id="gm-backdrop"></div>
+    
+    <!-- Modal Content -->
+    <div class="relative bg-white border border-white/40 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.2)] w-full max-w-4xl h-[85vh] overflow-hidden transform scale-90 opacity-0 transition-all duration-300" id="gm-content">
+        <div class="flex flex-col h-full">
+            <!-- Header -->
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-black text-slate-800 tracking-tight" id="gm-title">Campus Geofencing</h3>
+                    <p class="text-slate-500 text-xs font-medium" id="gm-subtitle">Define the boundaries of your institution</p>
+                </div>
+                <button id="gm-close-btn" class="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                    <svg class="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Map Area -->
+            <div class="flex-1 relative bg-slate-50">
+                <div id="geofence-map" class="absolute inset-0 z-0"></div>
+                
+                <!-- Controls Overlay -->
+                <div class="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
+                    <button id="gm-draw-btn" class="p-3 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl shadow-xl border border-slate-200 transition-all flex items-center gap-2 group">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        <span class="text-xs font-bold pr-2">Draw Boundary</span>
+                    </button>
+                    <button id="gm-clear-btn" class="p-3 bg-white hover:bg-slate-50 text-slate-700 rounded-2xl shadow-xl border border-slate-200 transition-all flex items-center gap-2">
+                        <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span class="text-xs font-bold pr-2">Clear Map</span>
+                    </button>
+                </div>
+
+                <!-- Search/Locate Overlay -->
+                <div class="absolute top-4 left-4 z-[1000] w-72">
+                    <div class="relative group">
+                         <div class="absolute inset-0 bg-white/40 blur-xl group-focus-within:bg-blue-500/10 transition-all rounded-2xl"></div>
+                         <div class="relative flex items-center bg-white/90 backdrop-blur-md border border-white/50 rounded-2xl shadow-xl overflow-hidden">
+                             <input type="text" id="gm-search-input" placeholder="Search city or institution..." class="flex-1 bg-transparent px-4 py-3.5 text-xs font-bold text-slate-700 outline-none">
+                             <button id="gm-search-btn" class="p-2 mr-1 text-slate-400 hover:text-blue-500 transition-colors">
+                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                             </button>
+                         </div>
+                    </div>
+                </div>
+
+                <!-- Info Tip -->
+                <div class="absolute bottom-4 left-4 z-[1000]">
+                    <div class="bg-slate-900/80 backdrop-blur-md text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 border border-white/10 shadow-2xl">
+                        <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
+                        Click on map to define perimeter points
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-6 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div class="flex items-center gap-6">
+                    <label class="relative inline-flex items-center cursor-pointer group">
+                        <input type="checkbox" id="gm-enabled-toggle" class="sr-only peer">
+                        <div class="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 transition-colors"></div>
+                        <span class="ml-3 text-xs font-black text-slate-700 uppercase tracking-wider">Geofencing Active</span>
+                    </label>
+                    <div class="h-8 w-px bg-slate-200"></div>
+                    <div class="flex flex-col">
+                        <span class="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Points Defined</span>
+                        <span id="gm-point-count" class="text-sm font-black text-slate-800">0</span>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button id="gm-cancel-btn" class="px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="gm-save-btn" class="px-8 py-3 bg-slate-800 hover:bg-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white shadow-2xl active:scale-[0.97] transition-all">
+                        Save Perimeter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

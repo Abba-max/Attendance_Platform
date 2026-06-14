@@ -9,4 +9,8 @@ import java.util.Optional;
 @Repository
 public interface CycleRepository extends JpaRepository<Cycle, Integer> {
     Optional<Cycle> findByName(String name);
+
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"departments"})
+    java.util.List<Cycle> findAll();
 }

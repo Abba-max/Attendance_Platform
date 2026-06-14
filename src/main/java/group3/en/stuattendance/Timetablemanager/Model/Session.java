@@ -208,19 +208,34 @@ public class Session {
     public boolean isActive() {
         LocalTime now = LocalTime.now();
         LocalDate today = LocalDate.now();
-        // Allow starting 15 mins early and up to the end of the session
-        return this.date != null && this.date.equals(today) &&
-                now.isAfter(startTime.minusMinutes(15)) &&
-                now.isBefore(endTime);
+        if (this.date == null || !this.date.equals(today)) return false;
+
+        boolean spansMidnight = endTime.isBefore(startTime);
+        LocalTime effectiveStart = startTime.minusMinutes(15);
+        
+        if (spansMidnight) {
+            return now.isAfter(effectiveStart) || now.isBefore(endTime);
+        } else {
+            return now.isAfter(effectiveStart) && now.isBefore(endTime);
+        }
     }
 
     public boolean isPast() {
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now();
         if (this.date == null) return false;
-        if (this.date.isBefore(today)) return true;
-        if (this.date.equals(today) && now.isAfter(endTime)) return true;
-        return false;
+        if (this.date.isBefore(today.minusDays(1))) return true;
+
+        boolean spansMidnight = endTime.isBefore(startTime);
+
+        if (spansMidnight) {
+            if (this.date.equals(today)) return false; // Still active tonight
+            if (this.date.equals(today.minusDays(1))) return now.isAfter(endTime);
+            return true;
+        } else {
+            if (this.date.isBefore(today)) return true;
+            return this.date.equals(today) && now.isAfter(endTime);
+        }
     }
 
     @Override

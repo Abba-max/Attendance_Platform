@@ -8,4 +8,8 @@ import org.springframework.stereotype.Repository;
 public interface DepartmentRepository extends JpaRepository<Department, Integer> {
     java.util.List<Department> findByCycle_CycleId(Integer cycleId);
     java.util.List<Department> findByPedagogicAssistants_UserId(Integer userId);
+
+    @Override
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"specialities", "cycle"})
+    java.util.List<Department> findAll();
 }
