@@ -7,6 +7,8 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -42,6 +44,7 @@ Department {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cycle_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     @JsonIgnore
     private Cycle cycle;
 

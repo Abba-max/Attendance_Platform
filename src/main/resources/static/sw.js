@@ -47,6 +47,11 @@ self.addEventListener('activate', event => {
 
 // Fetch Event - Route requests using customized strategies
 self.addEventListener('fetch', event => {
+    // Fix for Chrome DevTools 'only-if-cached' bug
+    if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
+        return;
+    }
+
     // Handle offline queuing for POST/PUT API requests
     if ((event.request.method === 'POST' || event.request.method === 'PUT') && event.request.url.includes('/api/')) {
         event.respondWith(
@@ -180,8 +185,12 @@ self.addEventListener('fetch', event => {
                     })
                     .catch(error => {
                         console.error('[Service Worker] Failed to fetch:', event.request.url, error);
-                        // Return an empty response or a fallback to prevent the Uncaught Promise Rejection
-                        return new Response('', { status: 404, statusText: 'Network error' });
+                        // Return a 503 Service Unavailable to indicate network is down, rather than 404
+                        return new Response(JSON.stringify({ error: 'Network offline or server restarting' }), { 
+                            status: 503, 
+                            statusText: 'Service Unavailable',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
                     });
             })
     );

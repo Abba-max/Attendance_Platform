@@ -4,6 +4,8 @@ import group3.en.stuattendance.Timetablemanager.Model.Session;
 import group3.en.stuattendance.Usermanager.Model.User;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.NotFound;
+import org.hibernate.annotations.NotFoundAction;
 import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
@@ -30,6 +32,7 @@ public class Classroom {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "speciality_id")
+    @NotFound(action = NotFoundAction.IGNORE)
     @JsonIgnore
     private Speciality speciality;
 
