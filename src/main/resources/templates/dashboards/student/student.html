@@ -743,10 +743,10 @@
 <!-- Scripts -->
 <script th:inline="javascript">
     window.user = {
-        id:        [[${userId}]],
-        username:  [[${username}]],
-        firstName: [[${firstName}]],
-        lastName:  [[${lastName}]],
+        id:        /*[[${userId}]]*/ 0,
+        username:  /*[[${username}]]*/ 'user',
+        firstName: /*[[${firstName}]]*/ 'First',
+        lastName:  /*[[${lastName}]]*/ 'Last'
     };
 </script>
 
