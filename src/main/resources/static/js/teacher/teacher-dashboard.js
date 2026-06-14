@@ -19,7 +19,8 @@ function initDashboard() {
 
     loadSessions();       // Single initial load — do NOT call again on tab change
     loadNotifications();
-    if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
+    // Temporarily disabled to prevent looping in Chrome/Attendee App
+    // if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 
     setInterval(loadSessions, 300000); // Background refresh every 5 min only
 
@@ -555,7 +556,7 @@ async function loadRollCall(sessionId) {
 window.initializeGlobalWebSockets = function() {
     if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
     
-    const socket = new window.SockJS('/ws');
+    const socket = new window.SockJS('/ws', null, { transports: ['websocket'] });
     const globalStompClient = window.Stomp.over(socket);
     globalStompClient.debug = null;
 
@@ -582,6 +583,7 @@ window.initializeGlobalWebSockets = function() {
 
 // ── Real-time Socket Engine ─────────────────────────────────────────────
 function connectWebSocket(sessionId) {
+    return; // Disabled temporarily
     disconnectWebSocket(); // clear any previous connection
     
     // Accept optional override or use activeSessionId
@@ -590,7 +592,7 @@ function connectWebSocket(sessionId) {
     
     if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
     
-    const socket = new window.SockJS('/ws');
+    const socket = new window.SockJS('/ws', null, { transports: ['websocket'] });
     stompClient = window.Stomp.over(socket);
     stompClient.debug = null; // disable noisy console logs
 
@@ -1155,7 +1157,10 @@ async function generateQr() {
     }
 }
 
-function disconnectWebSocket() { if (stompClient?.connected) stompClient.disconnect(); stompClient = null; }
+function disconnectWebSocket() { 
+    return; // Disabled temporarily
+    if (stompClient?.connected) stompClient.disconnect(); stompClient = null; 
+}
 
 // ── Send Mail & Documents Section ───────────────────────────────────────────
 let selectedFiles = [];

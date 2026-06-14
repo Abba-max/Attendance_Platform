@@ -39,4 +39,12 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             "LEFT JOIN FETCH ar.hourSlots " +
             "WHERE ar.session.sessionId IN :sessionIds")
     List<AttendanceRecord> findWithHourSlotsBySessionIds(@Param("sessionIds") List<Integer> sessionIds);
+
+    @Query("SELECT a FROM AttendanceRecord a " +
+           "JOIN a.session s " +
+           "JOIN a.user st " +
+           "WHERE st.classroom.classId = :classroomId AND s.course.courseId = :courseId")
+    List<AttendanceRecord> findByClassroomAndCourse(
+            @Param("classroomId") Integer classroomId,
+            @Param("courseId") Integer courseId);
 }

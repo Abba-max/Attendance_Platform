@@ -89,6 +89,7 @@ public class Session {
     private Boolean isValidated = false;
 
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL)
+    @org.hibernate.annotations.BatchSize(size = 100)
     @JsonIgnore
     private Set<AttendanceRecord> attendanceRecords = new HashSet<>();
 

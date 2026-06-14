@@ -81,17 +81,17 @@ public class TeacherStatsServiceImpl implements TeacherStatsService {
 
         List<TeacherStudentStatDto> stats = new ArrayList<>();
         
+        // Fetch all relevant records in ONE query
+        List<AttendanceRecord> courseRecords = attendanceRecordRepository.findByClassroomAndCourse(classroomId, courseId);
+        
+        // Group by user ID
+        java.util.Map<Integer, List<AttendanceRecord>> recordsByUserId = courseRecords.stream()
+            .collect(Collectors.groupingBy(r -> r.getUser().getUserId()));
+        
         for (User student : students) {
-            List<AttendanceRecord> records = attendanceRecordRepository.findByUserUserId(student.getUserId());
+            List<AttendanceRecord> studentRecords = recordsByUserId.getOrDefault(student.getUserId(), new ArrayList<>());
             
-            // Filter records for this exact course
-            List<AttendanceRecord> courseRecords = records.stream()
-                    .filter(r -> r.getSession() != null && 
-                            r.getSession().getCourse() != null && 
-                            r.getSession().getCourse().getCourseId().equals(courseId))
-                    .collect(Collectors.toList());
-            
-            int attendedHours = courseRecords.stream()
+            int attendedHours = studentRecords.stream()
                     .mapToInt(r -> r.getHoursAttended() != null ? r.getHoursAttended() : 0)
                     .sum();
                     

@@ -32,13 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboardStats();
     loadGridSessions();
     loadNotifications();
-    if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
+    // Temporarily disabled to prevent looping in Chrome/Attendee App
+    // if (typeof initializeGlobalWebSockets === 'function') initializeGlobalWebSockets();
 });
 
 window.initializeGlobalWebSockets = function() {
     if (typeof window.SockJS === 'undefined' || typeof window.Stomp === 'undefined') return;
     
-    const socket = new window.SockJS('/ws');
+    const socket = new window.SockJS('/ws', null, { transports: ['websocket'] });
     const globalStompClient = window.Stomp.over(socket);
     globalStompClient.debug = null;
 

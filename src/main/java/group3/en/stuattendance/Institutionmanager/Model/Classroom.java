@@ -34,6 +34,7 @@ public class Classroom {
     private Speciality speciality;
 
     @OneToMany(mappedBy = "classroom")
+    @org.hibernate.annotations.BatchSize(size = 100)
     @JsonIgnore
     private Set<User> students = new HashSet<>();
 
