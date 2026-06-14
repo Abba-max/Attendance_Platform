@@ -241,7 +241,7 @@ public class JustificationServiceImpl implements JustificationService {
                 .orElseThrow(() -> new EntityNotFoundException("Attendance record not found with id: " + attendanceId));
 
         if (!record.getUser().getUserId().equals(userId)) {
-            throw new RuntimeException("Unauthorized: This attendance record does not belong to you.");
+            throw new org.springframework.security.access.AccessDeniedException("Unauthorized: This attendance record does not belong to you.");
         }
 
         if (hourIndex != null) {
@@ -251,18 +251,18 @@ public class JustificationServiceImpl implements JustificationService {
                     .map(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT)
                     .orElse(true);
             if (!isAbsent) {
-                throw new RuntimeException("Justification can only be submitted for ABSENT hour slots.");
+                throw new IllegalArgumentException("Justification can only be submitted for ABSENT hour slots.");
             }
         } else {
             boolean hasAbsent = record.getHourSlots() == null || record.getHourSlots().isEmpty() ||
                     record.getHourSlots().stream().anyMatch(h -> h.getStatus() == group3.en.stuattendance.Attendancemanager.Enum.AttendanceStatus.ABSENT);
             if (!hasAbsent) {
-                throw new RuntimeException("Justification can only be submitted if there are ABSENT hour slots.");
+                throw new IllegalArgumentException("Justification can only be submitted if there are ABSENT hour slots.");
             }
         }
 
         if (justificationRepository.existsByAttendanceRecordAttendanceIdAndHourIndex(attendanceId, hourIndex)) {
-            throw new RuntimeException("A justification has already been submitted for this target.");
+            throw new IllegalArgumentException("A justification has already been submitted for this target.");
         }
 
         String path = null;

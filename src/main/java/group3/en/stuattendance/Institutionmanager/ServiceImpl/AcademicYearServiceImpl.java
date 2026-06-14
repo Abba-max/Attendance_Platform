@@ -98,7 +98,7 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Transactional
     public AcademicYearDto activateAcademicYear(Long id) {
         AcademicYear year = academicYearRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Année académique introuvable : " + id));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Année académique introuvable : " + id));
 
         if (year.isActive()) {
             return academicYearMapper.toDto(year); // déjà active
@@ -128,7 +128,7 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Transactional
     public AcademicYearDto suspendAcademicYear(Long id) {
         AcademicYear year = academicYearRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Année académique introuvable : " + id));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Année académique introuvable : " + id));
         year.setStatus(AcademicYearStatus.SUSPENDED);
         return academicYearMapper.toDto(academicYearRepository.save(year));
     }
@@ -137,7 +137,7 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Transactional
     public AcademicYearDto closeAcademicYear(Long id) {
         AcademicYear year = academicYearRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Année académique introuvable : " + id));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Année académique introuvable : " + id));
         year.setStatus(AcademicYearStatus.CLOSED);
         return academicYearMapper.toDto(academicYearRepository.save(year));
     }
@@ -146,14 +146,14 @@ public class AcademicYearServiceImpl implements AcademicYearService {
     @Transactional
     public void deleteAcademicYear(Long id) {
         AcademicYear year = academicYearRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Année académique introuvable : " + id));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Année académique introuvable : " + id));
         if (year.isActive()) {
-            throw new RuntimeException("Impossible de supprimer l'année académique active.");
+            throw new IllegalArgumentException("Impossible de supprimer l'année académique active.");
         }
         // Vérifier qu'il n'y a pas de migrations vers cette année
         long count = academicYearRepository.countMigrationsByAcademicYearId(id);
         if (count > 0) {
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
                     "Impossible de supprimer cette année : " + count +
                             " migration(s) y font référence.");
         }

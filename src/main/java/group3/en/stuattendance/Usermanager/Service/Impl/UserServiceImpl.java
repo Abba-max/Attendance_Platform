@@ -93,7 +93,7 @@ public class UserServiceImpl implements UserService {
         Set<Role> roles = dto.getRoleNames() != null ?
                 dto.getRoleNames().stream()
                         .map(roleName -> roleRepository.findByName(roleName)
-                                .orElseThrow(() -> new RuntimeException("Role not found: " + roleName)))
+                                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Role not found: " + roleName)))
                         .collect(Collectors.toSet()) : new HashSet<>();
 
         String rawPassword = (dto.getPassword() == null || dto.getPassword().trim().isEmpty())
@@ -125,7 +125,7 @@ public class UserServiceImpl implements UserService {
                 new HashSet<>(classroomRepository.findAllById(dto.getClassroomIds())) : new HashSet<>();
 
         Role teacherRole = roleRepository.findByName("TEACHER")
-                .orElseThrow(() -> new RuntimeException("Role TEACHER not found"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Role TEACHER not found"));
 
         Set<Role> roles = new HashSet<>();
         roles.add(teacherRole);
@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService {
                 classroomRepository.findById(dto.getClassroomId()).orElse(null) : null;
 
         Role studentRole = roleRepository.findByName("STUDENT")
-                .orElseThrow(() -> new RuntimeException("Role STUDENT not found"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Role STUDENT not found"));
 
         Set<Role> roles = new HashSet<>();
         roles.add(studentRole);
@@ -210,7 +210,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDto getUserDtoById(Integer userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
         
         // Force initialization of lazy associations for students/staff/teachers
         if (user.getClassroom() != null) {
@@ -508,10 +508,10 @@ public class UserServiceImpl implements UserService {
     public void changePassword(String currentPassword, String newPassword) {
         String username = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password does not match");
+            throw new IllegalArgumentException("Current password does not match");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -607,7 +607,7 @@ public class UserServiceImpl implements UserService {
             }
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse CSV file: " + e.getMessage());
+            throw new IllegalArgumentException("Failed to parse CSV file: " + e.getMessage());
         }
         return result;
     }
@@ -688,7 +688,7 @@ public class UserServiceImpl implements UserService {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse CSV: " + e.getMessage());
+            throw new IllegalArgumentException("Failed to parse CSV: " + e.getMessage());
         }
         return result;
     }

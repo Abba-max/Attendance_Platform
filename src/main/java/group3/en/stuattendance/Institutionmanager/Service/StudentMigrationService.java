@@ -111,7 +111,7 @@ public class StudentMigrationService {
             return List.of();
 
         Classroom source = classroomRepository.findById(sourceId)
-                .orElseThrow(() -> new RuntimeException("Classe source introuvable : " + sourceId));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe source introuvable : " + sourceId));
 
         boolean manages = pedagog.getStaffClassrooms().stream()
                 .anyMatch(c -> c.getClassId().equals(source.getClassId()));
@@ -152,7 +152,7 @@ public class StudentMigrationService {
 
     public List<StudentSelectionDto> getStudentsInClassroom(Integer classroomId) {
         classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new RuntimeException("Classe introuvable : " + classroomId));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe introuvable : " + classroomId));
         return userRepository.findByClassroomClassIdAndRolesName(classroomId, "STUDENT")
                 .stream().map(s -> toSelectionDto(s, classroomId)).collect(Collectors.toList());
     }
@@ -162,9 +162,9 @@ public class StudentMigrationService {
             return getStudentsInClassroom(classroomId);
 
         classroomRepository.findById(classroomId)
-                .orElseThrow(() -> new RuntimeException("Classe introuvable : " + classroomId));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe introuvable : " + classroomId));
         AcademicYear year = academicYearRepository.findById(academicYearId)
-                .orElseThrow(() -> new RuntimeException("Année introuvable : " + academicYearId));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Année introuvable : " + academicYearId));
 
         if (year.isActive())
             return getStudentsInClassroom(classroomId);
@@ -193,10 +193,10 @@ public class StudentMigrationService {
     public MigrationResponse migrateStudent(MigrateStudentRequest request) {
 
         User student = userRepository.findById(request.getStudentId())
-                .orElseThrow(() -> new RuntimeException("Étudiant introuvable : " + request.getStudentId()));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Étudiant introuvable : " + request.getStudentId()));
 
         Classroom toClassroom = classroomRepository.findById(request.getToClassroomId())
-                .orElseThrow(() -> new RuntimeException("Classe cible introuvable : " + request.getToClassroomId()));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe cible introuvable : " + request.getToClassroomId()));
 
         // Résolution de l'année académique selon le type de migration
         MigrationTypedto type = request.getMigrationType() != null
@@ -206,11 +206,11 @@ public class StudentMigrationService {
 
         Classroom from = student.getClassroom();
         if (from == null)
-            throw new RuntimeException("L'étudiant n'a aucune classe assignée.");
+            throw new IllegalArgumentException("L'étudiant n'a aucune classe actuelle assignée.");
         if (from.getClassId().equals(toClassroom.getClassId()))
-            throw new RuntimeException("L'étudiant est déjà dans la classe cible.");
+            throw new IllegalArgumentException("L'étudiant est déjà inscrit dans la classe cible sélectionnée.");
         if (toClassroom.isAtCapacity())
-            throw new RuntimeException("La classe cible est à pleine capacité.");
+            throw new IllegalArgumentException("La classe cible a atteint sa capacité d'accueil maximale.");
 
         User by = getCurrentUser();
         saveHistory(student, from, toClassroom, academicYear, by, request.getReason());
@@ -218,7 +218,7 @@ public class StudentMigrationService {
         userRepository.save(student);
 
         return new MigrationResponse(true,
-                "Étudiant migré avec succès vers l'année " + academicYear.getAcademicYear() + ".",
+                getSuccessMessage(type, academicYear.getAcademicYear()),
                 student.getUserId(), student.getFirstName() + " " + student.getLastName(),
                 from.getName(), toClassroom.getName());
     }
@@ -249,19 +249,19 @@ public class StudentMigrationService {
         for (Integer studentId : request.getStudentIds()) {
             try {
                 User student = userRepository.findById(studentId)
-                        .orElseThrow(() -> new RuntimeException("Étudiant introuvable : " + studentId));
+                        .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Étudiant introuvable : " + studentId));
 
                 Classroom from = student.getClassroom();
                 if (from == null) {
-                    responses.add(fail(studentId, student, null, toClassroom, "Aucune classe assignée."));
+                    responses.add(fail(studentId, student, null, toClassroom, "L'étudiant n'a aucune classe actuelle assignée."));
                     continue;
                 }
                 if (from.getClassId().equals(toClassroom.getClassId())) {
-                    responses.add(fail(studentId, student, from, toClassroom, "Déjà dans la classe cible."));
+                    responses.add(fail(studentId, student, from, toClassroom, "L'étudiant est déjà inscrit dans la classe cible sélectionnée."));
                     continue;
                 }
                 if (toClassroom.isAtCapacity()) {
-                    responses.add(fail(studentId, student, from, toClassroom, "Classe cible à pleine capacité."));
+                    responses.add(fail(studentId, student, from, toClassroom, "La classe cible a atteint sa capacité d'accueil maximale."));
                     continue;
                 }
 
@@ -270,7 +270,7 @@ public class StudentMigrationService {
                 userRepository.save(student);
 
                 responses.add(new MigrationResponse(true,
-                        "Migré vers l'année " + academicYear.getAcademicYear() + ".",
+                        getSuccessMessage(type, academicYear.getAcademicYear()),
                         student.getUserId(), student.getFirstName() + " " + student.getLastName(),
                         from.getName(), toClassroom.getName()));
 
@@ -286,11 +286,11 @@ public class StudentMigrationService {
 
         if (type == MigrationTypedto.LEVEL_PROMOTION && request.isAutoNextLevel()) {
             Classroom from = classroomRepository.findById(request.getFromClassroomId())
-                    .orElseThrow(() -> new RuntimeException("Classe source introuvable."));
+                    .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe source introuvable."));
             return classroomRepository
                     .findFirstBySpeciality_SpecialityIdAndLevel(
                             from.getSpeciality().getSpecialityId(), from.getLevel() + 1)
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
                             "Aucune classe de niveau " + (from.getLevel() + 1) + " trouvée."));
         }
 
@@ -299,7 +299,7 @@ public class StudentMigrationService {
         }
 
         return classroomRepository.findById(request.getToClassroomId())
-                .orElseThrow(() -> new RuntimeException("Classe cible introuvable."));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Classe cible introuvable."));
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -328,6 +328,15 @@ public class StudentMigrationService {
     // ═══════════════════════════════════════════════════════════════════════
     // Helpers privés
     // ═══════════════════════════════════════════════════════════════════════
+
+    private String getSuccessMessage(MigrationTypedto type, String academicYear) {
+        if (type == null) type = MigrationTypedto.LEVEL_PROMOTION;
+        return switch (type) {
+            case LEVEL_PROMOTION -> "L'étudiant a été promu avec succès au niveau supérieur pour l'année académique " + academicYear + ".";
+            case TRONC_COMMUN -> "L'étudiant du Tronc Commun a été orienté avec succès dans sa spécialité pour l'année académique " + academicYear + ".";
+            case SPECIALITY_CHANGE -> "La spécialité de l'étudiant a été changée avec succès pour l'année " + academicYear + ".";
+        };
+    }
 
     private List<AvailableMigrationTargetsdto.ClassroomSummaryDto> toSummaryList(List<Classroom> list) {
         return list.stream().map(c -> {
@@ -372,6 +381,6 @@ public class StudentMigrationService {
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return userRepository.findByUsername(auth.getName())
-                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable."));
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("Utilisateur connecté introuvable."));
     }
 }
