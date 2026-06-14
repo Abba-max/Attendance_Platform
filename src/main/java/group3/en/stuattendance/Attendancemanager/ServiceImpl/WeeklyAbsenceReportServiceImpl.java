@@ -203,7 +203,7 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             for (List<Session> cSessions : courseSessionsMap.values()) {
                 totalCols += cSessions.size() + 2; // sessions + Total UE + Justified UE
             }
-            totalCols += 4; // Total H, Total J, Total NJ, Lates
+            totalCols += 5; // Total H, Total J, Total NJ, Lates, Total Presence
             
             // Document Headers
             Row instRow = sheet.createRow(0);
@@ -268,8 +268,9 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                 
                 for (Session s : cSessions) {
                     String day = s.getDate().getDayOfWeek().toString().substring(0, 3);
+                    int dur = sessionDuration(s);
                     Cell dCell = headerRow2.createCell(colIdx);
-                    dCell.setCellValue(day);
+                    dCell.setCellValue(day + " (" + dur + "H)");
                     dCell.setCellStyle(verticalHeaderStyle);
                     
                     // Fill row 1 cell to avoid border missing
@@ -290,7 +291,7 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                 colIdx++;
             }
             
-            String[] summaryHeaders = {"Total H.", "Total J.", "Total NJ.", "Nbre de RETARDS HEBDO"};
+            String[] summaryHeaders = {"Total H.", "Total J.", "Total NJ.", "Nbre de RETARDS HEBDO", "Total Présence"};
             for (String sh : summaryHeaders) {
                 Cell c = headerRow1.createCell(colIdx);
                 c.setCellValue(sh);
@@ -404,6 +405,14 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                 lateCell.setCellStyle(boldCenterStyle);
                 if (lates > 0) lateCell.setCellValue(lates);
                 sessionSums[colIdx] += lates;
+                colIdx++;
+                
+                int totalWeeklyPossibleHours = sessions.stream().mapToInt(this::sessionDuration).sum();
+                int totalPresence = totalWeeklyPossibleHours - globalAbs;
+                Cell tPresCell = row.createCell(colIdx);
+                tPresCell.setCellStyle(boldCenterStyle);
+                tPresCell.setCellValue(totalPresence);
+                sessionSums[colIdx] += totalPresence;
                 colIdx++;
             }
             
@@ -547,7 +556,7 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
         for (List<Session> cSessions : courseSessionsMap.values()) {
             totalCols += cSessions.size() + 2;
         }
-        totalCols += 4;
+        totalCols += 5;
 
         PdfPTable table = new PdfPTable(totalCols);
         table.setWidthPercentage(100);
@@ -556,12 +565,11 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
         // Determine column widths
         float[] widths = new float[totalCols];
         widths[0] = 3f; // N°
+        widths[1] = 20f; // NOMS ET PRENOMS
         widths[2] = 10f; // MATRICULE
         for (int i = 3; i < totalCols; i++) {
-            widths[i] = 3f; // Thin data columns
+            widths[i] = 4f; // Thin data columns
         }
-        float usedWidths = widths[0] + widths[2] + (3f * (totalCols - 3));
-        widths[1] = Math.max(15f, 100f - usedWidths); // NOMS takes remaining space
         table.setWidths(widths);
 
         Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.BLACK);
@@ -584,12 +592,14 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
         table.addCell(createVerticalSpannedHeaderCell("Total J.", 2, 1, headerFont));
         table.addCell(createVerticalSpannedHeaderCell("Total NJ.", 2, 1, headerFont));
         table.addCell(createVerticalSpannedHeaderCell("Nbre de RETARDS HEBDO", 2, 1, headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Total Présence", 2, 1, headerFont));
 
         // Header Row 2
         for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
             for (Session s : entry.getValue()) {
                 String day = s.getDate().getDayOfWeek().toString().substring(0, 3);
-                table.addCell(createVerticalHeaderCell(day, headerFont));
+                int dur = sessionDuration(s);
+                table.addCell(createVerticalHeaderCell(day + " (" + dur + "H)", headerFont));
             }
             table.addCell(createVerticalHeaderCell("Total Heure UE", headerFont));
             table.addCell(createVerticalHeaderCell("Heures Justifiée", headerFont));
@@ -664,6 +674,11 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
 
             table.addCell(createDataCell(lates > 0 ? String.valueOf(lates) : "", boldDataFont));
             sessionSums[colIdx++] += lates;
+            
+            int totalWeeklyPossibleHours = sessions.stream().mapToInt(this::sessionDuration).sum();
+            int totalPresence = totalWeeklyPossibleHours - globalAbs;
+            table.addCell(createDataCell(String.valueOf(totalPresence), boldDataFont));
+            sessionSums[colIdx++] += totalPresence;
         }
 
         // Footer Row
