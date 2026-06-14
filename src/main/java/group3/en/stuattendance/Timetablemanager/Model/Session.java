@@ -19,8 +19,11 @@ import java.util.Set;
 
 @Entity
 @Table(name = "sessions", indexes = {
-        @Index(name = "idx_session_date", columnList = "date"),
-        @Index(name = "idx_qr_code", columnList = "qr_code")
+        @Index(name = "idx_session_date",          columnList = "date"),
+        @Index(name = "idx_session_classroom_date", columnList = "classroom_id, date"),
+        @Index(name = "idx_session_classroom_course",columnList = "classroom_id, course_id"),
+        @Index(name = "idx_session_status",         columnList = "status"),
+        @Index(name = "idx_qr_code",                columnList = "qr_code")
 })
 @EntityListeners(AuditingEntityListener.class)
 public class Session {

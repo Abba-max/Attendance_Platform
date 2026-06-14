@@ -20,7 +20,10 @@ import java.util.Set;
 @Table(name = "attendance_records", uniqueConstraints = {
         @UniqueConstraint(name = "uk_user_session", columnNames = {"user_id", "session_id"})
 }, indexes = {
-        @Index(name = "idx_user_session", columnList = "user_id, session_id")
+        @Index(name = "idx_ar_user_session", columnList = "user_id, session_id"),
+        @Index(name = "idx_ar_session",      columnList = "session_id"),
+        @Index(name = "idx_ar_user",         columnList = "user_id"),
+        @Index(name = "idx_ar_status",       columnList = "status")
 })
 @Data
 @NoArgsConstructor

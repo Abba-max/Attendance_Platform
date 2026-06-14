@@ -20,7 +20,10 @@ import java.util.Objects;
 import java.util.Set;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+        @Index(name = "idx_user_classroom",  columnList = "classroom_id"),
+        @Index(name = "idx_user_is_active",  columnList = "is_active")
+})
 @EntityListeners(AuditingEntityListener.class)
 public class User {
 
