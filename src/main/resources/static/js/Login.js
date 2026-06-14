@@ -89,8 +89,31 @@ function togglePassword() {
 document.addEventListener('DOMContentLoaded', function () {
     applyTranslations(currentLang);
 
-    /* Mark the correct language button as active */
+    /* Mark the correct language button as active and add click listeners */
     document.querySelectorAll('.lang-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.lang === currentLang);
+        btn.addEventListener('click', (e) => setLang(btn.dataset.lang, e));
     });
 });
+
+/* ── Forgot Password Modal ── */
+function openForgotModal() {
+    const modal = document.getElementById('forgotModal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        // Optional: focus the email input
+        setTimeout(() => {
+            const emailInput = document.getElementById('forgotEmail');
+            if (emailInput) emailInput.focus();
+        }, 100);
+    }
+}
+
+function closeForgotModal() {
+    const modal = document.getElementById('forgotModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}

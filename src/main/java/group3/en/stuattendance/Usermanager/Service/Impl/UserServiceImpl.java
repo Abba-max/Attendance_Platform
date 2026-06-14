@@ -572,8 +572,8 @@ public class UserServiceImpl implements UserService {
                         continue;
                     }
 
-                    if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR") && !roleName.equals("ADMIN")) {
-                        result.getErrors().add(new BulkImportResultDto.RowError(rowNum, email, "Invalid role: " + roleName + ". Must be PEDAGOG, SUPERVISOR or ADMIN"));
+                    if (!roleName.equals("PEDAGOG") && !roleName.equals("SUPERVISOR") && !roleName.equals("ADMIN") && !roleName.equals("TEACHER")) {
+                        result.getErrors().add(new BulkImportResultDto.RowError(rowNum, email, "Invalid role: " + roleName + ". Must be PEDAGOG, SUPERVISOR, ADMIN, or TEACHER"));
                         result.setFailureCount(result.getFailureCount() + 1);
                         continue;
                     }

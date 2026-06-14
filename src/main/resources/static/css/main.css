@@ -6907,4 +6907,25 @@
       --tw-content: "";
     }
   }
+
+  /* Global submit button spinner styles */
+  form.is-submitting button[type="submit"] {
+    position: relative !important;
+    color: transparent !important;
+    pointer-events: none !important;
+  }
+  form.is-submitting button[type="submit"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-left: -10px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
 }

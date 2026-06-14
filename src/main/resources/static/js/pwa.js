@@ -177,4 +177,27 @@
         // Initialize status
         updateNetworkStatus();
     });
+
+    // 6. Global Spinner for all Form Submits (Modals, Login, etc.)
+    document.addEventListener('submit', function(e) {
+        if (e.target.tagName === 'FORM') {
+            e.target.classList.add('is-submitting');
+            // Safety fallback: remove spinner after 5 seconds
+            setTimeout(() => {
+                if (e.target) e.target.classList.remove('is-submitting');
+            }, 5000);
+        }
+    });
+
+    // Intercept Fetch calls to remove the spinner when asynchronous actions complete
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+        const activeForms = document.querySelectorAll('form.is-submitting');
+        try {
+            return await originalFetch.apply(this, args);
+        } finally {
+            // Remove spinner state immediately
+            activeForms.forEach(form => form.classList.remove('is-submitting'));
+        }
+    };
 })();
