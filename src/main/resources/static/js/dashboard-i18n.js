@@ -4,6 +4,7 @@
     const originalText = new WeakMap();
     const originalAttributes = new WeakMap();
     let applying = false;
+    let dashboardObserver = null;
 
     const text = {
         'Overview': 'Vue d ensemble',
@@ -894,7 +895,10 @@
             ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
             : { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         document.querySelectorAll('#current-date-teacher, #current-date-student').forEach((element) => {
-            element.textContent = new Date().toLocaleDateString(locale, dateOptions);
+            const newDate = new Date().toLocaleDateString(locale, dateOptions);
+            if (element.textContent !== newDate) {
+                element.textContent = newDate;
+            }
         });
     }
 
@@ -906,6 +910,7 @@
         translateNode(document.body, next);
         localizeFrontendDates(next);
         updateSwitch(next);
+        if (dashboardObserver) dashboardObserver.takeRecords();
         applying = false;
         window.dispatchEvent(new CustomEvent('dashboard:language-change', { detail: { lang: next } }));
     }
@@ -1005,7 +1010,7 @@
             setLanguage(button.dataset.dashboardLang);
         });
 
-        const observer = new MutationObserver((mutations) => {
+        dashboardObserver = new MutationObserver((mutations) => {
             if (applying || selectedLanguage() === 'en') return;
             applying = true;
             mutations.forEach((mutation) => {
@@ -1020,10 +1025,11 @@
             });
             localizeFrontendDates(selectedLanguage());
             updateSwitch(selectedLanguage());
+            dashboardObserver.takeRecords();
             applying = false;
         });
 
-        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        dashboardObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
         setLanguage(selectedLanguage());
     }
 
