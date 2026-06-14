@@ -14,6 +14,8 @@ public interface ClassroomRepository extends JpaRepository<Classroom, Integer> {
 
     List<Classroom> findBySpeciality_SpecialityId(Integer specialityId);
 
+    List<Classroom> findBySpecialityIn(List<group3.en.stuattendance.Institutionmanager.Model.Speciality> specialities);
+
     Optional<Classroom> findFirstBySpeciality_SpecialityIdAndLevel(Integer specialityId, Integer level);
 
     List<Classroom> findBySpeciality_SpecialityIdAndLevel(Integer specialityId, Integer level);

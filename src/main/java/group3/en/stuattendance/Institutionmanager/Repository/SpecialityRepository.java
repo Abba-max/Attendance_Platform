@@ -10,6 +10,7 @@ import java.util.List;
 @Repository
 public interface SpecialityRepository extends JpaRepository<Speciality, Integer> {
     List<Speciality> findByDepartment_DepartmentId(Integer departmentId);
+    List<Speciality> findByDepartmentIn(java.util.List<group3.en.stuattendance.Institutionmanager.Model.Department> departments);
     Optional<Speciality> findByName(String name);
     boolean existsByName(String name);
 }

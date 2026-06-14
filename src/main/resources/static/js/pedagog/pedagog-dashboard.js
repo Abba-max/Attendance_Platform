@@ -4744,3 +4744,49 @@ window.sendAnnouncement = async function(e) {
     }
 };
 
+
+window.refreshSection = async function(btn, tableBodyId) {
+    const icon = btn.querySelector('svg');
+    if (icon) icon.classList.add('animate-spin');
+    
+    try {
+        const response = await fetch(window.location.href);
+        const text = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
+        
+        const newTableBody = doc.getElementById(tableBodyId);
+        if (newTableBody) {
+            document.getElementById(tableBodyId).innerHTML = newTableBody.innerHTML;
+            
+            // Re-apply filters if they exist
+            if (tableBodyId === 'studentTableBody' && typeof window.applyStudentFilters === 'function') {
+                window.applyStudentFilters();
+            } else if (tableBodyId === 'courseTableBody' && typeof window.applyCourseFilters === 'function') {
+                window.applyCourseFilters();
+            }
+            
+            Swal.fire({
+                text: 'List refreshed successfully',
+                icon: 'success',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+    } catch (e) {
+        console.error('Failed to refresh section:', e);
+        Swal.fire({
+            text: 'Failed to refresh data',
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    } finally {
+        if (icon) icon.classList.remove('animate-spin');
+    }
+};
+

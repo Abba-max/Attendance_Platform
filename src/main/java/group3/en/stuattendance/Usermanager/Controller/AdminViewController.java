@@ -43,6 +43,7 @@ public class AdminViewController {
     private final AcademicYearService academicYearService;
     private final AcademicYearScheduleService academicYearScheduleService;
     private final group3.en.stuattendance.Usermanager.Repository.PasswordResetRequestRepository passwordResetRequestRepository;
+    private final group3.en.stuattendance.Usermanager.Repository.UserRepository userRepository;
 
     @GetMapping("")
     public String adminRoot() {
@@ -91,29 +92,16 @@ public class AdminViewController {
         model.addAttribute("adminName", currentUsername);
         model.addAttribute("notifications", pendingResets.size());
         
-        java.util.List<group3.en.stuattendance.Usermanager.Model.User> allStaff = userService.getAllStaff();
-        model.addAttribute("pedagogicAssistants", allStaff.stream()
-            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("PEDAGOG")))
-            .collect(java.util.stream.Collectors.toList()));
-        model.addAttribute("supervisors", allStaff.stream()
-            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("SUPERVISOR")))
-            .collect(java.util.stream.Collectors.toList()));
+        model.addAttribute("pedagogicAssistants", userRepository.findByRolesName("PEDAGOG"));
+        model.addAttribute("supervisors", userRepository.findByRolesName("SUPERVISOR"));
 
-        java.util.List<group3.en.stuattendance.Usermanager.Model.User> allUsers = userService.getAllUsers();
-        
         java.util.Map<String, Object> stats = new java.util.HashMap<>();
-        stats.put("totalUsers", allUsers.size());
+        stats.put("totalUsers", userRepository.count());
         stats.put("userGrowth", "+0%"); // Placeholder for now
         
-        long studentCount = allUsers.stream()
-            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("STUDENT")))
-            .count();
-        long adminCount = allUsers.stream()
-            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("ADMIN")))
-            .count();
-        long staffCount = allUsers.stream()
-            .filter(u -> u.getRoles().stream().anyMatch(r -> r.getName().equals("PEDAGOG") || r.getName().equals("SUPERVISOR")))
-            .count();
+        long studentCount = userRepository.countByRolesName("STUDENT");
+        long adminCount = userRepository.countByRolesName("ADMIN");
+        long staffCount = userRepository.countByRolesNameIn(java.util.Arrays.asList("PEDAGOG", "SUPERVISOR"));
             
         stats.put("studentCount", studentCount);
         stats.put("departmentCount", departmentService.getAllDepartments().size());

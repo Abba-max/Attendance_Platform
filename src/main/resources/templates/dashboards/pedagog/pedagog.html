@@ -609,6 +609,13 @@
                             </svg>
                             Bulk Import
                         </button>
+                        <button onclick="refreshSection(this, 'studentTableBody')"
+                                class="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl shadow-sm hover:bg-slate-200 transition active:scale-95 font-bold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
                         <button onclick="openStudentModal()"
                                 class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -817,6 +824,13 @@
                             </svg>
                             Bulk Import
                         </button>
+                        <button onclick="refreshSection(this, 'courseTableBody')"
+                                class="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl shadow-sm hover:bg-slate-200 transition active:scale-95 font-bold">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Refresh
+                        </button>
                         <button onclick="openCourseModal()"
                                 class="flex items-center gap-2 px-6 py-3 bg-[#00B0FF] text-white rounded-2xl  shadow-lg shadow-blue-500/20 hover:bg-[#0091D5] transition active:scale-95">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -843,7 +857,7 @@
                                 Action</th>
                         </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
+                        <tbody id="courseTableBody" class="divide-y divide-slate-100">
                         <tr th:each="course : ${courses}" class="course-row hover:bg-slate-50/50 transition"
                             th:data-spec="${course.speciality?.name}" th:data-level="${course.level}"
                             th:data-name="${course.courseName}" th:data-code="${course.code}"
@@ -1658,7 +1672,7 @@
 
 <!-- Create Student Modal (Individual) -->
 <div id="studentModal" class="fixed inset-0 bg-slate-900/50 z-[100] hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-95 opacity-0 duration-300"
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all scale-95 opacity-0 duration-300"
          id="studentModalContent">
         <div class="p-6 bg-[#00B0FF] text-white flex justify-between items-center">
             <h3 class="text-xl text-white">Register Individual Student</h3>
@@ -2127,13 +2141,21 @@
                 <div>
                     <label
                             class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Classroom</label>
-                    <select id="emailClassSelect" name="classroomId" required
+                    <select id="emailClassSelect" name="classroomId"
                             class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-400 transition cursor-pointer">
                         <option value="">Select Room</option>
                         <option th:each="room : ${classrooms}" th:value="${room.classId}" th:text="${room.name}"
                                 th:data-spec="${room.speciality?.specialityId}">
                         </option>
                     </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Recipients</label>
+                <div class="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    Class Delegates
                 </div>
             </div>
 
@@ -2159,7 +2181,7 @@
                 </svg>
                 <p class="text-[11px] text-blue-700 leading-tight">
                     This will generate the latest active timetable for the currently selected Week and Semester, and
-                    BCC all students in the classroom.
+                    send it exclusively to the designated Class Delegates.
                 </p>
             </div>
 

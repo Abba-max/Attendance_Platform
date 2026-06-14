@@ -46,35 +46,15 @@ public class PedagogViewController {
 
         List<Department> departments = departmentRepository.findByPedagogicAssistants_UserId(currentUser.getUserId());
 
-        List<Speciality> departmentSpecialities = new ArrayList<>();
-        List<Classroom> departmentClassrooms = new ArrayList<>();
-        List<Course> departmentCourses = new ArrayList<>();
-        Set<User> departmentTeachers = new HashSet<>();
+        List<Speciality> departmentSpecialities = departments.isEmpty() ? new ArrayList<>() : specialityRepository.findByDepartmentIn(departments);
+        List<Classroom> departmentClassrooms = departmentSpecialities.isEmpty() ? new ArrayList<>() : classroomRepository.findBySpecialityIn(departmentSpecialities);
+        List<Course> departmentCourses = departmentSpecialities.isEmpty() ? new ArrayList<>() : courseRepository.findBySpecialityIn(departmentSpecialities);
+        
+        Set<User> departmentTeachers = departmentCourses.stream()
+                .flatMap(c -> c.getTeachers() != null ? c.getTeachers().stream() : java.util.stream.Stream.empty())
+                .collect(Collectors.toSet());
 
-        for (Department dept : departments) {
-            List<Speciality> specialities = specialityRepository.findByDepartment_DepartmentId(dept.getDepartmentId());
-            departmentSpecialities.addAll(specialities);
-
-            for (Speciality spec : specialities) {
-                List<Classroom> classrooms = classroomRepository.findBySpeciality_SpecialityId(spec.getSpecialityId());
-                departmentClassrooms.addAll(classrooms);
-
-                List<Course> courses = courseRepository.findBySpecialitySpecialityId(spec.getSpecialityId());
-                departmentCourses.addAll(courses);
-
-                for (Course course : courses) {
-                    if (course.getTeachers() != null) {
-                        departmentTeachers.addAll(course.getTeachers());
-                    }
-                }
-            }
-        }
-
-        List<User> departmentStudents = departmentClassrooms.stream()
-                .flatMap(c -> c.getStudents() != null ? c.getStudents().stream() : java.util.stream.Stream.empty())
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.toList());
+        List<User> departmentStudents = departmentClassrooms.isEmpty() ? new ArrayList<>() : userRepository.findByClassroomInAndRolesName(departmentClassrooms, "STUDENT");
 
         departmentStudents.sort((u1, u2) -> {
             if (u1.getCreatedAt() == null && u2.getCreatedAt() == null) return 0;
