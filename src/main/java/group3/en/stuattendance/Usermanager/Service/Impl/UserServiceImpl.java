@@ -295,15 +295,18 @@ public class UserServiceImpl implements UserService {
         }
 
         if (dto.getRoleIds() != null) {
-            existingUser.setRoles(new HashSet<>(roleRepository.findAllById(dto.getRoleIds())));
+            existingUser.getRoles().clear();
+            existingUser.getRoles().addAll(roleRepository.findAllById(dto.getRoleIds()));
         }
 
         if (dto.getAdditionalPermissionIds() != null) {
-            existingUser.setAdditionalPermissions(new HashSet<>(permissionRepository.findAllById(dto.getAdditionalPermissionIds())));
+            existingUser.getAdditionalPermissions().clear();
+            existingUser.getAdditionalPermissions().addAll(permissionRepository.findAllById(dto.getAdditionalPermissionIds()));
         }
 
         if (dto.getDeniedPermissionIds() != null) {
-            existingUser.setDeniedPermissions(new HashSet<>(permissionRepository.findAllById(dto.getDeniedPermissionIds())));
+            existingUser.getDeniedPermissions().clear();
+            existingUser.getDeniedPermissions().addAll(permissionRepository.findAllById(dto.getDeniedPermissionIds()));
         }
 
         if (dto.getClassroomId() != null) {
@@ -311,7 +314,8 @@ public class UserServiceImpl implements UserService {
         }
 
         if (dto.getStaffClassroomIds() != null) {
-            existingUser.setStaffClassrooms(new HashSet<>(classroomRepository.findAllById(dto.getStaffClassroomIds())));
+            existingUser.getStaffClassrooms().clear();
+            existingUser.getStaffClassrooms().addAll(classroomRepository.findAllById(dto.getStaffClassroomIds()));
         }
 
         return userMapper.toDto(userRepository.save(existingUser));
@@ -326,7 +330,7 @@ public class UserServiceImpl implements UserService {
                     .anyMatch(p -> p.getPermissionId().equals(permissionId)));
             
             if (!inScope) {
-                throw new RuntimeException("Permission is outside of user's role scope");
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Permission is outside of user's role scope");
             }
 
             permissionRepository.findById(permissionId).ifPresent(perm -> {
@@ -346,7 +350,7 @@ public class UserServiceImpl implements UserService {
                     .anyMatch(p -> p.getPermissionId().equals(permissionId)));
             
             if (!inScope) {
-                throw new RuntimeException("Permission is outside of user's role scope");
+                throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Permission is outside of user's role scope");
             }
 
             permissionRepository.findById(permissionId).ifPresent(perm -> {
