@@ -18,7 +18,7 @@ public class AdminDataInitialiser implements CommandLineRunner {
 
     // L'email et le mot de passe viennent de ton fichier application.properties
     @Value("${app.admin.username}")
-    private String adminEmail;
+    private String adminUsername;
 
     @Value("${app.admin.password}")
     private String adminPassword;
@@ -39,46 +39,50 @@ public class AdminDataInitialiser implements CommandLineRunner {
     @Transactional //
     public void run(String... args) {
 
-        System.out.println("Vérification de l'administrateur par défaut...");
+        System.out.println("Vérification des rôles et de l'administrateur par défaut...");
 
-        // 1. On vérifie si l'admin existe déjà via son email
-        if (userRepository.findByEmail(adminEmail).isEmpty()) {
+        // 1. Initialiser tous les rôles par défaut
+        Role adminRole = createRoleIfNotFound("ADMIN", "Super Administrateur du système");
+        createRoleIfNotFound("PEDAGOG", "Responsable Pédagogique");
+        createRoleIfNotFound("TEACHER", "Enseignant");
+        createRoleIfNotFound("STUDENT", "Étudiant");
 
-            // 2. Chercher ou Créer le rôle ROLE_ADMIN
-            // 2. Chercher ou Créer le rôle ADMIN (sans le préfixe)
-            Role adminRole = roleRepository.findByName("ADMIN")
-                    .orElseGet(() -> {
-                        Role newRole = new Role();
-                        newRole.setName("ADMIN"); //
-                        newRole.setDescription("Super Administrateur du système");
-                        return roleRepository.save(newRole);
-                    });
+        // 2. On vérifie si l'admin existe déjà via son nom d'utilisateur
+        if (userRepository.findByUsername(adminUsername).isEmpty()) {
 
-            // 3. Préparer la liste des rôles
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
 
-            // 4. Construire l'utilisateur Admin
+            // 3. Construire l'utilisateur Admin
             User admin = User.builder()
-                    .username("super_user") // Correspond au nom que tu utilises pour te connecter
-                    .email(adminEmail)
+                    .username(adminUsername)
+                    .email(adminUsername + "@stuattendance.local") // dummy email
                     .firstName("Super")
                     .lastName("Admin")
                     .password(passwordEncoder.encode(adminPassword))
                     .isActive(true)
-                    .roles(roles) //
+                    .roles(roles)
                     .build();
 
-            // 5. Sauvegarder l'utilisateur (la table de liaison user_roles sera mise à jour auto)
+            // 4. Sauvegarder l'utilisateur
             userRepository.save(admin);
 
             System.out.println("SUCCÈS : Compte Admin créé avec succès !");
-            System.out.println("Nom d'utilisateur : super_user");
-            System.out.println("Email : " + adminEmail);
+            System.out.println("Nom d'utilisateur : " + adminUsername);
             System.out.println("Rôle attribué : ADMIN");
 
         } else {
             System.out.println("INFO : Le compte Admin existe déjà dans la base de données. Initialisation ignorée.");
         }
+    }
+
+    private Role createRoleIfNotFound(String name, String description) {
+        return roleRepository.findByName(name)
+                .orElseGet(() -> {
+                    Role newRole = new Role();
+                    newRole.setName(name);
+                    newRole.setDescription(description);
+                    return roleRepository.save(newRole);
+                });
     }
 }
