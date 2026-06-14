@@ -291,7 +291,7 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                 colIdx++;
             }
             
-            String[] summaryHeaders = {"Total H.", "Total J.", "Total NJ.", "Nbre de RETARDS HEBDO", "Total Présence"};
+            String[] summaryHeaders = {"Total H.", "Total J.", "Total NJ.", "Total Retards", "Total Présence"};
             for (String sh : summaryHeaders) {
                 Cell c = headerRow1.createCell(colIdx);
                 c.setCellValue(sh);
@@ -344,20 +344,23 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                         sCell.setCellStyle(centerStyle);
                         
                         int dur = sessionDuration(s);
-                        if (rec != null) {
+                        if (rec == null) {
+                            // No scan record at all → fully absent
+                            sCell.setCellValue(dur);
+                            ueAbs += dur;
+                            sessionSums[colIdx] += dur;
+                        } else {
                             int attended = rec.getHoursAttended() != null ? rec.getHoursAttended() : 0;
+                            // LATE counts as attended (not absent hours)
                             int absentHours = Math.max(0, dur - attended);
-                            
                             if (absentHours > 0) {
                                 sCell.setCellValue(absentHours);
                                 ueAbs += absentHours;
                                 sessionSums[colIdx] += absentHours;
-                                
                                 if (rec.getStatus() == AttendanceStatus.EXCUSED) {
                                     ueJust += absentHours;
                                 }
                             }
-                            
                             if (rec.getStatus() == AttendanceStatus.LATE) {
                                 lates++;
                             }
@@ -443,8 +446,18 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             sheet.autoSizeColumn(0);
             sheet.autoSizeColumn(1);
             sheet.autoSizeColumn(2);
-            for (int i = 3; i < totalCols; i++) {
-                sheet.setColumnWidth(i, 256 * 4);
+            // Session columns: ultra-narrow (rotated 90° header)
+            int ci = 3;
+            for (List<Session> cSessions : courseSessionsMap.values()) {
+                for (int k = 0; k < cSessions.size(); k++) {
+                    sheet.setColumnWidth(ci++, 256 * 3); // per-session: very narrow
+                }
+                sheet.setColumnWidth(ci++, 256 * 5); // Total Heure UE
+                sheet.setColumnWidth(ci++, 256 * 5); // Heures Justifiée
+            }
+            // Summary columns: slightly wider
+            for (int k = 0; k < 5; k++) {
+                sheet.setColumnWidth(ci++, 256 * 6);
             }
 
             workbook.write(out);
@@ -564,11 +577,11 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
 
         // Determine column widths
         float[] widths = new float[totalCols];
-        widths[0] = 3f; // N°
-        widths[1] = 20f; // NOMS ET PRENOMS
-        widths[2] = 10f; // MATRICULE
+        widths[0] = 2.5f; // N°
+        widths[1] = 18f;  // NOMS ET PRENOMS
+        widths[2] = 8f;   // MATRICULE
         for (int i = 3; i < totalCols; i++) {
-            widths[i] = 4f; // Thin data columns
+            widths[i] = 2.2f; // Rotated 90° — ultra-narrow data columns
         }
         table.setWidths(widths);
 
@@ -591,7 +604,7 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
         table.addCell(createVerticalSpannedHeaderCell("Total H.", 2, 1, headerFont));
         table.addCell(createVerticalSpannedHeaderCell("Total J.", 2, 1, headerFont));
         table.addCell(createVerticalSpannedHeaderCell("Total NJ.", 2, 1, headerFont));
-        table.addCell(createVerticalSpannedHeaderCell("Nbre de RETARDS HEBDO", 2, 1, headerFont));
+        table.addCell(createVerticalSpannedHeaderCell("Total Retards", 2, 1, headerFont));
         table.addCell(createVerticalSpannedHeaderCell("Total Présence", 2, 1, headerFont));
 
         // Header Row 2
@@ -629,20 +642,23 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
 
                     String val = "";
                     int dur = sessionDuration(s);
-                    if (rec != null) {
+                    if (rec == null) {
+                        // No scan record at all → fully absent for this session
+                        val = String.valueOf(dur);
+                        ueAbs += dur;
+                        sessionSums[colIdx] += dur;
+                    } else {
                         int attended = rec.getHoursAttended() != null ? rec.getHoursAttended() : 0;
+                        // LATE counts as attended hours (no absent hours)
                         int absentHours = Math.max(0, dur - attended);
-                        
                         if (absentHours > 0) {
                             val = String.valueOf(absentHours);
                             ueAbs += absentHours;
                             sessionSums[colIdx] += absentHours;
-                            
                             if (rec.getStatus() == AttendanceStatus.EXCUSED) {
                                 ueJust += absentHours;
                             }
                         }
-                        
                         if (rec.getStatus() == AttendanceStatus.LATE) {
                             lates++;
                         }
