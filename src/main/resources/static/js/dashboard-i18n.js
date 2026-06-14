@@ -916,11 +916,11 @@
         const actions = themeButton?.parentElement || document.querySelector('main header .flex.items-center.gap-3');
         if (!actions) return;
         const switcher = document.createElement('div');
-        switcher.className = 'dashboard-lang-switch';
+        switcher.className = 'dashboard-lang-switch flex items-center p-0.5 sm:p-1 bg-white border border-slate-200 rounded-[12px] sm:rounded-2xl shadow-sm mx-0.5 sm:mx-1 shrink-0';
         switcher.setAttribute('aria-label', 'Language selector');
         switcher.innerHTML = `
-            <button type="button" class="dashboard-lang-btn" data-dashboard-lang="en" aria-pressed="false">EN</button>
-            <button type="button" class="dashboard-lang-btn" data-dashboard-lang="fr" aria-pressed="false">FR</button>`;
+            <button type="button" class="dashboard-lang-btn px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[11px] font-black tracking-widest text-slate-500 hover:text-slate-900 focus:outline-none transition-all duration-300" data-dashboard-lang="en" aria-pressed="false">EN</button>
+            <button type="button" class="dashboard-lang-btn px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl text-[9px] sm:text-[11px] font-black tracking-widest text-slate-500 hover:text-slate-900 focus:outline-none transition-all duration-300" data-dashboard-lang="fr" aria-pressed="false">FR</button>`;
         actions.insertBefore(switcher, themeButton || actions.firstChild);
     }
 

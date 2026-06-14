@@ -19,21 +19,21 @@ const MigrationModule = (() => {
     const TYPE_CONFIG = {
         LEVEL_PROMOTION: {
             label: 'Level Promotion',
-            icon: '⬆️',
+            icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>',
             color: 'blue',
             targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
             yearBadgeColor: 'purple',
         },
         SPECIALITY_CHANGE: {
             label: 'Speciality Change',
-            icon: '🔀',
+            icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>',
             color: 'orange',
             targetYearKey: 'migrationTargetYearForSpeciality',  // → N
             yearBadgeColor: 'green',
         },
         TRONC_COMMUN: {
             label: 'Common Core → Speciality',
-            icon: '🎓',
+            icon: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14v4"/></svg>',
             color: 'emerald',
             targetYearKey: 'migrationTargetYearForPromotion',   // → N+1
             yearBadgeColor: 'purple',
@@ -81,7 +81,7 @@ const MigrationModule = (() => {
         if (!state.nextYearReadyForMigration) {
             yearAlert = `
             <div class="bg-red-50 border border-red-300 rounded-2xl p-4 text-sm text-red-700 flex gap-3">
-                <span class="text-xl">🚫</span>
+                <div class="w-6 h-6 flex-shrink-0 text-red-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg></div>
                 <div>
                     <p class="font-bold">Level Promotion Blocked</p>
                     <p class="mt-1">The academic year <strong>${state.nextYearName}</strong> is already <strong>ACTIVE</strong>.
@@ -92,7 +92,7 @@ const MigrationModule = (() => {
         } else if (!state.nextYearExists) {
             yearAlert = `
             <div class="bg-amber-50 border border-amber-300 rounded-2xl p-4 text-sm text-amber-700 flex gap-3">
-                <span class="text-xl">ℹ️</span>
+                <div class="w-6 h-6 flex-shrink-0 text-amber-500"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
                 <div>
                     <p class="font-bold">New Academic Year Required</p>
                     <p class="mt-1">The target year <strong>${state.nextYearName}</strong> will be automatically initialized
@@ -111,7 +111,7 @@ const MigrationModule = (() => {
                 <div class="bento-card p-6 space-y-6">
                     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-50 pb-4">
                         <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
-                            <span class="p-2.5 bg-indigo-50 text-indigo-600 rounded-2xl text-xl">🏫</span>
+                            <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg></span>
                             Student Migration
                         </h2>
                         <!-- Badges -->
@@ -159,7 +159,7 @@ const MigrationModule = (() => {
                                 <option value="">— Choose a source classroom —</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-slate-400">
-                                🔍
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </div>
                         </div>
                     </div>
@@ -193,7 +193,7 @@ const MigrationModule = (() => {
                     <button id="btn-confirm-migration"
                         class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold py-4 rounded-2xl
                                shadow-md shadow-indigo-100 hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer border-0">
-                        <span id="btn-migrate-icon" class="text-lg">🚀</span>
+                        <span id="btn-migrate-icon" class="flex items-center justify-center"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg></span>
                         <span id="btn-migrate-label">Launch Migration</span>
                     </button>
                 </div>
@@ -226,9 +226,8 @@ const MigrationModule = (() => {
 
                     <!-- Scrollable List -->
                     <div id="students-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 max-h-[550px] pr-1">
-                        <!-- Placeholder State when no classroom is selected -->
                         <div id="students-placeholder" class="h-full flex flex-col items-center justify-center text-center p-6 space-y-3 mt-12 text-slate-400">
-                            <div class="text-4xl">👥</div>
+                            <div class="text-slate-300 mb-2"><svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
                             <div>
                                 <p class="font-bold text-slate-700 text-sm">No classroom selected</p>
                                 <p class="text-slate-400 text-xs mt-1">Choose a source classroom in Step 2 to load the student list.</p>
@@ -395,7 +394,7 @@ const MigrationModule = (() => {
         if (!students?.length) {
             list.innerHTML = `
             <div class="flex flex-col items-center justify-center text-center p-6 space-y-2 mt-12 text-slate-400">
-                <span class="text-3xl">⚠️</span>
+                <div class="text-slate-300 mb-2"><svg class="w-10 h-10 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div>
                 <p class="text-sm font-bold">No students</p>
                 <p class="text-xs">This classroom does not contain any active students.</p>
             </div>`;
@@ -531,7 +530,7 @@ const MigrationModule = (() => {
         } catch (err) {
             showToast('Migration error: ' + (err.message || 'Unknown'), 'error');
         } finally {
-            btn.disabled = false; icon.textContent = '🚀'; label.textContent = 'Launch Migration';
+            btn.disabled = false; icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>'; label.textContent = 'Launch Migration';
         }
     }
 

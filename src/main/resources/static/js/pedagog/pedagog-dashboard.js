@@ -1126,6 +1126,45 @@ window.loadTTCoursesAndTeachers = async function () {
     }
 };
 
+window.filterTTCourses = function() {
+    const searchInput = document.getElementById('ttCourseSearch');
+    if (!searchInput) return;
+    const query = searchInput.value.toLowerCase();
+    
+    const coursesList = document.getElementById('ttCoursesListContainer');
+    if (!window.currentSpecialityCourses || window.currentSpecialityCourses.length === 0) return;
+    
+    const filteredCourses = window.currentSpecialityCourses.filter(c => 
+        (c.courseName && c.courseName.toLowerCase().includes(query)) ||
+        (c.code && c.code.toLowerCase().includes(query))
+    );
+    
+    if (filteredCourses.length === 0) {
+        coursesList.innerHTML = `<div class="flex flex-col items-center justify-center py-10 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <p class="text-slate-400 text-[11px] font-bold text-center">No courses match your search</p>
+        </div>`;
+    } else {
+        coursesList.innerHTML = filteredCourses.map(c => `
+            <div class="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm cursor-move hover:border-blue-300 hover:shadow-md transition-all group relative"
+                 draggable="true" ondragstart="handleTTDragStart(event)"
+                 data-type="course" data-id="${c.courseId}" data-name="${c.courseName}">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-blue-50 text-[#00B0FF] rounded-xl flex items-center justify-center text-xs font-black shadow-inner">
+                        ${c.courseName.charAt(0)}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2 mb-1">
+                            <span class="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[9px] font-black uppercase tracking-tight">${c.code}</span>
+                            <span class="text-[10px] font-bold text-blue-500">${c.credits || 0} Cr</span>
+                        </div>
+                        <p class="text-[12px] font-black text-slate-800 leading-tight line-clamp-2">${c.courseName}</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+};
+
 let draggedItem = null;
 
 window.handleTTDragStart = function (e) {
@@ -2720,12 +2759,13 @@ function renderSessionRow(s) {
     const timeStr = (s.startTime || '--').substring(0,5) + " – " + (s.endTime || '--').substring(0,5);
 
     // Attendance bar
+    const attRateStr = s.attendanceRate ? Number(s.attendanceRate).toFixed(2) : '0.00';
     const attBar = s.status === 'COMPLETED'
         ? '<div style="display:flex;align-items:center;gap:6px">' +
                '<div style="flex:1;height:6px;background:#e2e8f0;border-radius:4px;overflow:hidden">' +
-                   '<div style="height:100%;background:#10b981;border-radius:4px;width:' + (s.attendanceRate || 0) + '%"></div>' +
+                   '<div style="height:100%;background:#10b981;border-radius:4px;width:' + attRateStr + '%"></div>' +
                '</div>' +
-               '<span style="font-size:11px;font-weight:700;color:#475569">' + (s.attendanceRate || '?') + '%</span>' +
+               '<span style="font-size:11px;font-weight:700;color:#475569">' + attRateStr + '%</span>' +
            '</div>'
         : '<span style="font-size:11px;color:var(--text-3)">—</span>';
 
@@ -3806,7 +3846,8 @@ function renderStatsTable(stats, isDetailedMode) {
     }
 
     body.innerHTML = stats.map(s => {
-        const pct = Math.round(s.attendanceRate);
+        const pct = s.attendanceRate ? Number(s.attendanceRate) : 0;
+        const displayPct = pct.toFixed(2);
         const gradient = pct < 60 ? 'from-rose-400 to-rose-600' : (pct < 80 ? 'from-amber-400 to-amber-600' : 'from-blue-400 to-blue-600');
 
         const title = isDetailedMode ? `${s.firstName} ${s.lastName}` : s.courseName;
