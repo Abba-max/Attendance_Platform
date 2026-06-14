@@ -197,6 +197,7 @@ public class SecurityConfig {
      * 2. An additional HTTP port (8080) for legacy access
      */
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "server.ssl.enabled", havingValue = "true")
     public org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory tomcatServletWebServerFactory() {
         org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory factory = new org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory();
         factory.addAdditionalTomcatConnectors(createHttpConnector());

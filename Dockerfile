@@ -20,12 +20,8 @@ WORKDIR /app
 # Copy the compiled JAR from the build stage and name it stuattendance.jar
 COPY --from=build /app/target/*.jar stuattendance.jar
 
-# Render exposes the PORT environment variable (default 8080 for standard setup)
-ENV PORT=8080
-EXPOSE 8080
-
-# Set Server Port property explicitly to the injected PORT
-ENV SERVER_PORT=${PORT}
+# Render exposes the PORT environment variable dynamically at runtime.
+# We no longer hardcode ENV PORT or EXPOSE because Spring Boot will automatically pick it up via application.properties.
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "stuattendance.jar"]

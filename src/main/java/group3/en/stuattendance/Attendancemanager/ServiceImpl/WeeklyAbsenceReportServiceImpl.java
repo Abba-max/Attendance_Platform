@@ -8,6 +8,10 @@ import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.VerticalAlignment;
+import org.apache.poi.ss.util.CellRangeAddress;
+
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.lowagie.text.Chunk;
@@ -154,6 +158,14 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
                     .computeIfAbsent(rec.getSession().getSessionId(), k -> new HashMap<>())
                     .put(rec.getUser().getUserId(), rec);
         }
+        
+        // Group sessions by Course
+        Map<Course, List<Session>> courseSessionsMap = new LinkedHashMap<>();
+        sessions.sort(Comparator.comparing(Session::getDate).thenComparing(Session::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())));
+        for (Session s : sessions) {
+            Course c = s.getCourse() != null ? s.getCourse() : new Course();
+            courseSessionsMap.computeIfAbsent(c, k -> new ArrayList<>()).add(s);
+        }
 
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Absences Hebdo");
@@ -164,75 +176,256 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             CellStyle headerStyle = workbook.createCellStyle();
             headerStyle.setFont(boldFont);
             headerStyle.setAlignment(HorizontalAlignment.CENTER);
-            headerStyle.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            headerStyle.setBorderTop(BorderStyle.THIN);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+            headerStyle.setBorderLeft(BorderStyle.THIN);
+            headerStyle.setBorderRight(BorderStyle.THIN);
 
             CellStyle centerStyle = workbook.createCellStyle();
             centerStyle.setAlignment(HorizontalAlignment.CENTER);
+            centerStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            centerStyle.setBorderTop(BorderStyle.THIN);
+            centerStyle.setBorderBottom(BorderStyle.THIN);
+            centerStyle.setBorderLeft(BorderStyle.THIN);
+            centerStyle.setBorderRight(BorderStyle.THIN);
+            
+            CellStyle boldCenterStyle = workbook.createCellStyle();
+            boldCenterStyle.cloneStyleFrom(centerStyle);
+            boldCenterStyle.setFont(boldFont);
 
-            Row titleRow = sheet.createRow(0);
-            Cell titleCell = titleRow.createCell(0);
+            // Calculate total columns
+            int totalCols = 3; // N°, NOMS, MATRICULE
+            for (List<Session> cSessions : courseSessionsMap.values()) {
+                totalCols += cSessions.size() + 2; // sessions + Total UE + Justified UE
+            }
+            totalCols += 4; // Total H, Total J, Total NJ, Lates
+            
+            // Document Headers
+            Row instRow = sheet.createRow(0);
+            Cell instCell = instRow.createCell(0);
+            instCell.setCellValue("UNIVERSITE SAINT JEAN\nSaint Jean Ingénieur");
+            instCell.setCellStyle(boldCenterStyle);
+            
+            Cell titleCell = instRow.createCell(3);
+            titleCell.setCellValue("FICHE D'ABSENCES HEBDOMADAIRE");
+            titleCell.setCellStyle(boldCenterStyle);
+            
+            Cell repCell = instRow.createCell(totalCols > 6 ? totalCols - 3 : 4);
+            repCell.setCellValue("REPUBLIQUE DU CAMEROUN\nArchidiocèse d'Obala");
+            repCell.setCellStyle(centerStyle);
+            
+            // Subtitle
+            Row subRow = sheet.createRow(1);
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            titleCell.setCellValue("FICHE HEBDOMADAIRE - " + classroom.getName() + " - Du " + monday.format(fmt) + " au " + saturday.format(fmt));
-            titleCell.setCellStyle(headerStyle);
-
+            subRow.createCell(0).setCellValue("ANNEE ACADEMIQUE 2024-2025");
+            Cell subTitleCell = subRow.createCell(3);
+            subTitleCell.setCellValue("ABSENCE RETARDS " + classroom.getName() + " Semaine du " + monday.format(fmt) + " au " + saturday.format(fmt));
+            subTitleCell.setCellStyle(boldCenterStyle);
+            subRow.createCell(totalCols > 6 ? totalCols - 3 : 4).setCellValue("SEMESTRE 1");
+            
             if (students.isEmpty() || sessions.isEmpty()) {
-                sheet.createRow(2).createCell(0).setCellValue(students.isEmpty() ? "Aucun étudiant." : "Aucune séance planifiée.");
+                sheet.createRow(4).createCell(0).setCellValue(students.isEmpty() ? "Aucun étudiant." : "Aucune séance planifiée.");
                 workbook.write(out);
                 return new ByteArrayInputStream(out.toByteArray());
             }
 
-            // Headers
-            Row headerRow = sheet.createRow(2);
-            headerRow.createCell(0).setCellValue("NOMS ET PRÉNOMS");
-            headerRow.getCell(0).setCellStyle(headerStyle);
+            // Headers - Row 1
+            int headerRowIdx = 3;
+            Row headerRow1 = sheet.createRow(headerRowIdx);
+            Row headerRow2 = sheet.createRow(headerRowIdx + 1);
+            
+            // Frozen Panes
+            sheet.createFreezePane(3, headerRowIdx + 2);
 
-            sessions.sort(Comparator.comparing(Session::getDate).thenComparing(Session::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())));
-
-            DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-            int colIdx = 1;
-            for (Session s : sessions) {
-                String courseName = s.getCourse() != null ? s.getCourse().getCode() : "N/A";
-                String time = (s.getStartTime() != null ? s.getStartTime().format(timeFmt) : "");
-                String day = s.getDate().getDayOfWeek().toString().substring(0, 3);
-                Cell c = headerRow.createCell(colIdx++);
-                c.setCellValue(day + " " + s.getDate().format(DateTimeFormatter.ofPattern("dd/MM")) + "\n" + courseName + " " + time);
+            String[] fixedHeaders = {"N°", "NOMS ET PRENOMS", "MATRICULE"};
+            for (int i = 0; i < 3; i++) {
+                Cell c = headerRow1.createCell(i);
+                c.setCellValue(fixedHeaders[i]);
                 c.setCellStyle(headerStyle);
+                headerRow2.createCell(i).setCellStyle(headerStyle);
+                sheet.addMergedRegion(new CellRangeAddress(headerRowIdx, headerRowIdx + 1, i, i));
+            }
+
+            int colIdx = 3;
+            for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
+                Course course = entry.getKey();
+                List<Session> cSessions = entry.getValue();
+                
+                String courseName = course.getCode() != null ? course.getCode() + " " + nvl(course.getCourseName()) : "N/A";
+                
+                Cell cHeader = headerRow1.createCell(colIdx);
+                cHeader.setCellValue(courseName);
+                cHeader.setCellStyle(headerStyle);
+                
+                // Merge course header
+                int endCol = colIdx + cSessions.size() + 1;
+                sheet.addMergedRegion(new CellRangeAddress(headerRowIdx, headerRowIdx, colIdx, endCol));
+                
+                for (Session s : cSessions) {
+                    String day = s.getDate().getDayOfWeek().toString().substring(0, 3);
+                    Cell dCell = headerRow2.createCell(colIdx);
+                    dCell.setCellValue(day);
+                    dCell.setCellStyle(headerStyle);
+                    
+                    // Fill row 1 cell to avoid border missing
+                    headerRow1.createCell(colIdx).setCellStyle(headerStyle);
+                    colIdx++;
+                }
+                
+                Cell tUeCell = headerRow2.createCell(colIdx);
+                tUeCell.setCellValue("Total Heure UE");
+                tUeCell.setCellStyle(headerStyle);
+                headerRow1.createCell(colIdx).setCellStyle(headerStyle);
+                colIdx++;
+                
+                Cell jUeCell = headerRow2.createCell(colIdx);
+                jUeCell.setCellValue("Heures Justifiée");
+                jUeCell.setCellStyle(headerStyle);
+                headerRow1.createCell(colIdx).setCellStyle(headerStyle);
+                colIdx++;
+            }
+            
+            String[] summaryHeaders = {"Total H.", "Total J.", "Total NJ.", "Nbre de RETARDS HEBDO"};
+            for (String sh : summaryHeaders) {
+                Cell c = headerRow1.createCell(colIdx);
+                c.setCellValue(sh);
+                c.setCellStyle(headerStyle);
+                headerRow2.createCell(colIdx).setCellStyle(headerStyle);
+                sheet.addMergedRegion(new CellRangeAddress(headerRowIdx, headerRowIdx + 1, colIdx, colIdx));
+                colIdx++;
             }
 
             // Data Rows
-            int rowIdx = 3;
+            int rowIdx = headerRowIdx + 2;
+            int studentIndex = 1;
+            
+            // For footer sums
+            int[] sessionSums = new int[totalCols];
+            
             for (User student : students) {
                 Row row = sheet.createRow(rowIdx++);
                 
+                Cell cNo = row.createCell(0);
+                cNo.setCellValue(studentIndex++);
+                cNo.setCellStyle(centerStyle);
+                
                 String fullName = (student.getLastName() != null ? student.getLastName().toUpperCase() : "") + " " + 
                                   (student.getFirstName() != null ? student.getFirstName() : "");
-                row.createCell(0).setCellValue(fullName.trim());
+                Cell cName = row.createCell(1);
+                cName.setCellValue(fullName.trim());
+                cName.setCellStyle(centerStyle);
+                
+                Cell cMat = row.createCell(2);
+                cMat.setCellValue(nvl(student.getMatricule()));
+                cMat.setCellStyle(centerStyle);
 
-                colIdx = 1;
-                for (Session s : sessions) {
-                    Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
-                    AttendanceRecord rec = byUser.get(student.getUserId());
+                int globalAbs = 0;
+                int globalJust = 0;
+                int lates = 0;
+                
+                colIdx = 3;
+                for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
+                    List<Session> cSessions = entry.getValue();
                     
-                    Cell sCell = row.createCell(colIdx++);
-                    sCell.setCellStyle(centerStyle);
+                    int ueAbs = 0;
+                    int ueJust = 0;
                     
-                    if (rec == null) {
-                        sCell.setCellValue("-");
-                    } else if (rec.getStatus() == AttendanceStatus.PRESENT) {
-                        sCell.setCellValue("P");
-                    } else if (rec.getStatus() == AttendanceStatus.ABSENT) {
-                        sCell.setCellValue("A");
-                    } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
-                        sCell.setCellValue("J");
+                    for (Session s : cSessions) {
+                        Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
+                        AttendanceRecord rec = byUser.get(student.getUserId());
+                        
+                        Cell sCell = row.createCell(colIdx);
+                        sCell.setCellStyle(centerStyle);
+                        
+                        int dur = sessionDuration(s);
+                        if (rec != null) {
+                            if (rec.getStatus() == AttendanceStatus.ABSENT) {
+                                sCell.setCellValue(dur);
+                                ueAbs += dur;
+                                sessionSums[colIdx] += dur;
+                            } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
+                                sCell.setCellValue(dur);
+                                ueAbs += dur;
+                                ueJust += dur;
+                                sessionSums[colIdx] += dur;
+                            } else if (rec.getStatus() == AttendanceStatus.LATE) {
+                                lates++;
+                            }
+                        }
+                        colIdx++;
                     }
+                    
+                    globalAbs += ueAbs;
+                    globalJust += ueJust;
+                    
+                    Cell tUeCell = row.createCell(colIdx);
+                    tUeCell.setCellStyle(boldCenterStyle);
+                    if (ueAbs > 0) tUeCell.setCellValue(ueAbs);
+                    sessionSums[colIdx] += ueAbs;
+                    colIdx++;
+                    
+                    Cell jUeCell = row.createCell(colIdx);
+                    jUeCell.setCellStyle(boldCenterStyle);
+                    if (ueJust > 0) jUeCell.setCellValue(ueJust);
+                    sessionSums[colIdx] += ueJust;
+                    colIdx++;
                 }
+                
+                int globalNj = globalAbs - globalJust;
+                
+                Cell tHCell = row.createCell(colIdx);
+                tHCell.setCellStyle(boldCenterStyle);
+                if (globalAbs > 0) tHCell.setCellValue(globalAbs);
+                sessionSums[colIdx] += globalAbs;
+                colIdx++;
+                
+                Cell tJCell = row.createCell(colIdx);
+                tJCell.setCellStyle(boldCenterStyle);
+                if (globalJust > 0) tJCell.setCellValue(globalJust);
+                sessionSums[colIdx] += globalJust;
+                colIdx++;
+                
+                Cell tNjCell = row.createCell(colIdx);
+                tNjCell.setCellStyle(boldCenterStyle);
+                if (globalNj > 0) tNjCell.setCellValue(globalNj);
+                sessionSums[colIdx] += globalNj;
+                colIdx++;
+                
+                Cell lateCell = row.createCell(colIdx);
+                lateCell.setCellStyle(boldCenterStyle);
+                if (lates > 0) lateCell.setCellValue(lates);
+                sessionSums[colIdx] += lates;
+                colIdx++;
             }
+            
+            // Footer Row
+            Row footRow = sheet.createRow(rowIdx++);
+            Cell fLabel = footRow.createCell(0);
+            fLabel.setCellValue("TOTAL DES HEURES DE LA SEMAINE");
+            fLabel.setCellStyle(headerStyle);
+            footRow.createCell(1).setCellStyle(headerStyle);
+            footRow.createCell(2).setCellStyle(headerStyle);
+            sheet.addMergedRegion(new CellRangeAddress(rowIdx-1, rowIdx-1, 0, 2));
+            
+            for (int i = 3; i < totalCols; i++) {
+                Cell c = footRow.createCell(i);
+                c.setCellStyle(boldCenterStyle);
+                if (sessionSums[i] > 0) c.setCellValue(sessionSums[i]);
+            }
+            
+            // Disclaimer & Signature
+            Row discRow = sheet.createRow(rowIdx + 2);
+            Cell discCell = discRow.createCell(0);
+            discCell.setCellValue("NB: Vous avez 3 jours pour toutes justifications, passé ce délai aucune requête ne sera acceptée.");
+            
+            Row sigRow = sheet.createRow(rowIdx + 4);
+            Cell sigCell = sigRow.createCell(totalCols > 3 ? totalCols - 3 : 0);
+            sigCell.setCellValue("Le Responsable Pédagogique ___________________________");
 
             sheet.autoSizeColumn(0);
-            for (int i = 1; i <= sessions.size(); i++) {
-                sheet.autoSizeColumn(i);
-            }
+            sheet.autoSizeColumn(1);
+            sheet.autoSizeColumn(2);
 
             workbook.write(out);
             return new ByteArrayInputStream(out.toByteArray());
@@ -253,8 +446,8 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             LocalDate weekStart,
             LocalDate weekEnd) {
 
-        // Orientation Paysage A4 avec petites marges
-        Document document = new Document(PageSize.A4.rotate(), 12, 12, 22, 18);
+        // Orientation Paysage A4 with narrow margins (10px all around)
+        Document document = new Document(PageSize.A4.rotate(), 10, 10, 10, 10);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {
@@ -264,23 +457,16 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
             // En-tête du document
             addHeader(document, classroom, weekStart, weekEnd);
 
-            // Tableau principal
             if (students.isEmpty() || sessions.isEmpty()) {
-                Paragraph msg = new Paragraph(
-                        "Aucun étudiant ou aucune séance planifiée pour cette semaine.",
-                        FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY));
-                msg.setAlignment(Element.ALIGN_CENTER);
-                msg.setSpacingBefore(20);
+                Paragraph msg = new Paragraph("Aucun étudiant ou aucune séance planifiée.", FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY));
                 document.add(msg);
             } else {
-                PdfPTable mainTable = buildAttendanceTable(
-                        students, sessions, attendanceMap, weekStart);
+                PdfPTable mainTable = buildAttendanceTable(students, sessions, attendanceMap, weekStart);
                 document.add(mainTable);
             }
 
             // Pied de page
             addFooter(document);
-
             document.close();
         } catch (Exception e) {
             throw new RuntimeException("Erreur génération fiche hebdomadaire PDF : " + e.getMessage(), e);
@@ -289,232 +475,233 @@ public class WeeklyAbsenceReportServiceImpl implements WeeklyAbsenceReportServic
         return new ByteArrayInputStream(out.toByteArray());
     }
 
-    // =====================================================================
-    //  EN-TÊTE DU DOCUMENT
-    // =====================================================================
-
-    private void addHeader(Document document, Classroom classroom,
-                           LocalDate weekStart, LocalDate weekEnd) throws DocumentException {
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd MMMM yyyy", Locale.FRENCH);
+    private void addHeader(Document document, Classroom classroom, LocalDate weekStart, LocalDate weekEnd) throws DocumentException {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         PdfPTable header = new PdfPTable(3);
         header.setWidthPercentage(100);
-        header.setWidths(new float[]{28f, 44f, 28f});
-        header.setSpacingAfter(6f);
+        header.setWidths(new float[]{33f, 34f, 33f});
+        header.setSpacingAfter(10f);
 
-        // --- Colonne gauche : Université ---
-        Font boldSmall  = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 7.5f, Color.BLACK);
-        Font tinyGray   = FontFactory.getFont(FontFactory.HELVETICA, 6.5f, Color.DARK_GRAY);
-        PdfPCell leftCell = new PdfPCell();
-        leftCell.setBorder(Rectangle.NO_BORDER);
-        leftCell.setPaddingLeft(4);
-        Paragraph leftContent = new Paragraph();
-        leftContent.add(new Chunk("UNIVERSITE SAINT JEAN\n", boldSmall));
-        leftContent.add(new Chunk("Saint Jean Ingénieur\n", tinyGray));
-        leftContent.add(new Chunk("REPUBLIQUE DU CAMEROUN\n", tinyGray));
-        leftContent.add(new Chunk("Archidiocèse d'Obala", tinyGray));
-        leftCell.addElement(leftContent);
-        header.addCell(leftCell);
+        Font boldSmall = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, Color.BLACK);
+        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12f, Color.BLACK);
 
-        // --- Colonne centrale : Titre ---
-        Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11f, COLOR_HEADER_BG);
-        Font weekFont  = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8.5f, Color.BLACK);
-        PdfPCell centerCell = new PdfPCell();
-        centerCell.setBorder(Rectangle.NO_BORDER);
-        centerCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-        Paragraph centerContent = new Paragraph();
-        centerContent.setAlignment(Element.ALIGN_CENTER);
-        centerContent.add(new Chunk("FICHE D'ABSENCES HEBDOMADAIRE\n", titleFont));
-        centerContent.add(new Chunk("SEMAINE DU " + weekStart.format(fmt).toUpperCase()
-                + " AU " + weekEnd.format(fmt).toUpperCase(), weekFont));
-        centerCell.addElement(centerContent);
-        header.addCell(centerCell);
+        // Top Row
+        PdfPCell left1 = new PdfPCell(new Phrase("UNIVERSITE SAINT JEAN\nSaint Jean Ingénieur", boldSmall));
+        left1.setBorder(Rectangle.NO_BORDER);
+        header.addCell(left1);
 
-        // --- Colonne droite : Classe ---
-        Font classFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9f, COLOR_HEADER_BG);
-        PdfPCell rightCell = new PdfPCell();
-        rightCell.setBorder(Rectangle.NO_BORDER);
-        rightCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        rightCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        rightCell.setPaddingRight(4);
-        Paragraph classContent = new Paragraph(
-                classroom.getName() != null ? classroom.getName() : "", classFont);
-        classContent.setAlignment(Element.ALIGN_RIGHT);
-        rightCell.addElement(classContent);
-        header.addCell(rightCell);
+        PdfPCell center1 = new PdfPCell(new Phrase("FICHE D'ABSENCES HEBDOMADAIRE", titleFont));
+        center1.setBorder(Rectangle.NO_BORDER);
+        center1.setHorizontalAlignment(Element.ALIGN_CENTER);
+        header.addCell(center1);
+
+        PdfPCell right1 = new PdfPCell(new Phrase("REPUBLIQUE DU CAMEROUN\nArchidiocèse d'Obala", boldSmall));
+        right1.setBorder(Rectangle.NO_BORDER);
+        right1.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        header.addCell(right1);
+
+        // Bottom Row
+        PdfPCell left2 = new PdfPCell(new Phrase("ANNEE ACADEMIQUE 2024-2025", boldSmall));
+        left2.setBorder(Rectangle.NO_BORDER);
+        header.addCell(left2);
+
+        String subtitle = "ABSENCE RETARDS " + (classroom.getName() != null ? classroom.getName() : "") + " Semaine du " + weekStart.format(fmt) + " au " + weekEnd.format(fmt);
+        PdfPCell center2 = new PdfPCell(new Phrase(subtitle, boldSmall));
+        center2.setBorder(Rectangle.NO_BORDER);
+        center2.setHorizontalAlignment(Element.ALIGN_CENTER);
+        header.addCell(center2);
+
+        PdfPCell right2 = new PdfPCell(new Phrase("SEMESTRE 1", boldSmall));
+        right2.setBorder(Rectangle.NO_BORDER);
+        right2.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        header.addCell(right2);
 
         document.add(header);
-
-        // Ligne de séparation bleue marine
-        PdfPTable sep = new PdfPTable(1);
-        sep.setWidthPercentage(100);
-        sep.setSpacingAfter(4f);
-        PdfPCell sepCell = new PdfPCell();
-        sepCell.setFixedHeight(2.5f);
-        sepCell.setBackgroundColor(COLOR_HEADER_BG);
-        sepCell.setBorder(Rectangle.NO_BORDER);
-        sep.addCell(sepCell);
-        document.add(sep);
     }
 
-    // =====================================================================
-    //  TABLEAU PRINCIPAL D'ASSIDUITÉ
-    // =====================================================================
-
     private PdfPTable buildAttendanceTable(
-            List<User> students,
-            List<Session> sessions,
-            Map<Integer, Map<Integer, AttendanceRecord>> attendanceMap,
-            LocalDate weekStart) throws DocumentException {
+            List<User> students, List<Session> sessions,
+            Map<Integer, Map<Integer, AttendanceRecord>> attendanceMap, LocalDate weekStart) throws DocumentException {
 
+        // Group sessions by Course
+        Map<Course, List<Session>> courseSessionsMap = new LinkedHashMap<>();
         sessions.sort(Comparator.comparing(Session::getDate).thenComparing(Session::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())));
-
-        int totalCols = 2 + sessions.size();
-        PdfPTable table = new PdfPTable(totalCols);
-        table.setWidthPercentage(100);
-        table.setKeepTogether(false);
-
-        float[] widths = new float[totalCols];
-        widths[0] = 3f; // N°
-        widths[1] = 23f; // NOMS ET PRÉNOMS
-        float sessionWidth = sessions.isEmpty() ? 74f : (74f / sessions.size());
-        for (int i = 2; i < totalCols; i++) widths[i] = sessionWidth;
-        table.setWidths(widths);
-
-        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HH:mm");
-        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM");
-        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.WHITE);
-
-        // N°
-        PdfPCell cellNo = new PdfPCell(new Phrase("N°", headerFont));
-        cellNo.setBackgroundColor(COLOR_HEADER_BG);
-        cellNo.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cellNo.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cellNo.setFixedHeight(26f);
-        applyBorder(cellNo);
-        table.addCell(cellNo);
-
-        // NOMS ET PRÉNOMS
-        PdfPCell cellName = new PdfPCell(new Phrase("NOMS ET PRÉNOMS", headerFont));
-        cellName.setBackgroundColor(COLOR_HEADER_BG);
-        cellName.setHorizontalAlignment(Element.ALIGN_CENTER);
-        cellName.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        cellName.setFixedHeight(26f);
-        applyBorder(cellName);
-        table.addCell(cellName);
-
-        // Session Headers
         for (Session s : sessions) {
-            String courseName = s.getCourse() != null ? shorten(s.getCourse().getCode(), 12) : "N/A";
-            String time = (s.getStartTime() != null ? s.getStartTime().format(timeFmt) : "");
-            int dayIndex = s.getDate().getDayOfWeek().getValue() - 1;
-            String dayLabel = (dayIndex >= 0 && dayIndex < 6) ? FRENCH_DAYS[dayIndex] : s.getDate().getDayOfWeek().toString().substring(0, 3);
-            String label = courseName + "\n" + dayLabel + " " + s.getDate().format(dateFmt) + "\n" + time;
-            
-            PdfPCell cellDay = new PdfPCell(new Phrase(label, headerFont));
-            cellDay.setBackgroundColor(COLOR_HEADER_BG);
-            cellDay.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cellDay.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cellDay.setFixedHeight(26f);
-            applyBorder(cellDay);
-            table.addCell(cellDay);
+            Course c = s.getCourse() != null ? s.getCourse() : new Course();
+            courseSessionsMap.computeIfAbsent(c, k -> new ArrayList<>()).add(s);
         }
 
-        Font nameFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.BLACK);
-        Font dataFont = FontFactory.getFont(FontFactory.HELVETICA, 6f, Color.DARK_GRAY);
-        Font presentFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.WHITE);
+        int totalCols = 3;
+        for (List<Session> cSessions : courseSessionsMap.values()) {
+            totalCols += cSessions.size() + 2;
+        }
+        totalCols += 4;
 
+        PdfPTable table = new PdfPTable(totalCols);
+        table.setWidthPercentage(100);
+        table.setHeaderRows(2); // Repeat headers on new pages
+
+        // Determine column widths
+        float[] widths = new float[totalCols];
+        widths[0] = 3f; // N°
+        widths[1] = 15f; // NOMS
+        widths[2] = 8f; // MATRICULE
+        float remaining = 100f - 26f;
+        float dataColWidth = remaining / (totalCols - 3);
+        for (int i = 3; i < totalCols; i++) widths[i] = dataColWidth;
+        table.setWidths(widths);
+
+        Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.BLACK);
+        Font dataFont = FontFactory.getFont(FontFactory.HELVETICA, 6f, Color.BLACK);
+        Font boldDataFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 6f, Color.BLACK);
+
+        // Header Row 1
+        table.addCell(createSpannedHeaderCell("N°", 2, 1, headerFont));
+        table.addCell(createSpannedHeaderCell("NOMS ET PRENOMS", 2, 1, headerFont));
+        table.addCell(createSpannedHeaderCell("MATRICULE", 2, 1, headerFont));
+
+        for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
+            Course course = entry.getKey();
+            int span = entry.getValue().size() + 2;
+            String courseName = course.getCode() != null ? course.getCode() + " " + nvl(course.getCourseName()) : "N/A";
+            table.addCell(createSpannedHeaderCell(courseName, 1, span, headerFont));
+        }
+
+        table.addCell(createSpannedHeaderCell("Total H.", 2, 1, headerFont));
+        table.addCell(createSpannedHeaderCell("Total J.", 2, 1, headerFont));
+        table.addCell(createSpannedHeaderCell("Total NJ.", 2, 1, headerFont));
+        table.addCell(createSpannedHeaderCell("Nbre de RETARDS HEBDO", 2, 1, headerFont));
+
+        // Header Row 2
+        for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
+            for (Session s : entry.getValue()) {
+                String day = s.getDate().getDayOfWeek().toString().substring(0, 3);
+                table.addCell(createHeaderCell(day, headerFont));
+            }
+            table.addCell(createHeaderCell("Total Heure UE", headerFont));
+            table.addCell(createHeaderCell("Heures Justifiée", headerFont));
+        }
+
+        int[] sessionSums = new int[totalCols];
         int studentIndex = 1;
+
         for (User student : students) {
-            // N°
-            PdfPCell cellIdx = new PdfPCell(new Phrase(String.valueOf(studentIndex++), dataFont));
-            cellIdx.setBackgroundColor(Color.WHITE);
-            cellIdx.setHorizontalAlignment(Element.ALIGN_CENTER);
-            cellIdx.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cellIdx.setFixedHeight(16f);
-            applyBorder(cellIdx);
-            table.addCell(cellIdx);
-
-            // NOMS ET PRÉNOMS
+            table.addCell(createDataCell(String.valueOf(studentIndex++), dataFont));
             String fullName = nvl(student.getLastName()).toUpperCase() + " " + nvl(student.getFirstName());
-            PdfPCell cellFullName = new PdfPCell(new Phrase(fullName.trim(), nameFont));
-            cellFullName.setBackgroundColor(Color.WHITE);
-            cellFullName.setHorizontalAlignment(Element.ALIGN_LEFT);
-            cellFullName.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            cellFullName.setFixedHeight(16f);
-            applyBorder(cellFullName);
-            table.addCell(cellFullName);
+            table.addCell(createDataCellLeft(fullName.trim(), dataFont));
+            table.addCell(createDataCell(nvl(student.getMatricule()), dataFont));
 
-            // Sessions
-            for (Session s : sessions) {
-                Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
-                AttendanceRecord rec = byUser.get(student.getUserId());
-                
-                String text = "-";
-                Color bg = Color.WHITE;
-                Font f = dataFont;
+            int globalAbs = 0;
+            int globalJust = 0;
+            int lates = 0;
 
-                if (rec != null) {
-                    if (rec.getStatus() == AttendanceStatus.PRESENT) {
-                        text = "P";
-                        bg = COLOR_PRESENT;
-                        f = presentFont;
-                    } else if (rec.getStatus() == AttendanceStatus.ABSENT) {
-                        text = "A";
-                        bg = COLOR_ABSENT;
-                        f = presentFont;
-                    } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
-                        text = "J";
-                        bg = COLOR_EXCUSED;
-                        f = presentFont;
+            int colIdx = 3;
+            for (Map.Entry<Course, List<Session>> entry : courseSessionsMap.entrySet()) {
+                int ueAbs = 0;
+                int ueJust = 0;
+
+                for (Session s : entry.getValue()) {
+                    Map<Integer, AttendanceRecord> byUser = attendanceMap.getOrDefault(s.getSessionId(), Collections.emptyMap());
+                    AttendanceRecord rec = byUser.get(student.getUserId());
+
+                    String val = "";
+                    int dur = sessionDuration(s);
+                    if (rec != null) {
+                        if (rec.getStatus() == AttendanceStatus.ABSENT) {
+                            val = String.valueOf(dur);
+                            ueAbs += dur;
+                            sessionSums[colIdx] += dur;
+                        } else if (rec.getStatus() == AttendanceStatus.EXCUSED) {
+                            val = String.valueOf(dur);
+                            ueAbs += dur;
+                            ueJust += dur;
+                            sessionSums[colIdx] += dur;
+                        } else if (rec.getStatus() == AttendanceStatus.LATE) {
+                            lates++;
+                        }
                     }
+                    table.addCell(createDataCell(val, dataFont));
+                    colIdx++;
                 }
 
-                PdfPCell cell = new PdfPCell(new Phrase(text, f));
-                cell.setBackgroundColor(bg);
-                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-                cell.setFixedHeight(16f);
-                applyBorder(cell);
-                table.addCell(cell);
+                globalAbs += ueAbs;
+                globalJust += ueJust;
+
+                table.addCell(createDataCell(ueAbs > 0 ? String.valueOf(ueAbs) : "", boldDataFont));
+                sessionSums[colIdx++] += ueAbs;
+                
+                table.addCell(createDataCell(ueJust > 0 ? String.valueOf(ueJust) : "", boldDataFont));
+                sessionSums[colIdx++] += ueJust;
             }
+
+            int globalNj = globalAbs - globalJust;
+
+            table.addCell(createDataCell(globalAbs > 0 ? String.valueOf(globalAbs) : "", boldDataFont));
+            sessionSums[colIdx++] += globalAbs;
+
+            table.addCell(createDataCell(globalJust > 0 ? String.valueOf(globalJust) : "", boldDataFont));
+            sessionSums[colIdx++] += globalJust;
+
+            table.addCell(createDataCell(globalNj > 0 ? String.valueOf(globalNj) : "", boldDataFont));
+            sessionSums[colIdx++] += globalNj;
+
+            table.addCell(createDataCell(lates > 0 ? String.valueOf(lates) : "", boldDataFont));
+            sessionSums[colIdx++] += lates;
+        }
+
+        // Footer Row
+        PdfPCell footerLabel = createSpannedHeaderCell("TOTAL DES HEURES DE LA SEMAINE", 1, 3, boldDataFont);
+        footerLabel.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(footerLabel);
+
+        for (int i = 3; i < totalCols; i++) {
+            table.addCell(createDataCell(sessionSums[i] > 0 ? String.valueOf(sessionSums[i]) : "", boldDataFont));
         }
 
         return table;
     }
 
-    // =====================================================================
-    //  PIED DE PAGE
-    // =====================================================================
-
     private void addFooter(Document document) throws DocumentException {
-        Font signTitleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8f, Color.BLACK);
-        Font signLineFont  = FontFactory.getFont(FontFactory.HELVETICA, 8f, Color.DARK_GRAY);
+        Font noteFont = FontFactory.getFont(FontFactory.HELVETICA_OBLIQUE, 8f, Color.BLACK);
+        Paragraph note = new Paragraph("\nNB: Vous avez 3 jours pour toutes justifications, passé ce délai aucune requête ne sera acceptée.", noteFont);
+        document.add(note);
 
-        PdfPTable footer = new PdfPTable(2);
-        footer.setWidthPercentage(55);
-        footer.setHorizontalAlignment(Element.ALIGN_RIGHT);
-        footer.setSpacingBefore(8f);
-        footer.setWidths(new float[]{50f, 50f});
-
-        PdfPCell cell1 = new PdfPCell();
-        cell1.setBorder(Rectangle.NO_BORDER);
-        cell1.addElement(new Paragraph("Le Responsable Pédagogique", signTitleFont));
-        cell1.addElement(new Paragraph("\n\n_______________________", signLineFont));
-        footer.addCell(cell1);
-
-        PdfPCell cell2 = new PdfPCell();
-        cell2.setBorder(Rectangle.NO_BORDER);
-        cell2.addElement(new Paragraph("Le Directeur", signTitleFont));
-        cell2.addElement(new Paragraph("\n\n_______________________", signLineFont));
-        footer.addCell(cell2);
-
-        document.add(footer);
+        Font signFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10f, Color.BLACK);
+        Paragraph sign = new Paragraph("\n\nLe Responsable Pédagogique ___________________________", signFont);
+        sign.setAlignment(Element.ALIGN_RIGHT);
+        document.add(sign);
     }
 
-    // =====================================================================
-    //  MÉTHODES UTILITAIRES
-    // =====================================================================
+    private PdfPCell createSpannedHeaderCell(String text, int rowspan, int colspan, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        if (rowspan > 1) cell.setRowspan(rowspan);
+        if (colspan > 1) cell.setColspan(colspan);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPadding(3f);
+        return cell;
+    }
+
+    private PdfPCell createHeaderCell(String text, Font font) {
+        return createSpannedHeaderCell(text, 1, 1, font);
+    }
+
+    private PdfPCell createDataCell(String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPadding(3f);
+        return cell;
+    }
+
+    private PdfPCell createDataCellLeft(String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setHorizontalAlignment(Element.ALIGN_LEFT);
+        cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        cell.setPadding(3f);
+        return cell;
+    }
 
     /** Calcul de la durée d'une séance en heures entières. */
     private int sessionDuration(Session s) {
