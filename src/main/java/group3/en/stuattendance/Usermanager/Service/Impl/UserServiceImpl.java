@@ -39,6 +39,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 @Service
 @RequiredArgsConstructor
@@ -86,6 +89,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "STAFF_REGISTER", category = "USER_MANAGEMENT", severity = "INFO")
+    @Caching(evict = {
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public UserDto registerStaff(StaffCreateDto dto) {
         Institution institution = dto.getInstitutionId() != null ?
                 institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
@@ -117,6 +125,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public UserDto registerTeacher(TeacherCreateDto dto) {
         Institution institution = dto.getInstitutionId() != null ?
                 institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
@@ -152,6 +165,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Caching(evict = {
+        @CacheEvict(value = "students", allEntries = true),
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public UserDto registerStudent(StudentCreateDto dto) {
         Institution institution = dto.getInstitutionId() != null ?
                 institutionRepository.findById(dto.getInstitutionId()).orElse(null) : null;
@@ -196,6 +214,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "staff")
     public List<UserDto> getAllStaffDtos() {
         return getAllStaff().stream()
                 .map(userMapper::toDto)
@@ -208,6 +227,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#userId")
     public UserDto getUserDtoById(Integer userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException("User not found"));
@@ -261,6 +281,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users")
     public List<UserDto> getAllUserDtos() {
         return userRepository.findAll().stream()
                 .map(userMapper::toDto)
@@ -279,6 +300,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "USER_UPDATE", category = "USER_MANAGEMENT", severity = "INFO")
+    @Caching(evict = {
+        @CacheEvict(value = "users", key = "#userId"),
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "students", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public UserDto updateUser(Integer userId, UserDto dto) {
         User existingUser = userRepository.findById(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + userId));
@@ -381,6 +408,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "USER_DELETE", category = "USER_MANAGEMENT", severity = "WARNING")
+    @Caching(evict = {
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "students", allEntries = true),
+        @CacheEvict(value = "dashboardStats", allEntries = true)
+    })
     public void deleteUser(Integer userId) {
         if (!userRepository.existsById(userId)) {
             throw new EntityNotFoundException("User not found with id: " + userId);
@@ -390,6 +423,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "USER_DEACTIVATE", category = "USER_MANAGEMENT", severity = "WARNING")
+    @Caching(evict = {
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "students", allEntries = true)
+    })
     public void deactivateUser(Integer userId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setIsActive(false);
@@ -399,6 +437,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Auditable(action = "USER_ACTIVATE", category = "USER_MANAGEMENT", severity = "INFO")
+    @Caching(evict = {
+        @CacheEvict(value = "users", allEntries = true),
+        @CacheEvict(value = "staff", allEntries = true),
+        @CacheEvict(value = "students", allEntries = true)
+    })
     public void activateUser(Integer userId) {
         userRepository.findById(userId).ifPresent(user -> {
             user.setIsActive(true);

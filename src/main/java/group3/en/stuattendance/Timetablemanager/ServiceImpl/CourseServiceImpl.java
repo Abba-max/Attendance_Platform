@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import group3.en.stuattendance.Auditmanager.Annotation.Auditable;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_CREATE", category = "COURSE_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto createCourse(CourseDto courseDto) {
         Course course = courseMapper.toEntity(courseDto);
         
@@ -50,6 +54,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_UPDATE", category = "COURSE_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto updateCourse(Integer id, CourseDto courseDto) {
         Course existing = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + id));
@@ -78,6 +83,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_DELETE", category = "COURSE_MANAGEMENT", severity = "WARNING")
+    @CacheEvict(value = "courses", allEntries = true)
     public void deleteCourse(Integer id) {
         if (!courseRepository.existsById(id)) {
             throw new EntityNotFoundException("Course not found with id: " + id);
@@ -86,6 +92,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Cacheable(value = "courses", key = "#id")
     public CourseDto getCourseById(Integer id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + id));
@@ -102,6 +109,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Cacheable(value = "courses")
     public List<CourseDto> getAllCourses() {
         return courseRepository.findAll()
                 .stream()
@@ -110,6 +118,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Cacheable(value = "courses", key = "'speciality_' + #specialityId")
     public List<CourseDto> getCoursesBySpeciality(Integer specialityId) {
         return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
@@ -120,6 +129,7 @@ public class CourseServiceImpl implements CourseService {
 
 
     @Override
+    @Cacheable(value = "courses", key = "'speciality_' + #specialityId + '_level_' + #level")
     public List<CourseDto> getCoursesBySpecialityAndLevel(Integer specialityId, Integer level) {
         return courseRepository.findBySpecialitySpecialityId(specialityId)
                 .stream()
@@ -130,6 +140,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_ASSIGN_SPECIALITY", category = "COURSE_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto assignCourseToSpeciality(Integer courseId, Integer specialityId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
@@ -144,6 +155,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_ASSIGN_TEACHER", category = "COURSE_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto assignTeacherToCourse(Integer courseId, Integer teacherId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found with id: " + courseId));
@@ -165,6 +177,7 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     @Auditable(action = "COURSE_REMOVE_TEACHER", category = "COURSE_MANAGEMENT", severity = "WARNING")
+    @CacheEvict(value = "courses", allEntries = true)
     public CourseDto removeTeacherFromCourse(Integer courseId, Integer teacherId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Course not found"));
@@ -185,6 +198,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     @Override
+    @Cacheable(value = "courses", key = "'teacher_' + #teacherId")
     public List<CourseDto> getCoursesByTeacher(Integer teacherId) {
         return courseRepository.findByTeachersUserId(teacherId).stream()
                 .map(courseMapper::toDto)

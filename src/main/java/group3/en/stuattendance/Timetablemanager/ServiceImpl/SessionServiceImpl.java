@@ -25,6 +25,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +44,7 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     @Auditable(action = "SESSION_START", category = "SESSION_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto startSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -94,6 +97,7 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     @Auditable(action = "SESSION_END", category = "SESSION_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto endSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -159,6 +163,7 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     @Auditable(action = "SESSION_CONFIRM", category = "SESSION_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto confirmAttendance(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -194,6 +199,7 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     @Auditable(action = "SESSION_CANCEL", category = "SESSION_MANAGEMENT", severity = "WARNING")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto cancelSession(Integer sessionId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + sessionId));
@@ -231,6 +237,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Auditable(action = "SESSION_CREATE", category = "SESSION_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto createSession(SessionDto sessionDto) {
         Session session = sessionMapper.toEntity(sessionDto);
 
@@ -258,6 +265,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Auditable(action = "SESSION_UPDATE", category = "SESSION_MANAGEMENT", severity = "INFO")
+    @CacheEvict(value = "sessions", allEntries = true)
     public SessionDto updateSession(Integer id, SessionDto sessionDto) {
         Session existing = sessionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + id));
@@ -306,6 +314,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Auditable(action = "SESSION_DELETE", category = "SESSION_MANAGEMENT", severity = "WARNING")
+    @CacheEvict(value = "sessions", allEntries = true)
     public void deleteSession(Integer id) {
         if (!sessionRepository.existsById(id)) {
             throw new EntityNotFoundException("Session not found with id: " + id);
@@ -314,6 +323,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "#id")
     public SessionDto getSessionById(Integer id) {
         Session session = sessionRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Session not found with id: " + id));
@@ -321,6 +331,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions")
     public List<SessionDto> getAllSessions() {
         return sessionRepository.findAll()
                 .stream()
@@ -329,6 +340,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'course_' + #courseId")
     public List<SessionDto> getSessionsByCourse(Integer courseId) {
         return sessionRepository.findByCourseCourseId(courseId)
                 .stream()
@@ -337,6 +349,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'teacher_' + #teacherId")
     public List<SessionDto> getSessionsByTeacher(Integer teacherId) {
         return sessionRepository.findByTeacherUserId(teacherId)
                 .stream()
@@ -345,6 +358,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'classroom_' + #classroomId")
     public List<SessionDto> getSessionsByClassroom(Integer classroomId) {
         return sessionRepository.findByClassroomClassId(classroomId)
                 .stream()
@@ -361,6 +375,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'week_' + #week")
     public List<SessionDto> getSessionsByWeek(Integer week) {
         return sessionRepository.findByWeek(week)
                 .stream()
@@ -369,6 +384,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'course_' + #courseId + '_week_' + #week")
     public List<SessionDto> getSessionsByCourseAndWeek(Integer courseId, Integer week) {
         return sessionRepository.findByCourseCourseIdAndWeek(courseId, week)
                 .stream()
@@ -377,6 +393,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    @Cacheable(value = "sessions", key = "'teacher_' + #teacherId + '_sorted'")
     public List<SessionDto> getSessionsByTeacherAndDate(Integer teacherId, LocalDate date) {
         return sessionRepository.findByTeacherUserIdAndDate(teacherId, date)
                 .stream()
@@ -386,6 +403,7 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "sessions", key = "'teacher_sorted_' + #teacherId")
     public List<SessionDto> getSessionsByTeacherSorted(Integer teacherId) {
         return sessionRepository.findByTeacherUserIdOrderByDateAscStartTimeAsc(teacherId)
                 .stream()
