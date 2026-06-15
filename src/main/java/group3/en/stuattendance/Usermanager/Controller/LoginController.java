@@ -82,5 +82,16 @@ public class LoginController {
             return "auth/change-password";
         }
     }
+
+    @PostMapping("/forgot-password")
+    public String processForgotPassword(@RequestParam("email") String email, org.springframework.web.servlet.mvc.support.RedirectAttributes redirectAttributes) {
+        try {
+            userService.requestPasswordReset(email);
+            redirectAttributes.addFlashAttribute("message", "If an account exists for that email, a password reset request has been sent to the administrator.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "An error occurred: " + e.getMessage());
+        }
+        return "redirect:/login";
+    }
 }
 
